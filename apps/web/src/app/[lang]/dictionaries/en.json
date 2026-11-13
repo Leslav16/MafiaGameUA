@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "title": "MafiaGameUA: Mafia online with cameras",
+    "description": "Play Mafia with cameras and microphones: 11 players and a host at one table."
+  },
+  "nav": {
+    "home": "MafiaGameUA",
+    "language": "Language",
+    "switchTo": "Українська",
+    "switchToLabel": "Перейти на українську"
+  },
+  "hero": {
+    "title": "The city falls asleep.",
+    "lede": "Mafia with cameras and microphones. Eleven players, one host, and a table where you can see every face.",
+    "create": "Create a room",
+    "how": "How a game goes",
+    "toNight": "Switch to night",
+    "toDay": "Switch to day",
+    "phaseNight": "Night",
+    "phaseDay": "Day",
+    "host": "Host",
+    "seatLabel": "Seat {n}",
+    "tableLabel": "A table for 11 players and a host",
+    "lineup": "3 mafia, one of them the Don. 8 civilians, one of them the Sheriff."
+  },
+  "game": {
+    "title": "How a game goes",
+    "lede": "The game runs in rounds: day, night, day again. It ends when the mafia are found out, or when there are as many mafia as civilians.",
+    "steps": [
+      {
+        "name": "Introduction",
+        "text": "The first night. Everyone sees their role card, and the mafia open their eyes to recognise each other. All cameras and mics are off."
+      },
+      {
+        "name": "Speeches",
+        "text": "Day breaks. The host gives the floor in seat order, and everyone has one minute to convince the table."
+      },
+      {
+        "name": "Nominations",
+        "text": "During their minute, a player can put someone up for the vote by naming a seat number."
+      },
+      {
+        "name": "Vote",
+        "text": "The table votes on the nominees. The player voted out says a last word, then the host turns off their camera and mic."
+      },
+      {
+        "name": "Night",
+        "text": "The mafia shoot, the Don hunts for the Sheriff, the Sheriff checks a player. In the morning the host says who was killed."
+      }
+    ]
+  },
+  "host": {
+    "title": "The host runs the table",
+    "lede": "The host sees every role and controls each player's camera and mic. A player can't turn back on what the host turned off.",
+    "items": [
+      {
+        "name": "Camera and mic",
+        "text": "Turns them on or off for any of the eleven players."
+      },
+      {
+        "name": "Quiet table",
+        "text": "One click leaves only the speaker's mic on."
+      },
+      {
+        "name": "Kill",
+        "text": "Marks a player as killed, and their camera and mic stay off for the rest of the game."
+      },
+      {
+        "name": "Timer and fouls",
+        "text": "Gives the floor, pauses the minute, records warnings."
+      }
+    ]
+  },
+  "footer": {
+    "note": "The first version runs on the host's own computer."
+  },
+  "room": {
+    "title": "Rooms are being built",
+    "text": "The next update adds a room with cameras for 11 players and a host.",
+    "back": "Back to the start"
+  }
+}

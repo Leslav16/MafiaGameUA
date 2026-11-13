@@ -1,0 +1,38 @@
+# Starts everything for version 1 on one computer:
+#   web          the site            http://localhost:3000
+#   game-server  game state          http://localhost:4000/health
+#   livekit      camera & mic video  ws://localhost:7880
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - game-server
+    restart: unless-stopped
+
+  game-server:
+    build:
+      context: .
+      dockerfile: apps/game-server/Dockerfile
+    environment:
+      PORT: "4000"
+      WEB_ORIGIN: http://localhost:3000
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/livekit-server:v1.13.10
+    command: ["--config", "/etc/livekit.yaml", "--node-ip", "${LIVEKIT_NODE_IP:-127.0.0.1}"]
+    environment:
+      LIVEKIT_KEYS: ${LIVEKIT_KEYS:?Copy .env.example to .env first}
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    restart: unless-stopped

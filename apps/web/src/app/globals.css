@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Base palette: "the table under one lamp" (docs/PLAN.md, section 3) */
+@theme {
+  --color-ink: #18203a;
+  --color-lamp: #e8a33d;
+  --color-card: #efe4cc;
+  --color-oxblood: #7a1f2b;
+  --color-haze: #d9dde3;
+  --color-smoke: #8a8f99;
+
+  --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
+  --font-sans: var(--font-golos), system-ui, sans-serif;
+
+  --ease-phase: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Semantic tokens that change with the phase. */
+:root,
+[data-phase="day"] {
+  --surface: var(--color-haze);
+  --surface-raised: #e6e9ed;
+  --text: var(--color-ink);
+  --text-muted: #4a5163;
+  --line: #b9bec8;
+  --accent: var(--color-lamp);
+  --accent-text: var(--color-ink);
+  --accent-strong: #8f560c; /* lamplight dark enough for text on Day haze */
+  --table: #c9a46a;
+  --glow-opacity: 0.55;
+  --seat-fill: var(--color-card);
+  --seat-text: var(--color-ink);
+  --phase-duration: 1200ms;
+}
+
+[data-phase="night"] {
+  --surface: var(--color-ink);
+  --surface-raised: #212a48;
+  --text: var(--color-card);
+  --text-muted: #aab0bd;
+  --line: #35405f;
+  --accent: var(--color-lamp);
+  --accent-text: var(--color-ink);
+  --accent-strong: var(--color-lamp);
+  --table: #3a2f2a;
+  --glow-opacity: 0.18;
+  --seat-fill: #262f4d;
+  --seat-text: #8a8f99;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-phase] {
+    --phase-duration: 1ms;
+  }
+}
+
+html {
+  background: var(--color-haze);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.phase-surface {
+  background-color: var(--surface);
+  color: var(--text);
+  transition:
+    background-color var(--phase-duration) var(--ease-phase),
+    color var(--phase-duration) var(--ease-phase);
+}
+
+.phase-transition {
+  transition-property: fill, stroke, opacity, background-color, color, border-color;
+  transition-duration: var(--phase-duration);
+  transition-timing-function: var(--ease-phase);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-lamp);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

@@ -134,6 +134,6 @@ Not in the MVP: user accounts, an automatic narrator, extra roles (Doctor, Mania
 
 ## 6. Open questions
 
-- What is your home internet upload speed? (Check at speedtest.net.) It decides whether 12 people in HD works from your computer.
 - Is 3 mafia + 8 civilians the role mix you want for 11 players?
-- Which operating system is your computer (Windows, macOS, Linux)?
+
+Answered: upload speed is 500 to 1000 Mbit/s, well above what 12 people in HD need. The host computer runs Windows 11, so setup uses Docker Desktop with WSL 2.

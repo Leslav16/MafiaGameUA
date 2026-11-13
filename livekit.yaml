@@ -1,0 +1,14 @@
+# LiveKit video server config for running on your own computer.
+# API keys come from LIVEKIT_KEYS in .env, never from this file.
+port: 7880
+rtc:
+  tcp_port: 7881
+  # One UDP port for all video, so only one port needs forwarding on the router.
+  udp_port: 7882
+  use_external_ip: false
+room:
+  # 11 players + 1 host
+  max_participants: 12
+  empty_timeout: 300
+logging:
+  level: info
