@@ -1,0 +1,12 @@
+{
+  "name": "mafia-game-ua",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:web": "npm run dev -w web",
+    "dev:game": "npm run dev -w game-server",
+    "build": "npm run build -w web && npm run build -w game-server",
+    "lint": "npm run lint -w web",
+    "typecheck": "npm run typecheck -w game-server && npm run typecheck -w web"
+  }
+}
