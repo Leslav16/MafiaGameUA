@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Figure } from "../figures/Figure";
 import type { Role, RoomLabels } from "./types";
 
 const FACE: Record<Role, { mark: string; tone: string }> = {
   civilian: { mark: "♥", tone: "text-[var(--color-ink)]" },
   sheriff: { mark: "★", tone: "text-[var(--color-ochre)]" },
+  doctor: { mark: "✚", tone: "text-[#9d1714]" },
   mafia: { mark: "♠", tone: "text-[var(--color-oxblood)]" },
   don: { mark: "♛", tone: "text-[var(--color-oxblood)]" },
 };
@@ -25,7 +27,7 @@ export function RoleCard({ role, labels }: { role: Role; labels: RoomLabels }) {
       onClick={() => setOpen((o) => !o)}
       aria-pressed={open}
       aria-label={open ? `${labels.role.title}: ${labels.role[role]}. ${labels.role.hide}` : `${labels.role.title}. ${labels.role.peek}`}
-      className="role-card group block h-36 w-[16.5rem] shrink-0 text-left [perspective:900px]"
+      className="role-card group block h-36 w-[20rem] max-w-full shrink-0 text-left [perspective:900px]"
     >
       <span data-open={open ? "" : undefined} className="role-card-inner relative block size-full">
         {/* Back */}
@@ -36,7 +38,9 @@ export function RoleCard({ role, labels }: { role: Role; labels: RoomLabels }) {
           <span className="text-base text-[var(--color-card)]/80">{labels.role.peek}</span>
         </span>
         {/* Front */}
-        <span className="role-face role-front absolute inset-0 flex flex-col rounded-lg bg-[var(--color-card)] p-4 text-[var(--color-ink)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
+        <span className="role-face role-front absolute inset-0 flex gap-2 rounded-lg bg-[var(--color-card)] py-3 pr-4 pl-1 text-[var(--color-ink)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
+          <Figure role={role} asleep={!open} className="h-full w-[5.5rem] shrink-0" />
+          <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex items-baseline justify-between">
             <span className={`font-display text-3xl leading-none font-semibold tracking-wide ${face.tone}`}>
               {labels.role[role]}
@@ -45,8 +49,9 @@ export function RoleCard({ role, labels }: { role: Role; labels: RoomLabels }) {
               {face.mark}
             </span>
           </span>
-          <span className="mt-2 text-sm leading-snug text-[#4a3a28]">{roleText}</span>
+          <span className="mt-1.5 text-[0.8rem] leading-snug text-[#4a3a28]">{roleText}</span>
           <span className="mt-auto text-xs text-[#4a3a28]">{labels.role.hide}</span>
+          </span>
         </span>
       </span>
     </button>

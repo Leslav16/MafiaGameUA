@@ -6,6 +6,7 @@ import type { RoomLabels, SeatInfo } from "./types";
 const ROLE_MARK: Record<NonNullable<SeatInfo["role"]>, string> = {
   civilian: "bg-[var(--color-card)]",
   sheriff: "bg-[var(--color-lamp)]",
+  doctor: "bg-[#efe8da] ring-2 ring-[#b3201b]",
   mafia: "bg-[var(--color-oxblood)]",
   don: "bg-[var(--color-oxblood)] ring-2 ring-[var(--color-card)]",
 };
@@ -25,6 +26,9 @@ export function PlayerTile({
   isMe = false,
   showRole = false,
   tag,
+  isHost = false,
+  selected = false,
+  onSelect,
   video,
   children,
   className = "",
@@ -37,6 +41,11 @@ export function PlayerTile({
   showRole?: boolean;
   /** Replaces the seat number in the corner tag, e.g. "Host". */
   tag?: string;
+  /** The host's own tile: set apart with a lamp frame. */
+  isHost?: boolean;
+  /** Host view: tiles can be clicked to select a player. */
+  selected?: boolean;
+  onSelect?: () => void;
   video?: ReactNode;
   children?: ReactNode;
   className?: string;
@@ -66,8 +75,19 @@ export function PlayerTile({
       aria-label={status}
       data-speaking={speaking && alive ? "" : undefined}
       data-alive={alive ? "" : undefined}
+      data-host={isHost ? "" : undefined}
+      data-selected={selected ? "" : undefined}
       className={`tile group relative isolate aspect-[4/3] overflow-hidden rounded-lg bg-[var(--tile)] text-[var(--color-card)] ${className}`}
     >
+      {onSelect && (
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-pressed={selected}
+          aria-label={`${labels.select}: ${status}`}
+          className="absolute inset-0 z-30 cursor-pointer rounded-lg focus-visible:outline-offset-[-3px]"
+        />
+      )}
       {/* Camera, or the seat number when the camera is off */}
       {showVideo ? (
         <div className="absolute inset-0 [&>*]:size-full [&>*]:object-cover">{video}</div>
@@ -86,7 +106,7 @@ export function PlayerTile({
       {/* Seat number tag, top-left */}
       <span
         aria-hidden
-        className="absolute top-0 left-0 z-10 grid min-w-[2.6em] place-items-center rounded-br-md bg-[var(--color-card)] px-2 py-0.5 font-display text-[clamp(1.1rem,3.4cqw,1.9rem)] leading-tight font-semibold text-[var(--color-ink)] tabular-nums"
+        className={`absolute top-0 left-0 z-10 grid min-w-[2.6em] place-items-center rounded-br-md px-2 py-0.5 ${isHost ? "bg-[var(--color-lamp)] tracking-wide uppercase" : "bg-[var(--color-card)]"} font-display text-[clamp(1.1rem,3.4cqw,1.9rem)] leading-tight font-semibold text-[var(--color-ink)] tabular-nums`}
       >
         {mark}
       </span>

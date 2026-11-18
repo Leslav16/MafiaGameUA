@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { PhaseBanner } from "../room/PhaseBanner";
 import { PlayerTile } from "../room/PlayerTile";
-import { RoleCard } from "../room/RoleCard";
+import { RoomDock } from "../room/RoomDock";
 import { RoomGrid } from "../room/RoomGrid";
 import { Timer } from "../room/Timer";
 import type { RoomLabels, RoomPhase, SeatInfo } from "../room/types";
 
 const NAMES = ["Оля", "Тарас", "Ірина", "Max", "Богдан", "Софія", "Андрій", "Kate", "Назар", "Марта", "Дмитро"];
+const ME = 6;
 
 /** A stand-in for a camera: a warm-lit silhouette. Sample page only. */
 function FakeVideo({ seed }: { seed: number }) {
@@ -36,6 +37,9 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
   const [phase, setPhase] = useState<RoomPhase>("day");
   const [left, setLeft] = useState(42);
   const [running, setRunning] = useState(true);
+  const [myMic, setMyMic] = useState(true);
+  const [myCam, setMyCam] = useState(true);
+  const [myName, setMyName] = useState(NAMES[ME - 1]);
   const night = phase === "night";
   const floorSeat = night ? null : 4;
 
@@ -48,13 +52,14 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
   const seats: SeatInfo[] = NAMES.map((name, i) => {
     const seat = i + 1;
     const alive = seat !== 7 && seat !== 2;
+    const me = seat === ME;
     return {
       seat,
-      name,
+      name: me ? myName : name,
       alive,
       connected: seat !== 10,
-      camOn: !night && seat !== 9,
-      micOn: !night && (seat === floorSeat || seat === 5),
+      camOn: !night && seat !== 9 && (!me || myCam),
+      micOn: !night && (seat === floorSeat || seat === 5 || (me && myMic)),
       fouls: seat === 3 ? 2 : seat === 8 ? 1 : 0,
     };
   });
@@ -67,48 +72,62 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
 
       <div className="p-2 sm:p-4">
         <RoomGrid
-          host={
-            <PlayerTile
-              info={{ seat: 0, name: labels.host, alive: true, connected: true, camOn: true, micOn: true, fouls: 0 }}
-              labels={labels}
-              tag={labels.host}
-              video={<FakeVideo seed={11} />}
-            />
-          }
           seats={seats.map((s) => (
             <PlayerTile
               key={s.seat}
               info={s}
               labels={labels}
-              isMe={s.seat === 6}
+              isMe={s.seat === ME}
               speaking={s.seat === floorSeat}
               video={<FakeVideo seed={s.seat} />}
             />
           ))}
+          host={
+            <PlayerTile
+              info={{ seat: 12, name: "Лесь", alive: true, connected: true, camOn: true, micOn: true, fouls: 0 }}
+              labels={labels}
+              tag={labels.host}
+              isHost
+              video={<FakeVideo seed={12} />}
+            />
+          }
         />
       </div>
 
-      {/* The player's own strip: role card and sample switches */}
-      <div className="phase-transition flex flex-wrap items-center gap-4 border-t border-[var(--line)] px-4 py-3 sm:px-6">
-        <RoleCard role="sheriff" labels={labels} />
-        <div className="ml-auto flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setPhase(night ? "day" : "night")}
-            className="phase-transition inline-flex min-h-11 items-center rounded-full border border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--color-lamp)]"
-          >
-            {night ? labels.phase.day : labels.phase.night}
-          </button>
-          <button
-            type="button"
-            onClick={() => setRunning((r) => !r)}
-            className="phase-transition inline-flex min-h-11 items-center rounded-full border border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--color-lamp)]"
-          >
-            <span aria-hidden>{running ? "❚❚" : "▶"}</span>
-            <span className="sr-only">{labels.timerLabel}</span>
-          </button>
-        </div>
-      </div>
+      <RoomDock
+        labels={labels}
+        role="sheriff"
+        micOn={myMic && !night}
+        camOn={myCam && !night}
+        micLocked={night}
+        camLocked={night}
+        onToggleMic={() => setMyMic((v) => !v)}
+        onToggleCam={() => setMyCam((v) => !v)}
+        nickname={myName}
+        onRename={async (n) => {
+          setMyName(n);
+          return null;
+        }}
+        extra={
+          <>
+            <button
+              type="button"
+              onClick={() => setPhase(night ? "day" : "night")}
+              className="phase-transition inline-flex min-h-12 items-center rounded-full border border-dashed border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--color-lamp)]"
+            >
+              {night ? labels.phase.day : labels.phase.night}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRunning((r) => !r)}
+              aria-label={labels.timerLabel}
+              className="phase-transition inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-dashed border-[var(--line)] px-3 font-display text-base hover:border-[var(--color-lamp)]"
+            >
+              {running ? "❚❚" : "▶"}
+            </button>
+          </>
+        }
+      />
     </div>
   );
 }

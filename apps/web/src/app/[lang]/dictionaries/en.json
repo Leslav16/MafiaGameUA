@@ -21,7 +21,7 @@
     "host": "Host",
     "seatLabel": "Seat {n}",
     "tableLabel": "A table for 11 players and a host",
-    "lineup": "3 mafia, one of them the Don. 8 civilians, one of them the Sheriff.",
+    "lineup": "The Don, 2 mafia, the Sheriff, the Doctor and 6 civilians. Roles are dealt automatically when the host starts the table.",
     "preview": "See the room"
   },
   "game": {
@@ -111,7 +111,9 @@
       "civilianText": "Find the mafia and vote them out.",
       "sheriffText": "Each night, check one player. The host tells you if they are mafia.",
       "mafiaText": "Each night, choose with your team who to kill. Don't give yourself away by day.",
-      "donText": "You lead the mafia. Each night, hunt for the Sheriff."
+      "donText": "You lead the mafia. Each night, hunt for the Sheriff.",
+      "doctor": "Doctor",
+      "doctorText": "Each night, choose someone to save. If the mafia shoot them, they survive."
     },
     "create": {
       "title": "New room",
@@ -161,6 +163,49 @@
       "lede": "A sample with made-up players. The real room arrives with the camera connection.",
       "asPlayer": "As a player sees it",
       "sample": "Sample"
-    }
+    },
+    "settings": {
+      "open": "Settings",
+      "title": "Settings",
+      "nickname": "Name in the game",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "toggleMic": "Microphone",
+    "toggleCam": "Camera",
+    "select": "Select player",
+    "close": "Close"
+  },
+  "rules": {
+    "open": "Rules",
+    "close": "Close",
+    "rolesTitle": "Roles at the table",
+    "roles": [
+      {
+        "id": "don",
+        "name": "Don",
+        "text": "Head of the mafia. Hunts for the Sheriff at night."
+      },
+      {
+        "id": "mafia",
+        "name": "Mafia",
+        "text": "Two of them. Each night they choose, with the Don, who to kill."
+      },
+      {
+        "id": "sheriff",
+        "name": "Sheriff",
+        "text": "At night, checks a player: mafia or not."
+      },
+      {
+        "id": "doctor",
+        "name": "Doctor",
+        "text": "At night, saves one player from the shot."
+      },
+      {
+        "id": "civilian",
+        "name": "Civilians",
+        "text": "Six of them. They have only their vote and their wits."
+      }
+    ]
   }
 }

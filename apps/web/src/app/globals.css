@@ -111,8 +111,6 @@ body {
 
 .tile {
   container-type: inline-size;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
-  transition: box-shadow 200ms ease-out;
 }
 
 /* The person who has the floor: a ring of lamplight, no bouncing. */
@@ -120,6 +118,36 @@ body {
   box-shadow:
     0 0 0 3px var(--color-lamp),
     0 0 28px -4px rgb(200 137 63 / 0.75);
+}
+
+/* A little depth: tiles sit on the table like framed photos. */
+.tile {
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.25),
+    0 10px 18px -12px rgb(0 0 0 / 0.7),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  transition:
+    box-shadow 200ms ease-out,
+    transform 200ms ease-out;
+}
+.tile[data-speaking] {
+  transform: translateY(-2px) scale(1.015);
+}
+.tile[data-host] {
+  box-shadow:
+    0 0 0 2px var(--color-lamp),
+    0 0 0 5px rgb(200 137 63 / 0.18),
+    0 12px 24px -12px rgb(0 0 0 / 0.8);
+}
+.tile[data-selected] {
+  box-shadow:
+    0 0 0 3px var(--color-card),
+    0 0 0 6px var(--color-oxblood);
+}
+.tile:has(> button:hover):not([data-selected]) {
+  box-shadow:
+    0 0 0 2px rgb(214 199 161 / 0.6),
+    0 10px 18px -12px rgb(0 0 0 / 0.7);
 }
 
 .tile:not([data-alive]) video {
@@ -144,9 +172,9 @@ body {
 
 /* Keep all twelve tiles on one screen: the grid is ~0.45× as tall as it is
    wide on large screens, so cap its width by the height left over. */
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .room-grid {
-    max-width: calc((100dvh - 15rem) * 2.15);
+    max-width: calc((100dvh - 12.5rem) * 1.74);
   }
 }
 
@@ -181,5 +209,168 @@ body {
   }
   .role-card-inner[data-open] .role-front {
     opacity: 1;
+  }
+}
+
+/* ---------- Figures and stage ---------- */
+
+.figure {
+  animation: figure-bob 3.2s ease-in-out infinite;
+  animation-delay: var(--fig-delay, 0s);
+  transform-origin: 50% 95%;
+}
+.figure .figure-head {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: figure-tilt 5.5s ease-in-out infinite;
+  animation-delay: var(--fig-delay, 0s);
+}
+@keyframes figure-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3%); }
+}
+@keyframes figure-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-4deg); }
+  70% { transform: rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .figure,
+  .figure .figure-head {
+    animation: none;
+  }
+}
+
+/* Popup windows */
+.modal[open] {
+  animation: modal-in 260ms cubic-bezier(0.2, 0, 0, 1);
+}
+.modal[open]::backdrop {
+  animation: fade-in 260ms ease-out;
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal[open],
+  .modal[open]::backdrop {
+    animation: none;
+  }
+}
+
+/* Landing scene */
+.stage-lamp {
+  transform-origin: 50% 0;
+  animation: lamp-sway 7s ease-in-out infinite;
+}
+@keyframes lamp-sway {
+  0%, 100% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.2deg); }
+}
+.stage-cone {
+  clip-path: polygon(41% 0, 59% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, rgb(255 214 140 / 0.55), rgb(255 200 120 / 0.12) 70%, transparent);
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  animation: lamp-flicker 6s steps(1) infinite;
+  transition: opacity var(--phase-duration) var(--ease-phase);
+}
+[data-phase="day"] .stage-cone {
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+}
+.stage[data-night] .stage-cone {
+  opacity: 0.35;
+}
+.stage-bulb {
+  transition: fill var(--phase-duration) var(--ease-phase);
+}
+.stage[data-night] .stage-bulb {
+  fill: #8a6a3a;
+}
+@keyframes lamp-flicker {
+  0%, 100% { filter: blur(6px) brightness(1); }
+  47% { filter: blur(6px) brightness(0.85); }
+  48% { filter: blur(6px) brightness(1); }
+  80% { filter: blur(6px) brightness(0.92); }
+  81% { filter: blur(6px) brightness(1); }
+}
+
+.stage-figure {
+  transition: filter var(--phase-duration) var(--ease-phase);
+  filter: drop-shadow(0 10px 10px rgb(0 0 0 / 0.35));
+}
+.stage[data-night] .stage-figure {
+  filter: brightness(0.45) saturate(0.7);
+}
+.stage[data-night] .stage-figure[data-mafia] {
+  filter: brightness(0.8) drop-shadow(0 0 14px rgb(208 84 78 / 0.55));
+}
+
+.stage-table {
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 40%, rgb(255 210 140 / 0.35), transparent 70%),
+    repeating-linear-gradient(100deg, rgb(0 0 0 / 0) 0 18px, rgb(0 0 0 / 0.06) 18px 20px),
+    radial-gradient(ellipse at 50% 35%, #6b3f1a, #4f2d12 55%, #2c180d);
+  box-shadow:
+    inset 0 2px 0 rgb(255 220 170 / 0.25),
+    inset 0 -10px 30px rgb(0 0 0 / 0.45);
+  transform-style: preserve-3d;
+  transition: filter var(--phase-duration) var(--ease-phase);
+}
+.stage-table-edge {
+  background: linear-gradient(to bottom, #2c180d, #120a05);
+  box-shadow: 0 30px 40px -10px rgb(0 0 0 / 0.55);
+}
+.stage[data-night] .stage-table {
+  filter: brightness(0.55);
+}
+.stage-card {
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(45deg, rgb(214 199 161 / 0.18) 0 2px, transparent 2px 5px),
+    #781210;
+  box-shadow:
+    0 0 0 1.5px #d6c7a1,
+    0 3px 4px rgb(0 0 0 / 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-lamp,
+  .stage-cone {
+    animation: none;
+  }
+}
+
+/* Landing: one screen, no scroll. The stage is sized by the height left. */
+.hero-title {
+  font-size: clamp(2.4rem, min(8vw, 9dvh), 6rem);
+}
+.hero-lede {
+  font-size: clamp(1rem, 2.2dvh, 1.25rem);
+}
+.hero-stage-box {
+  max-width: calc((100dvh - 9rem) * 4 / 3);
+  margin-inline: auto;
+}
+@media (max-width: 1023px) {
+  .hero {
+    grid-template-rows: auto auto;
+    align-content: center;
+  }
+  .hero-lineup {
+    display: none;
+  }
+  .hero-stage-box {
+    max-width: calc((100dvh - 26rem) * 4 / 3);
   }
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PhaseShell } from "@/components/Phase";
-import { PreviewCreate, PreviewJoin, PreviewLobby } from "@/components/preview/PreviewForms";
+import { PreviewCreate, PreviewJoin } from "@/components/preview/PreviewForms";
 import { PreviewRoom } from "@/components/preview/PreviewRoom";
 import { getDictionary, hasLocale } from "../dictionaries";
 
@@ -51,11 +51,6 @@ export default async function Preview({ params }: PageProps<"/[lang]/preview">) 
           <PreviewJoin labels={ui} />
         </section>
 
-        <section className={`${section} border-t border-[var(--line)] phase-transition`}>
-          <h2 className={h2}>{ui.lobby.title}</h2>
-          <p className="mt-2 mb-8 max-w-[52ch] text-[var(--text-muted)] phase-transition">{ui.lobby.lede}</p>
-          <PreviewLobby labels={ui} />
-        </section>
       </main>
     </PhaseShell>
   );

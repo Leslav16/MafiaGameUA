@@ -3,7 +3,7 @@ import type { Dictionary } from "@/app/[lang]/dictionaries";
 /** The room's words, from the "ui" block of the uk/en dictionaries. */
 export type RoomLabels = Dictionary["ui"];
 
-export type Role = "civilian" | "sheriff" | "mafia" | "don";
+export type Role = "civilian" | "sheriff" | "doctor" | "mafia" | "don";
 export type RoomPhase = "lobby" | "day" | "night" | "ended";
 
 /**
