@@ -305,6 +305,9 @@
       "sheriff_check": "Sheriff checked {seat}: {result}",
       "healed": "Doctor healed {seat}"
     },
-    "seatShort": "№{n}"
+    "seatShort": "№{n}",
+    "addBots": "Fill empty seats with bots",
+    "removeBots": "Remove bots",
+    "botsHint": "Test mode: bots have no camera, but you can run a whole game with them."
   }
 }

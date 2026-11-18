@@ -27,6 +27,8 @@ export interface SeatView {
   /** LiveKit participant identity of the player in this seat. */
   identity: string | null;
   connected: boolean;
+  /** A test bot added by the host: no camera or mic. */
+  bot: boolean;
   alive: boolean;
   /** Why the player is out: killed by the mafia at night, voted out by the town, or removed by the host. */
   out: OutReason | null;
@@ -174,6 +176,9 @@ export type HostAction =
   | { type: "kill"; seat: number }
   | { type: "revive"; seat: number }
   | { type: "kick"; seat: number }
+  /** Test mode, before the game: fill every free seat with a bot (no camera), or remove all bots. */
+  | { type: "addBots" }
+  | { type: "removeBots" }
   /** Before the game: drag a tile onto another seat (swaps the two). */
   | { type: "moveSeat"; from: number; to: number }
   | { type: "endGame"; winner: Winner }

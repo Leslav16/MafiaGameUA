@@ -350,3 +350,18 @@ test("new game keeps the players and clears roles, deaths, fouls and the log", (
   assert.ok(v.seats.every((s) => s.alive && !s.out && s.fouls === 0 && !s.role && s.name));
   assert.throws(() => room.apply({ type: "next" }), GameError);
 });
+
+test("test mode: bots fill the free seats and can be removed before the game", () => {
+  const room = new Room("abc123", "Host", "secret");
+  room.takeSeat(undefined, "Ann");
+  room.apply({ type: "addBots" });
+  const v = room.view(host);
+  assert.equal(v.seats.filter((s) => s.bot).length, 10);
+  assert.ok(v.seats.filter((s) => s.bot).every((s) => s.name && s.connected));
+  room.apply({ type: "removeBots" });
+  assert.equal(room.freeSeats().length, 10);
+  room.apply({ type: "addBots" });
+  room.apply({ type: "startGame" });
+  assert.equal(room.view(host).seats.filter((s) => s.role).length, 11);
+  assert.throws(() => room.apply({ type: "removeBots" }), /game_in_progress/);
+});
