@@ -269,6 +269,19 @@ export function NowCard({
             {t.startGame} ▶
           </button>
           <p className="text-sm text-[var(--text-muted)]">{t.startHint}</p>
+          <div className="flex flex-col gap-1.5 border-t border-[var(--line)] pt-2">
+            {players < 11 && (
+              <button type="button" className={`${btn} ${plain} text-sm`} onClick={() => act({ type: "addBots" })}>
+                🤖 {t.addBots}
+              </button>
+            )}
+            {view.seats.some((s) => s.bot) && (
+              <button type="button" className={`${btn} ${plain} text-sm`} onClick={() => act({ type: "removeBots" })}>
+                {t.removeBots}
+              </button>
+            )}
+            <p className="text-xs text-[var(--text-muted)]">{t.botsHint}</p>
+          </div>
         </div>
       );
       break;

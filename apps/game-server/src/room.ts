@@ -33,6 +33,7 @@ interface Player {
   key: string;
   name: string;
   connected: number; // open sockets
+  bot: boolean;
   alive: boolean;
   out: OutReason | null;
   fouls: number;
@@ -158,6 +159,7 @@ export class Room {
       key: newId(18),
       name: parsed.name,
       connected: 0,
+      bot: false,
       alive: true,
       out: null,
       fouls: 0,
@@ -394,6 +396,29 @@ export class Room {
         removed.push(p.identity);
         break;
       }
+      case "addBots": {
+        if (this.stage !== "lobby") throw new GameError("game_in_progress");
+        for (const seat of this.freeSeats()) {
+          this.seats.set(seat, {
+            identity: `bot-${newId(6)}`,
+            key: newId(18),
+            name: `Bot ${seat}`,
+            connected: 0,
+            bot: true,
+            alive: true,
+            out: null,
+            fouls: 0,
+            role: null,
+            hostCamOff: false,
+            hostMicOff: false,
+          });
+        }
+        break;
+      }
+      case "removeBots":
+        if (this.stage !== "lobby") throw new GameError("game_in_progress");
+        for (const [seat, p] of this.seats) if (p.bot) this.seats.delete(seat);
+        break;
       case "moveSeat":
         this.swapSeats(assertSeat(action.from), assertSeat(action.to));
         break;
@@ -703,7 +728,8 @@ export class Room {
         seat: s,
         name: p?.name ?? null,
         identity: p?.identity ?? null,
-        connected: (p?.connected ?? 0) > 0,
+        connected: (p?.connected ?? 0) > 0 || !!p?.bot,
+        bot: p?.bot ?? false,
         alive: p?.alive ?? true,
         out: p?.out ?? null,
         fouls: p?.fouls ?? 0,
