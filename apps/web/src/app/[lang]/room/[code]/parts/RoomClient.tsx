@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Dictionary } from "../../../dictionaries";
 import { useRoom, type ParticipantMedia } from "@/lib/room/useRoom";
-import type { HostAction, RoomView } from "@/lib/room/types";
+import type { HostAction, OwnNightMarks, RoomView } from "@/lib/room/types";
 import { fmt } from "@/lib/room/format";
 import { HostPanel } from "@/components/host/HostPanel";
 import { ModalButton } from "@/components/Modal";
@@ -12,7 +12,9 @@ import { RulesBody } from "@/components/RulesBody";
 import { PhaseBanner } from "@/components/room/PhaseBanner";
 import { PlayerTile } from "@/components/room/PlayerTile";
 import { NightFall } from "@/components/room/NightFall";
-import { useShotSound, useVoteChips } from "@/components/room/useTableEffects";
+import { useShotSound } from "@/components/room/useTableEffects";
+import { useCameraEffect, useEffectsSupported } from "@/components/room/useCameraEffect";
+import { usePrefs } from "@/components/prefs";
 import { RoomDock } from "@/components/room/RoomDock";
 import { RoomGrid } from "@/components/room/RoomGrid";
 import { Timer } from "@/components/room/Timer";
@@ -63,6 +65,25 @@ function InviteLink({ lang, code, t }: { lang: string; code: string; t: Dictiona
   );
 }
 
+/** The private night mark this player sees on a seat: their own checks or heals. */
+function nightMark(
+  marks: OwnNightMarks | null | undefined,
+  seat: number,
+  mySeat: number | null,
+  ui: Dictionary["ui"],
+): { text: string; tone: "bad" | "good" | "info" } | null {
+  if (!marks) return null;
+  const m = marks.seats[seat];
+  if (marks.role === "doctor") {
+    if (seat === mySeat && marks.selfHeals) return { text: `✚ ${fmt(ui.marks.self, { n: marks.selfHeals })}`, tone: "info" };
+    return m?.count ? { text: `✚ ${fmt(ui.marks.healed, { n: m.count })}`, tone: "info" } : null;
+  }
+  if (!m || m.result === undefined) return null;
+  if (marks.role === "sheriff")
+    return m.result ? { text: `✓ ${ui.marks.mafia}`, tone: "bad" } : { text: `✓ ${ui.marks.notMafia}`, tone: "good" };
+  return m.result ? { text: `✓ ${ui.marks.sheriff}`, tone: "bad" } : { text: `✓ ${ui.marks.notSheriff}`, tone: "good" };
+}
+
 /** Why this player's camera / mic is off and locked, if it is. */
 function lockReason(view: RoomView, t: Dictionary["roomUi"]) {
   const me = view.me.kind === "player" ? view.seats[view.me.seat - 1] : null;
@@ -82,7 +103,6 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
   const room = useRoom(code);
   const [panelHidden, setPanelHidden] = useState(false);
   useShotSound(room.view?.flow.log);
-  useVoteChips(room.view?.flow.voting?.votes);
   const isHostView = room.view?.me.kind === "host";
   const mySeatView = room.view?.me.kind === "player" ? room.view.me.seat : null;
   const tiles = useTileOrder(code, {
@@ -90,6 +110,16 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
     onMove: (from, to) => (isHostView ? room.hostAction({ type: "moveSeat", from, to }) : room.chooseSeat(to)),
     locked: room.view?.phase !== "lobby",
   });
+  const prefs = usePrefs();
+  const effectsOk = useEffectsSupported();
+  const myIdentity =
+    room.view?.me.kind === "host"
+      ? room.view.host.identity
+      : mySeatView != null
+        ? room.view?.seats[mySeatView - 1]?.identity
+        : null;
+  const myMedia = room.media(myIdentity);
+  useCameraEffect(myMedia.isLocal ? myMedia.video : undefined, prefs.effect);
   const t = dict.roomUi;
   const ui = dict.ui;
   const rules = { ...dict.rules, game: dict.game, host: dict.host };
@@ -197,7 +227,9 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                     onSelect={
                       isHost && s.name ? () => setSelectedSeat(selectedSeat === s.seat ? null : s.seat) : undefined
                     }
-                    video={s.alive ? <VideoView track={m.video} mirror={m.isLocal} label={s.name ?? ""} /> : undefined}
+                    video={s.alive ? <VideoView track={m.video} mirror={m.isLocal && prefs.mirror} label={s.name ?? ""} /> : undefined}
+                    against={view.flow.voting?.votes[s.seat]}
+                    nightMark={nightMark(myView?.marks, s.seat, mySeat, ui)}
                   />
                   {!m.isLocal && <AudioOut track={m.audio} />}
                 </div>
@@ -220,7 +252,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                   isHost
                   isMe={isHost}
                   speaking={hostMedia.speaking && hostMedia.micOn}
-                  video={<VideoView track={hostMedia.video} mirror={hostMedia.isLocal} label={view.host.name} />}
+                  video={<VideoView track={hostMedia.video} mirror={hostMedia.isLocal && prefs.mirror} label={view.host.name} />}
                 />
                 {!hostMedia.isLocal && <AudioOut track={hostMedia.audio} />}
               </>
@@ -248,6 +280,8 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
 
         <div className="sticky bottom-0 bg-[var(--surface)] phase-transition">
           <RoomDock
+            effectsSupported={effectsOk}
+            preview={myMedia.video ? <VideoView track={myMedia.video} mirror={prefs.mirror} label={ui.lobby.mirror} /> : undefined}
             labels={ui}
             role={myView?.role ?? undefined}
             roleNote={

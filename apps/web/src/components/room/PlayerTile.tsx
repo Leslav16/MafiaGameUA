@@ -39,6 +39,8 @@ export function PlayerTile({
   video,
   children,
   className = "",
+  against,
+  nightMark,
 }: {
   info: SeatInfo;
   labels: RoomLabels;
@@ -56,6 +58,10 @@ export function PlayerTile({
   video?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /** Voting: seats that voted against this player. Shown as a column of badges on the right edge until the vote ends. */
+  against?: number[];
+  /** A private note only this viewer sees, e.g. the Sheriff's check result. `tone` colours it. */
+  nightMark?: { text: string; tone: "bad" | "good" | "info" } | null;
 }) {
   const { seat, name, alive, connected, camOn, micOn, fouls, role, nominated = false } = info;
   const out = alive ? null : (info.out ?? "killed");
@@ -76,6 +82,8 @@ export function PlayerTile({
     alive && !camOn ? labels.camOff : null,
     fouls > 0 ? fill(labels.fouls, fouls) : null,
     showRole && role ? labels.role[role] : null,
+    against && against.length ? fill(labels.votesAgainst, against.length) : null,
+    nightMark ? nightMark.text : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -157,6 +165,32 @@ export function PlayerTile({
         </span>
       )}
 
+      {/* Votes against: thumbs-down badges stacked on the right edge, never over the face */}
+      {against && against.length > 0 && (
+        <div aria-hidden className="absolute top-9 right-1.5 bottom-10 z-20 flex flex-col flex-wrap-reverse content-start items-end gap-1">
+          <span className="vote-badge vote-count flex h-6 items-center gap-1 rounded-full px-2 font-display text-[0.85rem] leading-none tabular-nums">
+            <ThumbDown className="size-3.5" />
+            {against.length}
+          </span>
+          {against.map((v) => (
+            <span key={v} className="vote-badge flex h-5 min-w-5 items-center justify-center rounded-full px-1 font-display text-[0.7rem] leading-none tabular-nums">
+              {v}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Private night mark (only this viewer sees it) */}
+      {nightMark && (
+        <span
+          aria-hidden
+          data-tone={nightMark.tone}
+          className="night-mark absolute bottom-9 left-1.5 z-20 rounded-full px-2 font-display text-[clamp(0.65rem,2.3cqw,0.85rem)] leading-5 tracking-wide"
+        >
+          {nightMark.text}
+        </span>
+      )}
+
       {/* Controls slot (host panel) */}
       {children && (
         <div className="absolute inset-x-0 bottom-9 z-20 flex justify-center gap-1.5 px-2">
@@ -202,5 +236,13 @@ export function PlayerTile({
         </div>
       )}
     </figure>
+  );
+}
+
+function ThumbDown({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M15 3H6.3a2 2 0 0 0-2 1.6l-1.3 7A2 2 0 0 0 5 14h5.6l-.8 4.2a1.6 1.6 0 0 0 .4 1.4l.9.9 5.6-6.1A2 2 0 0 0 17 13V5a2 2 0 0 0-2-2Zm3 0h1.5A1.5 1.5 0 0 1 21 4.5v8a1.5 1.5 0 0 1-1.5 1.5H18Z" />
+    </svg>
   );
 }

@@ -82,6 +82,14 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
               isMe={s.seat === ME}
               speaking={s.seat === floorSeat}
               video={<FakeVideo seed={s.seat} />}
+              against={!night && s.seat === 4 ? [1, 3, 8, 9, 10] : !night && s.seat === 6 ? [5] : undefined}
+              nightMark={
+                s.seat === 3
+                  ? { text: `✓ ${labels.marks.mafia}`, tone: "bad" }
+                  : s.seat === 8
+                    ? { text: `✓ ${labels.marks.notMafia}`, tone: "good" }
+                    : null
+              }
             />
           ))}
           host={

@@ -212,7 +212,7 @@ body {
     place-items: center;
   }
   /* Tiles stretch to fill every pixel; video is cropped to fit (object-cover). */
-  .room-grid {
+  .room-video .room-grid {
     max-width: none;
     width: 100%;
     height: 100%;
@@ -220,9 +220,9 @@ body {
     align-content: stretch;
     align-items: stretch;
   }
-  .room-grid > .tile-slot,
-  .room-grid > .tile,
-  .room-grid > .tile-slot > .tile {
+  .room-video .room-grid > .tile-slot,
+  .room-video .room-grid > .tile,
+  .room-video .room-grid > .tile-slot > .tile {
     height: 100%;
     aspect-ratio: auto;
   }
@@ -630,67 +630,82 @@ body {
     0 0 22px -6px rgb(208 84 78 / 0.7);
 }
 
-/* Phase turn: the lamp flickers and goes out at night, comes back at dawn. */
+/* Phase turn. Night: the lamp swings, flickers, dies to a glowing filament,
+   and darkness closes in on it. Dawn: a click, the filament warms, the bulb
+   comes on and the light opens the room back up. */
+@property --hole {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 150%;
+}
 .nightfall {
-  --dur: 2.8s;
-  animation: nf-backdrop var(--dur) ease-in-out both;
+  --dur: 3.4s;
+  animation: nf-fade var(--dur) linear both;
+}
+.nf-dark {
   background: radial-gradient(
-    ellipse at 50% 0%,
-    transparent 0 10%,
-    rgb(12 8 6 / 0.9) 60%
+    ellipse 70% 85% at 50% 12%,
+    transparent calc(var(--hole) - 18%),
+    rgb(10 7 5 / 0.93) var(--hole)
   );
+  animation: nf-close var(--dur) cubic-bezier(0.55, 0, 0.3, 1) both;
 }
-.nightfall[data-to="day"] {
-  animation-name: nf-backdrop-day;
+.nightfall[data-to="day"] .nf-dark {
+  animation-name: nf-open;
 }
-.nightfall-lamp {
-  width: 12rem;
-  height: 60dvh;
-}
-.nightfall-cord {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 2px;
-  height: 4.5rem;
-  background: #2c2312;
-}
-.nightfall-shade {
-  position: absolute;
-  left: 50%;
-  top: 4.5rem;
-  width: 7rem;
-  height: 3rem;
+.nf-swing {
   translate: -50% 0;
-  border-radius: 3.5rem 3.5rem 0.3rem 0.3rem;
-  background: linear-gradient(#2f3d2a, #1a2316);
-  box-shadow: inset 0 -3px 0 #c8893f;
+  transform-origin: 50% 0;
+  animation: nf-swing var(--dur) ease-in-out both;
 }
-.nightfall-bulb {
+.nf-lamp {
+  position: relative;
+  display: block;
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.6));
+}
+.nf-bulb-glass {
+  animation: nf-bulb var(--dur) linear both;
+}
+.nf-filament {
+  animation: nf-filament var(--dur) linear both;
+}
+.nf-light {
   position: absolute;
+  top: 160px;
   left: 50%;
-  top: 7.1rem;
-  width: 2.2rem;
-  height: 1.1rem;
+  width: min(60rem, 140vw);
+  height: 78dvh;
   translate: -50% 0;
-  border-radius: 0 0 2rem 2rem;
-  background: #ffe2a8;
-  box-shadow: 0 0 40px 14px rgb(255 200 120 / 0.7);
+  transform-origin: 50% 0;
   animation: nf-light var(--dur) linear both;
 }
-.nightfall-cone {
+.nf-cone {
   position: absolute;
-  left: 50%;
-  top: 7.5rem;
-  width: 40rem;
-  height: 50dvh;
-  translate: -50% 0;
-  clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%);
-  background: linear-gradient(rgb(255 210 140 / 0.35), transparent);
-  animation: nf-light var(--dur) linear both;
+  inset: 0;
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  background: linear-gradient(rgb(255 214 150 / 0.42), rgb(255 200 130 / 0.08) 70%, transparent);
+  filter: blur(6px);
 }
-.nightfall[data-to="day"] .nightfall-bulb,
-.nightfall[data-to="day"] .nightfall-cone {
+.nf-mote {
+  position: absolute;
+  left: calc(42% + var(--m) * 2.4%);
+  top: calc(15% + var(--m) * 9%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(255 230 190 / 0.8);
+  animation: nf-mote 3.4s ease-in-out calc(var(--m) * -0.4s) infinite alternate;
+}
+.nightfall[data-to="day"] .nf-swing {
+  animation-name: nf-swing-day;
+}
+.nightfall[data-to="day"] .nf-bulb-glass {
+  animation-name: nf-bulb-on;
+}
+.nightfall[data-to="day"] .nf-filament {
+  animation-name: nf-filament-on;
+}
+.nightfall[data-to="day"] .nf-light {
   animation-name: nf-light-on;
 }
 .nightfall-text {
@@ -698,133 +713,225 @@ body {
   text-shadow: 0 4px 30px rgb(0 0 0 / 0.8);
   animation: nf-text var(--dur) ease-out both;
 }
-@keyframes nf-backdrop {
-  0% {
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+@keyframes nf-fade {
+  0% { opacity: 0; }
+  6% { opacity: 1; }
+  86% { opacity: 1; }
+  100% { opacity: 0; }
 }
-@keyframes nf-backdrop-day {
-  0% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+@keyframes nf-close {
+  0%, 30% { --hole: 150%; }
+  62%, 100% { --hole: 6%; }
 }
-/* On, flicker three times, out. */
+@keyframes nf-open {
+  0%, 30% { --hole: 0%; }
+  75%, 100% { --hole: 150%; }
+}
+@keyframes nf-swing {
+  0% { rotate: 5deg; }
+  14% { rotate: -3.5deg; }
+  28% { rotate: 2.2deg; }
+  42% { rotate: -1.2deg; }
+  56% { rotate: 0.5deg; }
+  70%, 100% { rotate: 0deg; }
+}
+@keyframes nf-swing-day {
+  0%, 18% { rotate: 0deg; }
+  24% { rotate: -2deg; }
+  36% { rotate: 1.2deg; }
+  50% { rotate: -0.5deg; }
+  64%, 100% { rotate: 0deg; }
+}
+/* On, three nervous flickers, out. */
 @keyframes nf-light {
-  0%,
-  18% {
-    opacity: 1;
-  }
-  22% {
-    opacity: 0.2;
-  }
-  26% {
-    opacity: 1;
-  }
-  32% {
-    opacity: 0.1;
-  }
-  35% {
-    opacity: 0.9;
-  }
-  42%,
-  100% {
-    opacity: 0;
-  }
+  0%, 22% { opacity: 1; }
+  24% { opacity: 0.25; }
+  26% { opacity: 0.95; }
+  31% { opacity: 0.1; }
+  33% { opacity: 0.8; }
+  36% { opacity: 0.35; }
+  38%, 100% { opacity: 0; }
+}
+@keyframes nf-bulb {
+  0%, 22% { opacity: 1; }
+  24% { opacity: 0.4; }
+  26% { opacity: 1; }
+  31% { opacity: 0.3; }
+  33% { opacity: 0.9; }
+  36% { opacity: 0.5; }
+  38%, 100% { opacity: 0.12; }
+}
+@keyframes nf-filament {
+  0%, 36% { stroke: #fff2d0; opacity: 1; }
+  40% { stroke: #ff8a2a; opacity: 1; }
+  70%, 100% { stroke: #5a1a08; opacity: 0.3; }
+}
+@keyframes nf-bulb-on {
+  0%, 18% { opacity: 0.12; }
+  30% { opacity: 0.45; }
+  40%, 100% { opacity: 1; }
+}
+@keyframes nf-filament-on {
+  0%, 16% { stroke: #3a1206; opacity: 0.3; }
+  22% { stroke: #ff7a1a; opacity: 1; }
+  34% { stroke: #ffc070; }
+  42%, 100% { stroke: #fff2d0; opacity: 1; }
 }
 @keyframes nf-light-on {
-  0%,
-  15% {
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.8;
-  }
-  24% {
-    opacity: 0.1;
-  }
-  32%,
-  100% {
-    opacity: 1;
-  }
+  0%, 30% { opacity: 0; scale: 1 0.4; }
+  33% { opacity: 0.6; }
+  35% { opacity: 0.2; }
+  48%, 100% { opacity: 1; scale: 1 1; }
+}
+@keyframes nf-mote {
+  to { translate: 14px -26px; }
 }
 @keyframes nf-text {
-  0%,
-  35% {
-    opacity: 0;
-    translate: 0 12px;
-  }
-  50%,
-  80% {
-    opacity: 1;
-    translate: 0 0;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-/* Vote chips: a red casino chip flying to the candidate's tile. */
-.vote-chip {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 60;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  pointer-events: none;
-  font: 600 0.8rem/1 var(--font-display);
-  color: #f3ead2;
-  background:
-    radial-gradient(circle, #9a1a17 0 52%, transparent 53%),
-    repeating-conic-gradient(#d6c7a1 0 20deg, #781210 20deg 45deg);
-  box-shadow:
-    0 0 0 2px #3a0a08,
-    0 6px 10px -2px rgb(0 0 0 / 0.6);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nightfall,
-  .nightfall-bulb,
-  .nightfall-cone,
-  .nightfall-text {
-    animation-duration: 1.2s;
-  }
-  .nightfall-bulb,
-  .nightfall-cone {
-    animation-name: none;
-  }
-}
-
-/* Night caption ("The mafia wakes up") slides in on each change. */
-.caption-in {
-  animation: caption-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes caption-in {
-  from {
-    opacity: 0;
-    translate: -8px 0;
-  }
+  0%, 44% { opacity: 0; translate: 0 14px; filter: blur(4px); }
+  58%, 84% { opacity: 1; translate: 0 0; filter: blur(0); }
+  100% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .caption-in {
+  .nf-swing,
+  .nf-mote {
     animation: none;
   }
+}
+
+/* Votes against a player: oxblood badges that pop in on the tile's edge. */
+.vote-badge {
+  color: #f3ead2;
+  background: var(--color-oxblood);
+  box-shadow:
+    0 0 0 1.5px rgb(214 199 161 / 0.55),
+    0 3px 6px -2px rgb(0 0 0 / 0.6);
+  animation: badge-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.vote-count {
+  background: #9a1a17;
+}
+@keyframes badge-pop {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+
+/* Private night marks (Sheriff / Don checks, Doctor heals). */
+.night-mark {
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 6px -2px rgb(0 0 0 / 0.6);
+}
+.night-mark[data-tone="bad"] {
+  color: #f3ead2;
+  background: rgb(120 18 16 / 0.9);
+}
+.night-mark[data-tone="good"] {
+  color: var(--color-ink);
+  background: rgb(214 199 161 / 0.92);
+}
+.night-mark[data-tone="info"] {
+  color: var(--color-ink);
+  background: rgb(200 137 63 / 0.92);
+}
+
+/* Role card medallion (static: no 3D, no lag). */
+.role-medal {
+  background:
+    radial-gradient(circle at 50% 40%, rgb(255 255 255 / 0.45), transparent 60%),
+    #e6dabb;
+  box-shadow:
+    inset 0 0 0 1px rgb(22 17 15 / 0.2),
+    inset 0 0 0 4px #e6dabb,
+    inset 0 0 0 5px rgb(120 18 16 / 0.45);
+}
+
+/* "Calm animations" preference: stop decorative motion everywhere. */
+html[data-motion="calm"] *,
+html[data-motion="calm"] *::before,
+html[data-motion="calm"] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* Settings popup: soft cards, fields and brass switches. */
+.set-card {
+  background: color-mix(in srgb, var(--surface) 82%, var(--color-card));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent),
+    0 10px 30px -22px rgb(0 0 0 / 0.6);
+}
+[data-phase="night"] .set-card {
+  background: color-mix(in srgb, var(--surface) 88%, var(--color-umber));
+}
+.soft-field {
+  background: color-mix(in srgb, var(--surface) 70%, white 6%);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.12);
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.soft-field:focus {
+  outline: none;
+  border-color: var(--color-lamp);
+  box-shadow:
+    inset 0 1px 3px rgb(0 0 0 / 0.12),
+    0 0 0 3px rgb(200 137 63 / 0.25);
+}
+.soft-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23c8893f' stroke-width='2'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  text-overflow: ellipsis;
+}
+.switch {
+  position: relative;
+  width: 3.1rem;
+  height: 1.75rem;
+  margin-top: 0.15rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 85%, transparent);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35);
+  transition: background-color 200ms;
+}
+.switch[aria-checked="true"] {
+  background: var(--color-lamp);
+}
+.switch-knob {
+  position: absolute;
+  top: 0.2rem;
+  left: 0.2rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff8e6, #d6c7a1 60%, #a58a5a);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
+  transition: translate 220ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.switch[aria-checked="true"] .switch-knob {
+  translate: 1.35rem 0;
+}
+.effect-thumb {
+  background: #2c180d center / cover;
+  color: var(--color-card);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
+  transition: box-shadow 150ms, transform 150ms;
+}
+.effect-thumb[data-kind="blur"] {
+  background: radial-gradient(circle at 30% 30%, #a56a40, transparent 60%), radial-gradient(circle at 75% 70%, #74491e, #2c180d);
+}
+.effect-blur-figure {
+  width: 34%;
+  height: 70%;
+  margin-top: 30%;
+  border-radius: 999px 999px 0.3rem 0.3rem;
+  background: #16110f;
+}
+.effect-tile:hover .effect-thumb {
+  transform: translateY(-2px);
+}
+.effect-tile[aria-pressed="true"] .effect-thumb {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--color-lamp);
 }

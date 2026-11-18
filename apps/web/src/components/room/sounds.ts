@@ -2,10 +2,12 @@
  * Quiet, synthesized table sounds (no audio files). The context is made on
  * first use; browsers only allow sound after the person has clicked once.
  */
+import { getPrefs } from "../prefs";
+
 let ctx: AudioContext | null = null;
 
 function audio() {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" || !getPrefs().sfx) return null;
   if (!ctx) {
     const AC =
       window.AudioContext ??
@@ -51,21 +53,4 @@ export function playShot(volume = 0.22) {
   osc.connect(og).connect(ac.destination);
   osc.start(t);
   osc.stop(t + 0.35);
-}
-
-/** A soft wooden click for a vote chip landing. */
-export function playChip(volume = 0.12) {
-  const ac = audio();
-  if (!ac) return;
-  const t = ac.currentTime + 0.01;
-  const osc = ac.createOscillator();
-  osc.type = "triangle";
-  osc.frequency.setValueAtTime(900, t);
-  osc.frequency.exponentialRampToValueAtTime(420, t + 0.06);
-  const g = ac.createGain();
-  g.gain.setValueAtTime(volume, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-  osc.connect(g).connect(ac.destination);
-  osc.start(t);
-  osc.stop(t + 0.1);
 }

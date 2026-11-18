@@ -6,6 +6,7 @@ import { Modal } from "../Modal";
 import { fill } from "./format";
 import { CamIcon, CheckIcon, MicIcon } from "./icons";
 import { RoleCard } from "./RoleCard";
+import { EffectPicker, GamePrefs, SetCard } from "./SettingsParts";
 import type { Role, RoomLabels } from "./types";
 
 const round =
@@ -36,6 +37,8 @@ export function RoomDock({
   seat,
   takenSeats = [],
   onChooseSeat,
+  preview,
+  effectsSupported = null,
 }: {
   labels: RoomLabels;
   role?: Role;
@@ -64,6 +67,9 @@ export function RoomDock({
   takenSeats?: number[];
   /** Moves this player to another free seat; resolves to an error message or null. */
   onChooseSeat?: (seat: number) => Promise<string | null>;
+  /** Your live camera as the others see it (with the background effect). */
+  preview?: ReactNode;
+  effectsSupported?: boolean | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -99,17 +105,35 @@ export function RoomDock({
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)} title={labels.settings.title} closeLabel={labels.close} wide>
-        <div className="grid gap-8">
-          {onRename && <RenameForm labels={labels} nickname={nickname} onRename={onRename} />}
-          {seat != null && onChooseSeat && (
-            <SeatChooser labels={labels} seat={seat} taken={takenSeats} onChoose={onChooseSeat} />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start">
+          <SetCard title={labels.prefs.media} icon="◉">
+            <div className="grid gap-5">
+              <DeviceCheck
+                labels={labels}
+                ready={ready}
+                onReadyChange={onReadyChange ?? (() => {})}
+                onDevicesChange={onDevicesChange}
+                preview={preview}
+                stacked
+              />
+              <EffectPicker labels={labels} supported={effectsSupported} />
+            </div>
+          </SetCard>
+          <div className="grid gap-4">
+          {(onRename || (seat != null && onChooseSeat)) && (
+            <SetCard title={labels.prefs.profile} icon="♠">
+              <div className="grid gap-5">
+                {onRename && <RenameForm labels={labels} nickname={nickname} onRename={onRename} />}
+                {seat != null && onChooseSeat && (
+                  <SeatChooser labels={labels} seat={seat} taken={takenSeats} onChoose={onChooseSeat} />
+                )}
+              </div>
+            </SetCard>
           )}
-          <DeviceCheck
-            labels={labels}
-            ready={ready}
-            onReadyChange={onReadyChange ?? (() => {})}
-            onDevicesChange={onDevicesChange}
-          />
+          <SetCard title={labels.prefs.game} icon="♣">
+            <GamePrefs labels={labels} />
+          </SetCard>
+          </div>
         </div>
       </Modal>
     </div>
@@ -144,7 +168,7 @@ function SeatChooser({
       <p className="text-sm text-[var(--text-muted)]">
         {labels.settings.seatHint} {fill(labels.settings.seatNow, seat)}
       </p>
-      <div className="mt-2.5 grid grid-cols-6 gap-2 sm:grid-cols-11">
+      <div className="mt-2.5 grid grid-cols-6 gap-1.5">
         {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => {
           const mine = n === seat;
           const isTaken = !mine && taken.includes(n);
@@ -157,7 +181,7 @@ function SeatChooser({
               aria-label={`${fill(labels.seat, n)}${isTaken ? `: ${labels.join.taken}` : ""}`}
               onClick={() => choose(n)}
               className={[
-                "min-h-12 rounded-md border font-display text-xl font-semibold tabular-nums transition-[transform,background-color] duration-150 active:scale-95",
+                "aspect-square min-h-10 rounded-full border font-display text-lg font-semibold tabular-nums transition-[transform,background-color] duration-150 active:scale-95",
                 mine
                   ? "border-[var(--color-ink)] bg-[var(--color-lamp)] text-[var(--color-ink)]"
                   : isTaken
@@ -217,13 +241,13 @@ function RenameForm({
           autoComplete="nickname"
           aria-invalid={!!error}
           aria-describedby={error ? "rename-error" : undefined}
-          className="phase-transition mt-1.5 block min-h-12 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-lg text-[var(--text)] focus:border-[var(--color-lamp)] focus:outline-none"
+          className="soft-field phase-transition mt-1.5 block min-h-12 w-full rounded-xl px-4 text-lg text-[var(--text)]"
         />
       </label>
       <button
         type="submit"
         disabled={state === "saving" || !name.trim() || name.trim() === nickname}
-        className="inline-flex min-h-12 items-center gap-2 rounded-md bg-[var(--accent)] px-5 font-display text-lg tracking-wide text-[var(--accent-text)] disabled:opacity-50"
+        className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[var(--accent)] px-5 font-display text-lg tracking-wide text-[var(--accent-text)] disabled:opacity-50"
       >
         {state === "saved" ? (
           <>

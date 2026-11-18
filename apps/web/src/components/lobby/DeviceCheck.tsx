@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { CamIcon, MicIcon } from "../room/icons";
 import type { RoomLabels } from "../room/types";
 
@@ -23,7 +23,13 @@ export function DeviceCheck({
   ready,
   onReadyChange,
   onDevicesChange,
+  preview,
+  stacked = false,
 }: {
+  /** Shown instead of the raw camera, e.g. the room's own track with its background effect. */
+  preview?: ReactNode;
+  /** One column: picture on top, pickers below (for the Settings popup). */
+  stacked?: boolean;
   labels: RoomLabels;
   ready: boolean;
   onReadyChange: (ready: boolean) => void;
@@ -101,13 +107,13 @@ export function DeviceCheck({
 
   useEffect(() => stop, [stop]);
 
-  const select =
-    "phase-transition mt-1.5 block min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-base text-[var(--text)] focus:border-[var(--color-lamp)] focus:outline-none";
+  const select = "soft-field soft-select phase-transition mt-1.5 block min-h-11 w-full rounded-xl pr-10 pl-3 text-base text-[var(--text)]";
 
   return (
-    <div className="grid gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:items-start">
+    <div className={`grid ${stacked ? "gap-5" : "gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:items-start"}`}>
       {/* Mirror */}
-      <div className="tile relative aspect-video overflow-hidden rounded-lg bg-[var(--tile)]">
+      <div className="tile relative aspect-video overflow-hidden rounded-xl bg-[var(--tile)]">
+        {preview && state === "live" && <div className="absolute inset-0 z-[1] [&>*]:size-full [&>*]:object-cover">{preview}</div>}
         <video
           ref={videoRef}
           autoPlay
@@ -139,7 +145,7 @@ export function DeviceCheck({
       </div>
 
       {/* Pickers, level, ready */}
-      <div className="grid gap-5">
+      <div className={`grid gap-5 ${stacked ? "sm:grid-cols-2 sm:[&>*:nth-child(n+3)]:col-span-2" : ""}`}>
         <label className="block">
           <span className="flex items-center gap-2 font-display text-lg tracking-wide">
             <CamIcon className="size-5" /> {t.camera}
@@ -184,12 +190,21 @@ export function DeviceCheck({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(level * 100)}
-            className="phase-transition mt-1.5 h-3 overflow-hidden rounded-full bg-[var(--line)]"
+            className="mt-2 flex h-4 items-end gap-[3px]"
           >
-            <div
-              className="h-full origin-left rounded-full bg-[var(--color-lamp)]"
-              style={{ transform: `scaleX(${level})` }}
-            />
+            {Array.from({ length: 16 }, (_, i) => {
+              const lit = level * 16 > i;
+              return (
+                <span
+                  key={i}
+                  className="flex-1 rounded-sm transition-[background-color,height] duration-75"
+                  style={{
+                    height: `${40 + (i / 15) * 60}%`,
+                    backgroundColor: lit ? (i > 12 ? "var(--color-oxblood)" : "var(--color-lamp)") : "color-mix(in srgb, var(--line) 70%, transparent)",
+                  }}
+                />
+              );
+            })}
           </div>
           <p className="mt-1.5 text-sm text-[var(--text-muted)] phase-transition">{t.levelHint}</p>
         </div>
@@ -199,7 +214,7 @@ export function DeviceCheck({
           disabled={state !== "live" && !ready}
           onClick={() => onReadyChange(!ready)}
           className={[
-            "inline-flex min-h-14 items-center justify-center gap-2 rounded-md px-6 font-display text-xl font-medium tracking-wide transition-[transform,background-color] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+            "inline-flex min-h-13 items-center justify-center gap-2 rounded-xl px-6 font-display text-xl font-medium tracking-wide transition-[transform,background-color] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
             ready
               ? "bg-[var(--color-lamp)] text-[var(--color-ink)]"
               : "border-2 border-[var(--color-lamp)] text-[var(--text)]",

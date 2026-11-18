@@ -198,6 +198,35 @@
       "don": "The Don wakes up",
       "sheriff": "The Sheriff wakes up",
       "doctor": "The Doctor wakes up"
+    },
+    "votesAgainst": "Against: {n}",
+    "marks": {
+      "mafia": "Mafia",
+      "notMafia": "Not mafia",
+      "sheriff": "Sheriff",
+      "notSheriff": "Not Sheriff",
+      "healed": "Healed ×{n}",
+      "self": "Self {n}/2"
+    },
+    "prefs": {
+      "profile": "Profile",
+      "media": "Camera and mic",
+      "effects": "Camera background",
+      "effectsHint": "Everyone sees the blur or background. Works in Chrome and Edge.",
+      "effectsNo": "This browser can't change the camera background.",
+      "none": "No effect",
+      "blur": "Blur",
+      "study": "Study",
+      "bar": "Bar",
+      "wallpaper": "Wallpaper",
+      "game": "Game",
+      "sfx": "Sound effects",
+      "sfxHint": "The night shot and other table sounds.",
+      "calm": "Calm animations",
+      "calmHint": "Less motion: no lamp flicker or hopping.",
+      "mirror": "Mirror my video",
+      "mirrorHint": "Like a mirror. Others don't see you mirrored.",
+      "test": "Test"
     }
   },
   "rules": {
