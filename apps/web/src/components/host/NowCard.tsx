@@ -6,6 +6,8 @@ import { ConfirmButton } from "./ConfirmButton";
 import { SeatPad } from "./SeatPad";
 import { big, btn, plain, primary, type HostDict } from "./ui";
 import { BotIcon, CheckIcon, PlayIcon } from "../room/icons";
+import { useRef } from "react";
+import { MOTION, gsap, useGSAP } from "@/lib/motion";
 
 /** Night checklist marker: done, now, or still to come. */
 function StepMark({ state }: { state: "done" | "now" | "todo" }) {
@@ -311,6 +313,24 @@ export function NowCard({
   const { flow } = view;
   const players = view.seats.filter((s) => s.name).length;
   const speaking = { view, act, timerText, timerRunning, t };
+  const cardRef = useRef<HTMLElement>(null);
+
+  // Each new step of the game slides in, so the host sees the panel has moved on.
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
+      mm.add(MOTION.ok, () => {
+        gsap.fromTo(
+          gsap.utils.toArray<HTMLElement>(cardRef.current?.children ?? []),
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, clearProps: "transform,opacity" },
+        );
+        gsap.fromTo(cardRef.current, { boxShadow: "0 0 0 4px rgb(200 137 63 / 0.45)" }, { boxShadow: "0 0 0 0px rgb(200 137 63 / 0)", duration: 0.9, clearProps: "boxShadow" });
+      });
+      return () => mm.revert();
+    },
+    { scope: cardRef, dependencies: [flow.stage, flow.night?.step], revertOnUpdate: true },
+  );
 
   let title = "";
   let body: React.ReactNode = null;
@@ -406,7 +426,7 @@ export function NowCard({
   }
 
   return (
-    <section aria-label={t.now} className="flex flex-col gap-3 rounded-lg border-2 border-lamp/60 bg-[var(--surface)]/80 p-3">
+    <section ref={cardRef} aria-label={t.now} className="flex flex-col gap-3 rounded-lg border-2 border-lamp/60 bg-[var(--surface)]/80 p-3">
       <h3 className="font-display text-lg font-medium tracking-wide">{title}</h3>
       {body}
       {flow.suggestedWinner && (

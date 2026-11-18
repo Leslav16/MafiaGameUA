@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RulesBody } from "@/components/RulesBody";
@@ -11,6 +10,7 @@ import { LampCord } from "@/components/landing/LampCord";
 import { OpenTables } from "@/components/landing/OpenTables";
 import { RoleDraw } from "@/components/landing/RoleDraw";
 import { Hand } from "@/components/landing/Hand";
+import { HeroEntrance } from "@/components/landing/HeroEntrance";
 import { CamIcon, CardIcon } from "@/components/room/icons";
 import { getDictionary, hasLocale } from "./dictionaries";
 
@@ -53,19 +53,18 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         </nav>
       </header>
 
-      <main className="hero mx-auto grid min-h-0 w-full max-w-7xl flex-1 items-center gap-4 px-4 pb-4 sm:px-8 lg:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] lg:gap-10">
-        <div className="enter max-w-xl">
-          <h1 style={{ "--d": 0 } as CSSProperties}
-            className="hero-title font-display leading-[0.95] font-medium tracking-tight text-balance">
+      <HeroEntrance className="hero mx-auto grid min-h-0 w-full max-w-7xl flex-1 items-center gap-4 px-4 pb-4 sm:px-8 lg:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] lg:gap-10">
+        <div className="max-w-xl">
+          <h1 data-enter-item className="hero-title font-display leading-[0.95] font-medium tracking-tight text-balance">
             {dict.hero.title}
           </h1>
-          <p style={{ "--d": 1 } as CSSProperties} className="hero-tagline mt-3 font-display tracking-wide text-[var(--accent-strong)] phase-transition">
+          <p data-enter-item className="hero-tagline mt-3 font-display tracking-wide text-[var(--accent-strong)] phase-transition">
             {dict.hero.tagline}
           </p>
-          <p style={{ "--d": 2 } as CSSProperties} className="hero-fact phase-transition mt-4 max-w-[44ch] text-[var(--text-muted)]">
+          <p data-enter-item className="hero-fact phase-transition mt-4 max-w-[44ch] text-[var(--text-muted)]">
             {dict.hero.fact}
           </p>
-          <div style={{ "--d": 3 } as CSSProperties} className="hero-actions mt-7 flex flex-col items-start gap-4">
+          <div data-enter-item className="hero-actions mt-7 flex flex-col items-start gap-4">
             <Link
               href={`/${lang}/room`}
               className="btn-feel inline-flex min-h-13 items-center rounded-md bg-[var(--accent)] px-7 font-display text-xl font-medium tracking-wide text-[var(--accent-text)] shadow-[0_10px_24px_-12px_rgba(0,0,0,0.8)] hover:brightness-110 phase-transition"
@@ -81,7 +80,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
               error={dict.hero.codeError}
             />
           </div>
-          <div style={{ "--d": 4 } as CSSProperties} className="hero-chips mt-6 flex flex-wrap gap-2">
+          <div data-enter-item className="hero-chips mt-6 flex flex-wrap gap-2">
             <RoleDraw
               roles={dict.rules.roles}
               label={
@@ -108,7 +107,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
           </div>
         </div>
 
-        <div className="hero-stage enter-stage flex min-h-0 flex-col items-center gap-2">
+        <div data-enter-stage className="hero-stage flex min-h-0 flex-col items-center gap-2">
           <div className="hero-stage-box w-full">
             <Hand
               label={dict.hero.tableLabel}
@@ -118,7 +117,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
           </div>
           <p className="lamp-cord-hint phase-transition text-[var(--text-muted)]">{dict.hero.cordHint}</p>
         </div>
-      </main>
+      </HeroEntrance>
     </PhaseShell>
   );
 }

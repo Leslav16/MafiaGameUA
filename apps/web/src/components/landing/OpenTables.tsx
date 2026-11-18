@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MOTION, gsap, useGSAP } from "@/lib/motion";
 import type { RoomSummary } from "@/lib/room/types";
 import { gameServerUrl } from "@/lib/room/endpoints";
 import { fmt } from "@/lib/room/format";
@@ -64,6 +65,38 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
   const [open, setOpen] = useState(false);
   const { tables, offline } = useOpenTables(open ? 5000 : 20000);
   const count = tables?.length ?? 0;
+  const listRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLSpanElement>(null);
+
+  // Rows deal in one after another each time the popup opens.
+  useGSAP(
+    () => {
+      if (!open) return;
+      const mm = gsap.matchMedia();
+      mm.add(MOTION.ok, () => {
+        gsap.fromTo(
+          "[data-table-row], [data-tables-empty]",
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.45, stagger: 0.06, delay: 0.08, clearProps: "transform,opacity" },
+        );
+      });
+      return () => mm.revert();
+    },
+    { scope: listRef, dependencies: [open], revertOnUpdate: true },
+  );
+
+  // The live count in the header pops when it changes.
+  useGSAP(
+    () => {
+      if (!badgeRef.current) return;
+      const mm = gsap.matchMedia();
+      mm.add(MOTION.ok, () => {
+        gsap.fromTo(badgeRef.current, { scale: 0.6 }, { scale: 1, duration: 0.5, ease: "back.out(2.4)" });
+      });
+      return () => mm.revert();
+    },
+    { dependencies: [count], revertOnUpdate: true },
+  );
   const state = (r: RoomSummary) =>
     r.phase === "lobby" ? t.tableLobby : r.phase === "ended" ? t.tableEnded : r.phase === "night" ? t.tableNight : fmt(t.tableDay, { n: Math.max(1, r.day) });
 
@@ -72,12 +105,13 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
       <button type="button" className={className} aria-haspopup="dialog" onClick={() => setOpen(true)}>
         {t.tables}
         {count > 0 && (
-          <span className="ml-1.5 inline-grid min-w-6 place-items-center rounded-full bg-[var(--color-oxblood)] px-1.5 text-sm leading-6 text-[var(--color-card)] no-underline tabular-nums">
+          <span ref={badgeRef} className="ml-1.5 inline-grid min-w-6 place-items-center rounded-full bg-[var(--color-oxblood)] px-1.5 text-sm leading-6 text-[var(--color-card)] no-underline tabular-nums">
             {count}
           </span>
         )}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={t.tablesTitle} closeLabel={t.close}>
+        <div ref={listRef}>
         {offline && !tables ? (
           <TablesEmpty text={t.tablesOffline} />
         ) : !tables || tables.length === 0 ? (
@@ -95,7 +129,7 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
               const place = locationName(r.location, locations);
               const live = r.phase === "day" || r.phase === "night";
               return (
-                <li key={r.code} className="tables-item grid grid-cols-[auto_1fr] items-center gap-x-3.5 gap-y-3 rounded-xl p-3 sm:grid-cols-[auto_1fr_auto]">
+                <li key={r.code} data-table-row className="tables-item grid grid-cols-[auto_1fr] items-center gap-x-3.5 gap-y-3 rounded-xl p-3 sm:grid-cols-[auto_1fr_auto]">
                   <span aria-hidden className="table-mark grid size-11 place-items-center rounded-full font-display text-lg" data-phase={r.phase}>
                     {r.phase === "night" ? <MoonIcon className="size-5" /> : r.phase === "lobby" ? "♠" : r.phase === "ended" ? <CheckIcon className="size-5" /> : <SunIcon className="size-5" />}
                   </span>
@@ -135,6 +169,7 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
             })}
           </ul>
         )}
+        </div>
       </Modal>
     </>
   );
@@ -142,7 +177,7 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
 
 function TablesEmpty({ text, children }: { text: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-4 py-4 text-center">
+    <div data-tables-empty className="flex flex-col items-center gap-4 py-4 text-center">
       <span aria-hidden className="relative block aspect-[5/7] w-16 rotate-[-6deg]">
         <span className="card-back" />
       </span>

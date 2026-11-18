@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MOTION, gsap } from "@/lib/motion";
 import { CloseIcon } from "./room/icons";
 
 /**
@@ -24,12 +25,47 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
+  // Opens with a short rise (GSAP), closes with a quicker fall, then the native close.
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
+    const animate = window.matchMedia(MOTION.ok).matches;
+    if (open && !d.open) {
+      d.showModal();
+      if (animate) {
+        gsap.fromTo(d, { opacity: 0, y: 14, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.32, clearProps: "all" });
+      }
+    }
+    if (!open && d.open) {
+      if (!animate) return d.close();
+      const tween = gsap.to(d, {
+        opacity: 0,
+        y: 8,
+        scale: 0.98,
+        duration: 0.18,
+        ease: "power2.in",
+        onComplete: () => {
+          d.close();
+          gsap.set(d, { clearProps: "all" });
+        },
+      });
+      return () => {
+        tween.kill();
+      };
+    }
   }, [open]);
+
+  // Esc goes through the same exit as the close button.
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    const onCancel = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+    d.addEventListener("cancel", onCancel);
+    return () => d.removeEventListener("cancel", onCancel);
+  }, [onClose]);
 
   return (
     <dialog
