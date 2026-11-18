@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GameError, Room, splitSeatFromName } from "./room.js";
+import { GameError, MAX_SPECTATORS, Room, splitSeatFromName } from "./room.js";
 import { countVotes, healBlocked, speakingOrder, suggestWinner } from "./rules.js";
 import type { Role } from "./types.js";
 
@@ -395,6 +395,16 @@ test("spectators join at any time, take no seat and never see roles or the night
   assert.deepEqual(room.view(host).spectators.names, ["Olha"]);
   room.presence(viewer, -1);
   assert.equal(room.view(host).spectators.count, 0, "only those online are listed");
+});
+
+test("spectators who left free their place, so a public table never fills up with ghosts", () => {
+  const room = fullRoom();
+  for (let i = 0; i < MAX_SPECTATORS; i++) room.addSpectator(`Gone ${i}`);
+  const stay = room.addSpectator("Still here");
+  room.presence(room.resolveKey(stay.key), 1);
+  assert.equal(room.resolveKey(stay.key).kind, "spectator", "someone still watching keeps their place");
+  for (let i = 1; i < MAX_SPECTATORS; i++) room.presence(room.resolveKey(room.addSpectator(`Live ${i}`).key), 1);
+  assert.throws(() => room.addSpectator("One too many"), /too_many_spectators/);
 });
 
 test("the host picks the introduction place before the game, and can list the table publicly", () => {

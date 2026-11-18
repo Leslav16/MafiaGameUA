@@ -210,7 +210,7 @@ io.on("connection", (socket) => {
         key = room.hostKey;
       } else if (room.locked && !room.checkJoinPassword(p.roomPassword)) {
         // Players and spectators of a locked room need its password; the same limit on wrong tries as the host's.
-        const tries = `${socket.handshake.address}|${room.code}|room`;
+        const tries = `${clientAddress(socket)}|${room.code}|room`;
         if (passwordBlocked(tries)) throw new GameError("too_many_tries");
         if (typeof p.roomPassword === "string" && p.roomPassword) passwordFailed(tries);
         throw new GameError(p.roomPassword ? "wrong_room_password" : "room_locked");

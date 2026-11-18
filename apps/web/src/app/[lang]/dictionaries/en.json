@@ -64,11 +64,11 @@
     "steps": [
       {
         "name": "Introduction",
-        "text": "The first night. Everyone sees their role card, and the mafia open their eyes to recognise each other. All cameras and mics are off."
+        "text": "Roles are dealt automatically: everyone sees their own card, and the mafia also see each other. Then each player gets a minute to introduce themselves. If the host picked a place, introduce yourself as if you were there."
       },
       {
         "name": "Speeches",
-        "text": "Day breaks. The host gives the floor in seat order, and everyone has one minute to convince the table."
+        "text": "Day breaks. The floor goes in seat order, and everyone has one minute to convince the table. Only the speaker's mic is on."
       },
       {
         "name": "Nominations",
@@ -76,11 +76,11 @@
       },
       {
         "name": "Vote",
-        "text": "The table votes on the nominees. The player voted out says a last word, then the host turns off their camera and mic."
+        "text": "Everyone votes once. Whoever doesn't raise a hand votes for the last nominee. On a tie, only the tied players go to a re-vote, and on a second tie they all stay. The player voted out says a last word, then their camera and mic go off."
       },
       {
         "name": "Night",
-        "text": "The mafia shoot, the Don hunts for the Sheriff, the Sheriff checks a player. In the morning the host says who was killed."
+        "text": "The mafia shoot, the Don hunts for the Sheriff, the Sheriff checks a player, the Doctor saves one (not the same player two nights in a row, themselves at most twice). In the morning the host says who was killed."
       }
     ]
   },
@@ -94,7 +94,7 @@
       },
       {
         "name": "Quiet table",
-        "text": "One click leaves only the speaker's mic on."
+        "text": "The mic turns on by itself only for whoever has the floor. The host can still turn anyone's on or off by hand."
       },
       {
         "name": "Kill",
@@ -386,7 +386,13 @@
       "too_many_tries": "Too many wrong tries. Wait 10 minutes.",
       "too_many_spectators": "Too many spectators, no room left.",
       "room_locked": "This room is locked. Ask the host for the password.",
-      "wrong_room_password": "Wrong room password."
+      "wrong_room_password": "Wrong room password.",
+      "night_asleep": "Wake the mafia first.",
+      "role_out": "This role is already out. Press \"Nobody\".",
+      "not_host": "Only the host can do this.",
+      "already_joined": "You are already in the room. Reload the page.",
+      "key_unknown": "Your place wasn't kept. Please join again.",
+      "invalid_action": "That can't be done right now."
     },
     "sound": "Turn on sound",
     "rename": "Change name",
@@ -403,7 +409,7 @@
     "youWatch": "You are watching as a spectator",
     "introAt": "Introductions: {place}",
     "publicTable": "Show the table on the home page",
-    "publicTableHint": "Others will see it in the list of tables and can watch. The code and host password stay secret.",
+    "publicTableHint": "Others will see it in the list of tables and can watch. The host password stays secret.",
     "roomPasswordLabel": "Room password",
     "closed": "The host closed the room."
   },
