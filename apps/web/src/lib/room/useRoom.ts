@@ -307,6 +307,24 @@ export function useRoom(code: string) {
     void run();
   }, [videoState, view, wantCam, wantMic, camAllowed, micAllowed]);
 
+  /**
+   * Use another camera, mic or speaker (deviceId from navigator.mediaDevices.enumerateDevices).
+   * Takes effect right away if the device is live, and is kept for when it is next switched on.
+   * Resolves to false if the browser refused the device.
+   */
+  const switchDevice = useCallback(async (kind: "videoinput" | "audioinput" | "audiooutput", deviceId: string) => {
+    const room = videoRef.current;
+    if (!room) return false;
+    if (kind === "videoinput") room.options.videoCaptureDefaults = { ...room.options.videoCaptureDefaults, deviceId };
+    if (kind === "audioinput") room.options.audioCaptureDefaults = { ...room.options.audioCaptureDefaults, deviceId };
+    try {
+      return await room.switchActiveDevice(kind, deviceId);
+    } catch (err) {
+      console.warn("switch device", err);
+      return false;
+    }
+  }, []);
+
   /** Browsers block sound until the page is clicked; call this from a click. */
   const startAudio = useCallback(async () => {
     await videoRef.current?.startAudio();
@@ -349,8 +367,9 @@ export function useRoom(code: string) {
       setWantMic,
       audioBlocked,
       startAudio,
+      switchDevice,
     }),
-    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio],
+    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
   );
 }
 
