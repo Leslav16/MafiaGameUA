@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import type { Dictionary } from "../../../dictionaries";
 import { useRoom, type ParticipantMedia } from "@/lib/room/useRoom";
 import type { HostAction, RoomView } from "@/lib/room/types";
@@ -15,6 +15,7 @@ import { RoomDock } from "@/components/room/RoomDock";
 import { RoomGrid } from "@/components/room/RoomGrid";
 import { Timer } from "@/components/room/Timer";
 import type { SeatInfo } from "@/components/room/types";
+import { useTileOrder } from "@/lib/room/useTileOrder";
 import { JoinForm } from "./JoinForm";
 import { AudioOut, VideoView, formatClock, useNow } from "./media";
 
@@ -77,6 +78,7 @@ function lockReason(view: RoomView, t: Dictionary["roomUi"]) {
 
 export function RoomClient({ lang, code, dict }: { lang: string; code: string; dict: Dict }) {
   const room = useRoom(code);
+  const tiles = useTileOrder(code);
   const t = dict.roomUi;
   const ui = dict.ui;
   const rules = { ...dict.rules, game: dict.game, host: dict.host };
@@ -158,13 +160,14 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
           )}
         </div>
 
-        <div className={`grid gap-4 py-3 ${isHost ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
+        <div className={`grid items-start gap-4 py-3 ${isHost ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
           {/* 11 players, then the host on tile 12, set apart */}
           <RoomGrid
-            seats={view.seats.map((s) => {
+            seats={tiles.order.map((n) => {
+              const s = view.seats[n - 1];
               const m = room.media(s.identity);
               return (
-                <Fragment key={s.seat}>
+                <div key={s.seat} className="tile-slot" title={ui.dragHint} {...tiles.dragProps(s.seat)}>
                   <PlayerTile
                     info={toSeatInfo(s, m)}
                     labels={ui}
@@ -178,7 +181,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                     video={s.alive ? <VideoView track={m.video} mirror={m.isLocal} label={s.name ?? ""} /> : undefined}
                   />
                   {!m.isLocal && <AudioOut track={m.audio} />}
-                </Fragment>
+                </div>
               );
             })}
             host={
@@ -240,7 +243,23 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
               const err = await room.rename(n);
               return err ? errorText(err) : null;
             }}
+            seat={mySeat ?? undefined}
+            takenSeats={view.seats.filter((s) => s.name && s.seat !== mySeat).map((s) => s.seat)}
+            onChooseSeat={async (n) => {
+              const err = await room.chooseSeat(n);
+              return err ? errorText(err) : null;
+            }}
             extra={
+              <>
+              {tiles.isCustom && (
+                <button
+                  type="button"
+                  onClick={tiles.reset}
+                  className="phase-transition inline-flex min-h-12 items-center rounded-full border border-dashed border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--color-lamp)]"
+                >
+                  ↺ {ui.resetOrder}
+                </button>
+              )}
               <ModalButton
                 label={rules.open}
                 title={rules.open}
@@ -250,6 +269,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
               >
                 <RulesBody rules={rules} />
               </ModalButton>
+              </>
             }
           />
         </div>

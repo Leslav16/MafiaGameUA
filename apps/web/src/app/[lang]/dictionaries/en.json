@@ -140,7 +140,8 @@
       "selected": "Your seat",
       "submit": "Sit in seat {n}",
       "submitNoSeat": "Pick a seat",
-      "seatsFree": "Free seats: {n} of 11"
+      "seatsFree": "Free seats: {n} of 11",
+      "seatTip": "You get a seat automatically. Type “4. Olia” to sit in seat 4 straight away, or change your seat later in Settings."
     },
     "lobby": {
       "title": "Camera and mic check",
@@ -169,12 +170,17 @@
       "title": "Settings",
       "nickname": "Name in the game",
       "save": "Save",
-      "saved": "Saved"
+      "saved": "Saved",
+      "seat": "Your seat at the table",
+      "seatHint": "Pick your number. Taken numbers are greyed out.",
+      "seatNow": "Now: seat {n}"
     },
     "toggleMic": "Microphone",
     "toggleCam": "Camera",
     "select": "Select player",
-    "close": "Close"
+    "close": "Close",
+    "resetOrder": "Reset order",
+    "dragHint": "Drag the tiles to arrange them like the real table. Only you see this order."
   },
   "rules": {
     "open": "Rules",

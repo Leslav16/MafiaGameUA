@@ -66,6 +66,7 @@
 
 html {
   background: var(--color-haze);
+  scrollbar-gutter: stable;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -172,6 +173,26 @@ body {
 
 /* Keep all twelve tiles on one screen: the grid is ~0.45× as tall as it is
    wide on large screens, so cap its width by the height left over. */
+.room-grid {
+  align-content: start;
+  align-items: start;
+}
+.tile-slot {
+  cursor: grab;
+  border-radius: 0.5rem;
+  transition: opacity 150ms, transform 150ms;
+}
+.tile-slot:active {
+  cursor: grabbing;
+}
+.tile-slot[data-dragging] {
+  opacity: 0.4;
+  transform: scale(0.97);
+}
+.tile-slot[data-drop-target] {
+  outline: 3px dashed var(--color-lamp);
+  outline-offset: 3px;
+}
 @media (min-width: 768px) {
   .room-grid {
     max-width: calc((100dvh - 17rem) * 1.74);

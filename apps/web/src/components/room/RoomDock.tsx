@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { DeviceCheck, type DeviceChoice } from "../lobby/DeviceCheck";
 import { Modal } from "../Modal";
+import { fill } from "./format";
 import { CamIcon, CheckIcon, MicIcon } from "./icons";
 import { RoleCard } from "./RoleCard";
 import type { Role, RoomLabels } from "./types";
@@ -32,6 +33,9 @@ export function RoomDock({
   extra,
   note,
   roleNote,
+  seat,
+  takenSeats = [],
+  onChooseSeat,
 }: {
   labels: RoomLabels;
   role?: Role;
@@ -54,6 +58,12 @@ export function RoomDock({
   note?: string | null;
   /** Extra line on the role card, e.g. the mafia teammates. */
   roleNote?: string;
+  /** This player's seat number (players only). */
+  seat?: number;
+  /** Seats someone else sits in. */
+  takenSeats?: number[];
+  /** Moves this player to another free seat; resolves to an error message or null. */
+  onChooseSeat?: (seat: number) => Promise<string | null>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -91,6 +101,9 @@ export function RoomDock({
       <Modal open={open} onClose={() => setOpen(false)} title={labels.settings.title} closeLabel={labels.close} wide>
         <div className="grid gap-8">
           {onRename && <RenameForm labels={labels} nickname={nickname} onRename={onRename} />}
+          {seat != null && onChooseSeat && (
+            <SeatChooser labels={labels} seat={seat} taken={takenSeats} onChoose={onChooseSeat} />
+          )}
           <DeviceCheck
             labels={labels}
             ready={ready}
@@ -100,6 +113,70 @@ export function RoomDock({
         </div>
       </Modal>
     </div>
+  );
+}
+
+function SeatChooser({
+  labels,
+  seat,
+  taken,
+  onChoose,
+}: {
+  labels: RoomLabels;
+  seat: number;
+  taken: number[];
+  onChoose: (seat: number) => Promise<string | null>;
+}) {
+  const [busy, setBusy] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function choose(n: number) {
+    if (n === seat) return;
+    setBusy(n);
+    setError(null);
+    setError(await onChoose(n));
+    setBusy(null);
+  }
+
+  return (
+    <fieldset>
+      <legend className="font-display text-lg tracking-wide">{labels.settings.seat}</legend>
+      <p className="text-sm text-[var(--text-muted)]">
+        {labels.settings.seatHint} {fill(labels.settings.seatNow, seat)}
+      </p>
+      <div className="mt-2.5 grid grid-cols-6 gap-2 sm:grid-cols-11">
+        {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => {
+          const mine = n === seat;
+          const isTaken = !mine && taken.includes(n);
+          return (
+            <button
+              key={n}
+              type="button"
+              disabled={isTaken || busy !== null}
+              aria-pressed={mine}
+              aria-label={`${fill(labels.seat, n)}${isTaken ? `: ${labels.join.taken}` : ""}`}
+              onClick={() => choose(n)}
+              className={[
+                "min-h-12 rounded-md border font-display text-xl font-semibold tabular-nums transition-[transform,background-color] duration-150 active:scale-95",
+                mine
+                  ? "border-[var(--color-ink)] bg-[var(--color-lamp)] text-[var(--color-ink)]"
+                  : isTaken
+                    ? "cursor-not-allowed border-transparent bg-[var(--color-smoke)]/20 text-[var(--text-muted)] line-through opacity-60"
+                    : "border-[var(--line)] bg-[var(--seat-fill)] text-[var(--seat-text)] hover:border-[var(--color-lamp)]",
+                busy === n ? "animate-pulse" : "",
+              ].join(" ")}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      {error && (
+        <p role="alert" className="mt-2 text-base text-[var(--urgent)]">
+          {error}
+        </p>
+      )}
+    </fieldset>
   );
 }
 
