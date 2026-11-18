@@ -66,6 +66,12 @@
 
 html {
   background: var(--color-haze);
+}
+html:has(body > [data-phase="night"].phase-surface),
+html:has(main[data-phase="night"].phase-surface) {
+  background: var(--color-ink);
+}
+html {
   scrollbar-gutter: stable;
   -webkit-text-size-adjust: 100%;
 }
@@ -130,9 +136,6 @@ body {
   transition:
     box-shadow 200ms ease-out,
     transform 200ms ease-out;
-}
-.tile[data-speaking] {
-  transform: translateY(-2px) scale(1.015);
 }
 .tile[data-host] {
   box-shadow:
@@ -424,9 +427,6 @@ body {
 .hero-title {
   font-size: clamp(2.4rem, min(8vw, 9dvh), 6rem);
 }
-.hero-lede {
-  font-size: clamp(1rem, 2.2dvh, 1.25rem);
-}
 .hero-stage-box {
   max-width: calc((100dvh - 9rem) * 4 / 3);
   margin-inline: auto;
@@ -436,10 +436,154 @@ body {
     grid-template-rows: auto auto;
     align-content: center;
   }
-  .hero-lineup {
-    display: none;
-  }
   .hero-stage-box {
     max-width: calc((100dvh - 26rem) * 4 / 3);
+  }
+}
+
+/* ---------- Landing background: lamplight, vignette, film grain ---------- */
+.landing-bg {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    radial-gradient(ellipse 55% 60% at 70% 38%, rgb(255 214 150 / var(--bg-glow, 0.35)), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgb(40 22 10 / var(--bg-vignette, 0.35)) 100%),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.025) 0 1px, transparent 1px 120px);
+}
+[data-phase="night"].landing-bg {
+  --bg-glow: 0.07;
+  --bg-vignette: 0.7;
+}
+.landing-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0 0.1 0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+[data-phase="night"].landing-bg::after {
+  mix-blend-mode: screen;
+  opacity: 0.06;
+}
+.hero-tagline {
+  font-size: clamp(1.4rem, min(3vw, 3.4dvh), 2.2rem);
+}
+.min-h-13 {
+  min-height: 3.25rem;
+}
+
+/* Speaking: the frame glows in lamp light and breathes gently. Placed last so
+   it wins over the host and selected frames. */
+.tile[data-speaking] {
+  box-shadow:
+    0 0 0 3px var(--color-lamp),
+    0 0 0 6px rgb(200 137 63 / 0.22),
+    0 0 34px -2px rgb(200 137 63 / 0.7);
+  animation: speak-glow 1.6s ease-in-out infinite;
+}
+@keyframes speak-glow {
+  50% {
+    box-shadow:
+      0 0 0 3px #e0a560,
+      0 0 0 8px rgb(200 137 63 / 0.12),
+      0 0 46px 2px rgb(200 137 63 / 0.85);
+  }
+}
+
+/* Create screen: the host's deck of role cards. */
+.role-deck {
+  position: relative;
+  width: min(30rem, 100%);
+  aspect-ratio: 5 / 4;
+  display: grid;
+  place-items: center;
+}
+.role-deck-glow {
+  position: absolute;
+  inset: 10% 5% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(200 137 63 / 0.3), transparent);
+  animation: lamp-flicker 6s ease-in-out infinite;
+}
+.role-deck-fan {
+  position: relative;
+  width: 10rem;
+  aspect-ratio: 5 / 7;
+}
+.role-deck-card {
+  --spread: 11deg;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  justify-items: center;
+  padding: 0.6rem;
+  border-radius: 0.75rem;
+  color: var(--color-ink);
+  background:
+    radial-gradient(circle at 50% 38%, rgb(255 255 255 / 0.35), transparent 60%),
+    var(--color-card);
+  box-shadow:
+    inset 0 0 0 1px rgb(22 17 15 / 0.25),
+    inset 0 0 0 5px var(--color-card),
+    inset 0 0 0 6px rgb(120 18 16 / 0.55),
+    0 18px 28px -14px rgb(0 0 0 / 0.85);
+  transform-origin: 50% 170%;
+  transform: rotate(calc(var(--i) * var(--spread))) translateY(calc(var(--i) * var(--i) * 4px));
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: deck-float 5s ease-in-out var(--d) infinite;
+}
+.role-deck:hover .role-deck-card {
+  --spread: 16deg;
+}
+.role-deck-card[data-role="don"],
+.role-deck-card[data-role="mafia"] {
+  color: var(--color-oxblood);
+}
+.role-deck-corner {
+  justify-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+.role-deck-corner small {
+  writing-mode: vertical-rl;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.role-deck-corner-end {
+  justify-self: end;
+  rotate: 180deg;
+}
+.role-deck-glyph {
+  align-self: center;
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.15));
+}
+.role-deck-name {
+  font-family: var(--font-display, serif);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@keyframes deck-float {
+  50% {
+    translate: 0 -6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile[data-speaking],
+  .role-deck-card,
+  .role-deck-glow {
+    animation: none;
   }
 }

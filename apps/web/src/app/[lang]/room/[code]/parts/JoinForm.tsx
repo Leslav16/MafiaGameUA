@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Dictionary } from "../../../dictionaries";
 import type { RoomApi } from "@/lib/room/useRoom";
-import { Figure } from "@/components/figures/Figure";
+import { LineupFigures, SingleFigure } from "@/components/three";
 
 const input =
   "phase-transition min-h-12 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-lg text-[var(--text)] placeholder:text-[var(--text-muted)]/70 focus:border-[var(--color-lamp)] focus:outline-none";
@@ -92,9 +92,11 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
 
       <div aria-hidden className="relative hidden items-end justify-center gap-1 lg:flex">
         <div className="absolute inset-x-6 top-1/3 bottom-0 rounded-[50%] bg-[radial-gradient(closest-side,rgb(200_137_63/0.3),transparent)]" />
-        {(asHost ? (["don"] as const) : (["civilian", "sheriff", "doctor"] as const)).map((r, i) => (
-          <Figure key={r} role={r} delay={i * 0.6} className={`relative ${asHost ? "w-60" : "w-40"}`} />
-        ))}
+        {asHost ? (
+          <SingleFigure role="don" className="relative aspect-square w-80" />
+        ) : (
+          <LineupFigures roles={["civilian", "sheriff", "doctor"]} className="relative aspect-[2/1] w-full max-w-xl" />
+        )}
       </div>
     </div>
   );

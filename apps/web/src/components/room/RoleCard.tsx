@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Figure } from "../figures/Figure";
+import { SingleFigure } from "../three";
 import type { Role, RoomLabels } from "./types";
 
 const FACE: Record<Role, { mark: string; tone: string }> = {
@@ -39,7 +39,7 @@ export function RoleCard({ role, labels, note }: { role: Role; labels: RoomLabel
         </span>
         {/* Front */}
         <span className="role-face role-front absolute inset-0 flex gap-2 rounded-lg bg-[var(--color-card)] py-3 pr-4 pl-1 text-[var(--color-ink)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
-          <Figure role={role} asleep={!open} className="h-full w-[5.5rem] shrink-0" />
+          <SingleFigure role={role} asleep={!open} className="h-full w-[5.5rem] shrink-0" />
           <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex items-baseline justify-between">
             <span className={`font-display text-3xl leading-none font-semibold tracking-wide ${face.tone}`}>

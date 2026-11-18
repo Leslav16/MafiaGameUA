@@ -1,5 +1,6 @@
 import type { Dictionary } from "@/app/[lang]/dictionaries";
-import { Figure, type FigureRole } from "./figures/Figure";
+import type { FigureRole } from "./figures/Figure";
+import { LineupFigures } from "./three";
 
 export type RulesText = Dictionary["rules"] & { game: Dictionary["game"]; host: Dictionary["host"] };
 
@@ -9,10 +10,12 @@ export function RulesBody({ rules }: { rules: RulesText }) {
     <div className="grid gap-10">
       <section aria-labelledby="rules-roles">
         <h3 id="rules-roles" className="font-display text-2xl tracking-wide">{rules.rolesTitle}</h3>
-        <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5">
-          {rules.roles.map((r, i) => (
+        <div className="mt-2">
+          <LineupFigures roles={rules.roles.map((r) => r.id as FigureRole)} />
+        </div>
+        <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-5">
+          {rules.roles.map((r) => (
             <li key={r.id} className="flex flex-col items-center text-center">
-              <Figure role={r.id as FigureRole} delay={i * 0.6} className="w-24" />
               <span className="mt-1 font-display text-xl tracking-wide">{r.name}</span>
               <span className="mt-1 text-sm leading-snug text-[var(--text-muted)]">{r.text}</span>
             </li>

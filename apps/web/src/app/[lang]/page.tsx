@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { FigureRole } from "@/components/figures/Figure";
 import { RulesBody } from "@/components/RulesBody";
+import { JoinByCode } from "@/components/JoinByCode";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { ModalButton } from "@/components/Modal";
 import { PhaseShell, PhaseToggle } from "@/components/Phase";
@@ -21,7 +22,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
   const rules = <RulesBody rules={{ ...dict.rules, game: dict.game, host: dict.host }} />;
 
   return (
-    <PhaseShell fit>
+    <PhaseShell fit className="landing-bg">
       <header className="mx-auto flex w-full max-w-7xl shrink-0 items-center justify-between gap-4 px-4 py-3 sm:px-8">
         <Link href={`/${lang}`} className="font-display text-xl font-semibold tracking-wide">
           {dict.nav.home}
@@ -39,23 +40,25 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
           <h1 className="hero-title font-display leading-[0.95] font-medium tracking-tight text-balance">
             {dict.hero.title}
           </h1>
-          <p className="hero-lede mt-4 max-w-[36ch] leading-relaxed text-pretty text-[var(--text-muted)] phase-transition">
-            {dict.hero.lede}
+          <p className="hero-tagline mt-3 font-display tracking-wide text-[var(--accent-strong)] phase-transition">
+            {dict.hero.tagline}
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div className="mt-8 flex flex-col items-start gap-4">
             <Link
               href={`/${lang}/room`}
-              className="inline-flex min-h-12 items-center rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)] shadow-[0_8px_20px_-10px_rgba(0,0,0,0.7)] transition-transform duration-150 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98] phase-transition"
+              className="inline-flex min-h-13 items-center rounded-md bg-[var(--accent)] px-7 font-display text-xl font-medium tracking-wide text-[var(--accent-text)] shadow-[0_10px_24px_-12px_rgba(0,0,0,0.8)] transition-transform duration-150 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98] phase-transition"
             >
               {dict.hero.create}
             </Link>
-            <Link href={`/${lang}/preview`} className={link}>
-              {dict.hero.preview}
-            </Link>
+            <span className="text-sm tracking-[0.2em] text-[var(--text-muted)] uppercase phase-transition">{dict.hero.or}</span>
+            <JoinByCode
+              lang={lang}
+              label={dict.hero.codeLabel}
+              placeholder={dict.hero.codePlaceholder}
+              submit={dict.hero.join}
+              error={dict.hero.codeError}
+            />
           </div>
-          <p className="hero-lineup mt-6 max-w-[44ch] text-base text-[var(--text-muted)] phase-transition">
-            {dict.hero.lineup}
-          </p>
         </div>
 
         <div className="hero-stage flex min-h-0 flex-col items-center gap-2">

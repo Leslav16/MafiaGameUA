@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDictionary, hasLocale } from "../dictionaries";
-import { Figure } from "@/components/figures/Figure";
+import { RoleDeck } from "@/components/lobby/RoleDeck";
 import { CreateRoom } from "./parts/CreateRoom";
 
 export default async function CreateRoomPage({ params }: PageProps<"/[lang]/room">) {
@@ -21,9 +21,8 @@ export default async function CreateRoomPage({ params }: PageProps<"/[lang]/room
             {dict.room.back}
           </Link>
         </div>
-        <div aria-hidden className="relative hidden justify-center lg:flex">
-          <div className="absolute inset-x-10 top-1/4 bottom-0 rounded-[50%] bg-[radial-gradient(closest-side,rgb(200_137_63/0.28),transparent)]" />
-          <Figure role="don" className="relative w-72" />
+        <div className="relative hidden justify-center lg:flex">
+          <RoleDeck roles={dict.rules.roles} label={dict.ui.create.deckLabel} />
         </div>
       </div>
     </main>

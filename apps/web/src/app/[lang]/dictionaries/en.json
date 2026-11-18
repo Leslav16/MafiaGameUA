@@ -22,7 +22,13 @@
     "seatLabel": "Seat {n}",
     "tableLabel": "A table for 11 players and a host",
     "lineup": "The Don, 2 mafia, the Sheriff, the Doctor and 6 civilians. Roles are dealt automatically when the host starts the table.",
-    "preview": "See the room"
+    "preview": "See the room",
+    "tagline": "The mafia wakes up.",
+    "join": "Join",
+    "codeLabel": "Room code",
+    "codePlaceholder": "Code or link",
+    "codeError": "Type the room code (letters and digits) or paste the link.",
+    "or": "or"
   },
   "game": {
     "title": "How a game goes",
@@ -127,7 +133,8 @@
       "share": "Send this link to the players",
       "copy": "Copy",
       "copied": "Copied",
-      "enter": "Enter as host"
+      "enter": "Enter as host",
+      "deckLabel": "The host's deck of roles"
     },
     "join": {
       "title": "Take a seat",
