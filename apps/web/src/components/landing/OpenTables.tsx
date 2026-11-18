@@ -15,6 +15,7 @@ export type TablesDict = {
   tablesOffline: string;
   tableWatch: string;
   tablePlay: string;
+  tableLocked: string;
   tablePlayers: string;
   tableSpectators: string;
   tableLobby: string;
@@ -93,6 +94,7 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
                     <p className="truncate font-display text-lg leading-tight tracking-wide">{fmt(t.tableHost, { name: r.hostName })}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[var(--text-muted)]">
                       <span className={`table-pill ${live ? "table-pill-live" : ""}`}>{state(r)}</span>
+                      {r.locked && <span className="table-pill table-pill-lock">🔒 {t.tableLocked}</span>}
                       <span className="table-pill">{fmt(t.tablePlayers, { n: r.players })}</span>
                       {r.spectators > 0 && <span className="table-pill">{fmt(t.tableSpectators, { n: r.spectators })}</span>}
                       {place && <span className="table-pill max-w-full truncate">{place}</span>}

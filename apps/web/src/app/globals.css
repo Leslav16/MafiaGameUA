@@ -1364,6 +1364,11 @@ dialog.modal {
   padding: 0.05rem 0.55rem;
   background: color-mix(in srgb, var(--line) 45%, transparent);
 }
+.table-pill-lock {
+  gap: 0.25rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--color-lamp) 30%, transparent);
+}
 .table-pill-live::before {
   content: "";
   width: 0.45rem;

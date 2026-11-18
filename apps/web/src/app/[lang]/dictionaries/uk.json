@@ -41,6 +41,7 @@
     "tablesOffline": "Ігровий сервер не відповідає.",
     "tableWatch": "Дивитись",
     "tablePlay": "Сісти за стіл",
+    "tableLocked": "під паролем",
     "tablePlayers": "гравців: {n}/11",
     "tableSpectators": "глядачів: {n}",
     "tableLobby": "збирає гравців",
