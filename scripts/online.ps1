@@ -116,16 +116,19 @@ function Open-Tunnel($exe, $arguments, $pattern, $outFile, $errFile, $seconds, [
   $window = if ($Hidden) { @{ WindowStyle = 'Hidden' } } else { @{ NoNewWindow = $true } }
   $proc = Start-Process -FilePath $exe -PassThru -ArgumentList $arguments @window `
     -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+  Write-Host '     ' -NoNewline
   for ($i = 0; $i -lt $seconds; $i++) {
     Start-Sleep -Seconds 1
+    if ($i % 3 -eq 2) { Write-Host '.' -NoNewline -ForegroundColor DarkGray }
     foreach ($f in @($outFile, $errFile)) {
       if (Test-Path $f) {
         $m = Select-String -Path $f -Pattern $pattern | Select-Object -First 1
-        if ($m) { return @{ Process = $proc; Url = $m.Matches[0].Value } }
+        if ($m) { Write-Host ' ok' -ForegroundColor Green; return @{ Process = $proc; Url = $m.Matches[0].Value } }
       }
     }
     if ($proc.HasExited) { break }
   }
+  Write-Host ' немає відповіді' -ForegroundColor DarkYellow
   if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
   return $null
 }
@@ -134,19 +137,20 @@ $log = Join-Path $tools 'cloudflared.log'
 $tunnel = $null
 # Cloudflare's free links sometimes time out for a moment, so try a few times.
 for ($attempt = 1; $attempt -le 3 -and -not $tunnel; $attempt++) {
-  if ($attempt -gt 1) { Say "     Cloudflare не відповів, пробую ще раз ($attempt/3)..." 'DarkYellow'; Start-Sleep -Seconds 5 }
+  Say "     Cloudflare, спроба $attempt з 3 (до 30 секунд)..." 'DarkGray'
   $tunnel = Open-Tunnel $cf @('tunnel', '--no-autoupdate', '--url', 'http://localhost:8080') `
-    'https://[a-z0-9-]+\.trycloudflare\.com' (Join-Path $tools 'cloudflared.out.log') $log 45
+    'https://[a-z0-9-]+\.trycloudflare\.com' (Join-Path $tools 'cloudflared.out.log') $log 30
 }
 
 # Backup: localhost.run, through the ssh program built into Windows. No account, no download.
 if (-not $tunnel) {
-  Say '     Cloudflare зараз недоступний. Пробую запасний сервіс localhost.run...' 'DarkYellow'
+  Say '     Cloudflare зараз недоступний. Пробую запасний сервіс localhost.run (до 30 секунд)...' 'DarkYellow'
   $ssh = (Get-Command ssh.exe -ErrorAction SilentlyContinue).Source
   if ($ssh) {
-    $tunnel = Open-Tunnel $ssh @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'ServerAliveInterval=30',
+    $tunnel = Open-Tunnel $ssh @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15',
+        '-o', 'ServerAliveInterval=30',
         '-o', 'ExitOnForwardFailure=yes', '-R', '80:localhost:8080', 'nokey@localhost.run') `
-      'https://[a-z0-9-]+\.(lhr\.life|lhr\.rocks|localhost\.run)' (Join-Path $tools 'lhr.out.log') (Join-Path $tools 'lhr.err.log') 45 -Hidden
+      'https://[a-z0-9-]+\.(lhr\.life|lhr\.rocks|localhost\.run)' (Join-Path $tools 'lhr.out.log') (Join-Path $tools 'lhr.err.log') 30 -Hidden
   }
 }
 
@@ -155,12 +159,14 @@ if (-not $tunnel) {
 }
 $url = $tunnel.Url
 
-# Wait until the link actually answers (it can take a few seconds to spread).
-for ($i = 0; $i -lt 30; $i++) {
+# A new link can take up to a minute to start answering everywhere. Check briefly, never wait long.
+Say '     Перевіряю посилання (до 20 секунд)...' 'DarkGray'
+$answers = $false
+$deadline = (Get-Date).AddSeconds(20)
+while (-not $answers -and (Get-Date) -lt $deadline) {
   try {
-    if ((Invoke-WebRequest -Uri "$url/health" -UseBasicParsing -TimeoutSec 5).StatusCode -eq 200) { break }
-  } catch { }
-  Start-Sleep -Seconds 2
+    if ((Invoke-WebRequest -Uri "$url/health" -UseBasicParsing -TimeoutSec 4).StatusCode -eq 200) { $answers = $true }
+  } catch { Start-Sleep -Seconds 2 }
 }
 
 $link = "$url/uk"
@@ -173,6 +179,9 @@ Say ''
 Say "     $link" 'Cyan'
 Say ''
 Say '     Посилання працює, лише поки відкрите це вікно. Наступного разу воно буде інше.' 'Yellow'
+if (-not $answers) {
+  Say '     Якщо посилання одразу не відкривається, зачекайте хвилину й оновіть сторінку: нове посилання стає доступним не миттєво.' 'DarkGray'
+}
 if (-not $cloud) {
   Say "     Якщо друзі бачать сайт, але не бачать відео, перевірте на роутері порти 7881 (TCP) і 7882 (UDP) (див. README)." 'DarkGray'
 }
