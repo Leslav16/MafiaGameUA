@@ -87,7 +87,7 @@ for ($i = 0; $i -lt 90; $i++) {
 if (-not $ready) { Fail 'Сайт не відповідає на http://localhost:8080. Відкрийте Docker Desktop і подивіться, чи всі контейнери зелені.' }
 
 # 4. The free Cloudflare link. cloudflared.exe is downloaded once into the tools folder.
-Say '4/5  Відкриваю посилання для друзів (Cloudflare)...'
+Say '4/5  Відкриваю посилання для друзів...'
 $tools = Join-Path $root 'tools'
 $cf = Join-Path $tools 'cloudflared.exe'
 if (-not (Test-Path $cf)) {
@@ -102,28 +102,58 @@ if (-not (Test-Path $cf)) {
   }
 }
 
-# A link left over from an earlier run that did not close properly.
+# Links left over from an earlier run that did not close properly.
 Get-Process cloudflared -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $cf } | Stop-Process -Force
+Get-CimInstance Win32_Process -Filter "Name = 'ssh.exe'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -like '*localhost.run*' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+# Starts a tunnel program and waits for its https address to appear in its output.
+# -NoNewWindow ties the tunnel to this window: closing the window closes the link.
+# ssh gets its own hidden window instead, so it does not read the Enter meant for this one.
+function Open-Tunnel($exe, $arguments, $pattern, $outFile, $errFile, $seconds, [switch]$Hidden) {
+  Remove-Item $outFile, $errFile -ErrorAction SilentlyContinue
+  $window = if ($Hidden) { @{ WindowStyle = 'Hidden' } } else { @{ NoNewWindow = $true } }
+  $proc = Start-Process -FilePath $exe -PassThru -ArgumentList $arguments @window `
+    -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+  for ($i = 0; $i -lt $seconds; $i++) {
+    Start-Sleep -Seconds 1
+    foreach ($f in @($outFile, $errFile)) {
+      if (Test-Path $f) {
+        $m = Select-String -Path $f -Pattern $pattern | Select-Object -First 1
+        if ($m) { return @{ Process = $proc; Url = $m.Matches[0].Value } }
+      }
+    }
+    if ($proc.HasExited) { break }
+  }
+  if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+  return $null
+}
 
 $log = Join-Path $tools 'cloudflared.log'
-Remove-Item $log -ErrorAction SilentlyContinue
-# -NoNewWindow ties the link to this window: closing the window closes the link.
-$tunnel = Start-Process -FilePath $cf -PassThru -NoNewWindow -RedirectStandardError $log `
-  -ArgumentList @('tunnel', '--no-autoupdate', '--url', 'http://localhost:8080')
+$tunnel = $null
+# Cloudflare's free links sometimes time out for a moment, so try a few times.
+for ($attempt = 1; $attempt -le 3 -and -not $tunnel; $attempt++) {
+  if ($attempt -gt 1) { Say "     Cloudflare не відповів, пробую ще раз ($attempt/3)..." 'DarkYellow'; Start-Sleep -Seconds 5 }
+  $tunnel = Open-Tunnel $cf @('tunnel', '--no-autoupdate', '--url', 'http://localhost:8080') `
+    'https://[a-z0-9-]+\.trycloudflare\.com' (Join-Path $tools 'cloudflared.out.log') $log 45
+}
 
-$url = $null
-for ($i = 0; $i -lt 60 -and -not $url; $i++) {
-  Start-Sleep -Seconds 1
-  if ($tunnel.HasExited) { break }
-  if (Test-Path $log) {
-    $m = Select-String -Path $log -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' | Select-Object -First 1
-    if ($m) { $url = $m.Matches[0].Value }
+# Backup: localhost.run, through the ssh program built into Windows. No account, no download.
+if (-not $tunnel) {
+  Say '     Cloudflare зараз недоступний. Пробую запасний сервіс localhost.run...' 'DarkYellow'
+  $ssh = (Get-Command ssh.exe -ErrorAction SilentlyContinue).Source
+  if ($ssh) {
+    $tunnel = Open-Tunnel $ssh @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'ServerAliveInterval=30',
+        '-o', 'ExitOnForwardFailure=yes', '-R', '80:localhost:8080', 'nokey@localhost.run') `
+      'https://[a-z0-9-]+\.(lhr\.life|lhr\.rocks|localhost\.run)' (Join-Path $tools 'lhr.out.log') (Join-Path $tools 'lhr.err.log') 45 -Hidden
   }
 }
-if (-not $url) {
-  if (-not $tunnel.HasExited) { Stop-Process -Id $tunnel.Id -Force }
-  Fail "Cloudflare не дав посилання. Спробуйте ще раз за хвилину. Подробиці у файлі $log"
+
+if (-not $tunnel) {
+  Fail "Не вдалося відкрити посилання ні через Cloudflare, ні через localhost.run. Схоже, інтернет-провайдер або антивірус їх блокує. Спробуйте ще раз за кілька хвилин. Подробиці у файлах у папці $tools"
 }
+$url = $tunnel.Url
 
 # Wait until the link actually answers (it can take a few seconds to spread).
 for ($i = 0; $i -lt 30; $i++) {
@@ -152,7 +182,7 @@ Start-Process $link
 try {
   Read-Host 'Щоб завершити гру для всіх, натисніть Enter'
 } finally {
-  if (-not $tunnel.HasExited) { Stop-Process -Id $tunnel.Id -Force }
+  if (-not $tunnel.Process.HasExited) { Stop-Process -Id $tunnel.Process.Id -Force }
   Say 'Зупиняю гру...' 'DarkGray'
   docker compose stop *> $null
   Say 'Гру зупинено. Посилання більше не працює.' 'Green'
