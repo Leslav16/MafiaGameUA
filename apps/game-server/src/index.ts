@@ -15,7 +15,7 @@ import type { HostAction } from "./types.js";
  *   room:join   { code, key }                 (come back with a saved key)
  *             | { code, seat, name }          (take a seat as a player)
  *             | { code, host: true, password } (join as the host)
- *                                            -> { ok, key, token, livekitUrl }
+ *                                            -> { ok, key, as: "host" | "player", token, livekitUrl }
  *   host:action HostAction                    -> { ok }
  * The server pushes "room:state" (RoomView) to each socket whenever anything changes.
  */
@@ -149,7 +149,7 @@ io.on("connection", (socket) => {
       data.key = key;
       room.presence(viewer, 1);
       await socket.join(room.code);
-      ack?.({ ok: true, key, token, livekitUrl: LIVEKIT_PUBLIC_URL });
+      ack?.({ ok: true, key, as: viewer.kind, token, livekitUrl: LIVEKIT_PUBLIC_URL });
       await publish(room);
     } catch (err) {
       fail(ack, err);
