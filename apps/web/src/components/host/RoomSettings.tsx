@@ -1,5 +1,6 @@
 "use client";
 
+import { LockIcon } from "../room/icons";
 import { useState } from "react";
 import type { HostAction, RoomView } from "@/lib/room/types";
 import { ConfirmButton } from "./ConfirmButton";
@@ -28,7 +29,10 @@ export function RoomSettings({ view, act, t }: { view: RoomView; act: (a: HostAc
       </label>
 
       <div className="flex flex-col gap-1.5">
-        <span className="font-medium">{view.locked ? `🔒 ${t.roomLocked}` : t.roomOpen}</span>
+        <span className="flex items-center gap-1.5 font-medium">
+          {view.locked && <LockIcon className="size-4" />}
+          {view.locked ? t.roomLocked : t.roomOpen}
+        </span>
         {view.locked ? (
           <div className="flex flex-wrap items-center gap-2">
             <code className="rounded bg-[var(--surface-raised)] px-2 py-1 text-base tracking-wide">{view.roomPassword}</code>

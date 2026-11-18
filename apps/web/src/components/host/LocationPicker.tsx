@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon, DiceIcon } from "../room/icons";
 import { useState } from "react";
 import type { HostAction } from "@/lib/room/types";
 import { findLocation, randomLocation, type Location } from "../locations";
@@ -38,7 +39,8 @@ export function LocationPicker({
       )}
       <div className="flex flex-wrap gap-1.5">
         <button type="button" className={`${btn} ${plain} text-sm`} onClick={() => set(randomLocation(locations, value))}>
-          🎲 {t.locationRandom}
+          <DiceIcon className="size-5" />
+          {t.locationRandom}
         </button>
         {value && (
           <button type="button" className={`${btn} ${plain} text-sm`} onClick={() => set(null)}>
@@ -76,8 +78,8 @@ export function LocationPicker({
           aria-label={t.locationOwn}
           onChange={(e) => setOwn(e.target.value)}
         />
-        <button type="submit" disabled={!own.trim()} className={`${btn} ${plain} text-sm`}>
-          ✓
+        <button type="submit" disabled={!own.trim()} className={`${btn} ${plain} text-sm`} aria-label={t.locationOwn}>
+          <CheckIcon className="size-5" />
         </button>
       </form>
     </div>

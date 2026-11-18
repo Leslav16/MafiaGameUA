@@ -4,6 +4,7 @@ import type { Dictionary } from "@/app/[lang]/dictionaries";
 import type { SpectatorsView } from "@/lib/room/types";
 import { fmt } from "@/lib/room/format";
 import { ModalButton } from "../Modal";
+import { EyeIcon } from "./icons";
 
 /**
  * Spectators take no tile: just a small eye with the count in the dock,
@@ -22,14 +23,14 @@ export function SpectatorsButton({
     <ModalButton
       label={
         <>
-          <span aria-hidden>👁</span>
+          <EyeIcon className="size-5" />
           <span className="tabular-nums">{spectators.count}</span>
           <span className="sr-only">{fmt(t.spectatorsCount, { n: spectators.count })}</span>
         </>
       }
       title={t.spectators}
       closeLabel={closeLabel}
-      className="phase-transition inline-flex min-h-12 items-center gap-1.5 rounded-full border border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--color-lamp)]"
+      className="phase-transition btn-feel inline-flex min-h-12 items-center gap-2 rounded-full border border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--color-lamp)]"
     >
       <p className="mb-3 text-[var(--text-muted)]">{fmt(t.spectatorsCount, { n: spectators.count })}</p>
       {spectators.names.length === 0 ? (
