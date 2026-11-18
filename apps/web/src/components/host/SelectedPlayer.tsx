@@ -1,34 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import type { HostAction, Phase, SeatView } from "@/lib/room/types";
+import type { HostAction, SeatView } from "@/lib/room/types";
 import { fmt } from "@/lib/room/format";
 import { ConfirmButton } from "./ConfirmButton";
-import { btn, danger, plain, primary, type HostDict, type RoleNames } from "./HostPanel";
+import { btn, danger, plain, type HostDict, type RoleNames } from "./ui";
 
-/** Everything the host can do to one player, shown in the panel after clicking their tile. */
+/** Everything the host can do to one player, after clicking their tile. */
 export function SelectedPlayer({
   seat,
-  phase,
-  floorSeat,
-  freeSeats,
+  inGame,
   act,
   onClose,
   t,
   roles,
 }: {
   seat: SeatView;
-  phase: Phase;
-  floorSeat: number | null;
-  freeSeats: number[];
+  inGame: boolean;
   act: (a: HostAction) => void;
   onClose: () => void;
   t: HostDict;
   roles: RoleNames;
 }) {
-  const [moveTo, setMoveTo] = useState("");
   const n = seat.seat;
-  const hasFloor = floorSeat === n;
 
   return (
     <div className="flex flex-col gap-3">
@@ -39,16 +32,15 @@ export function SelectedPlayer({
           </div>
           <div className="text-sm text-[var(--text-muted)]">
             {seat.role ? `${roles[seat.role]} · ` : ""}
-            {seat.alive ? t.alive : t.dead}
+            {seat.out ? t.out[seat.out] : t.alive}
           </div>
         </div>
         <button type="button" className="min-h-9 rounded px-2 text-sm underline underline-offset-4" onClick={onClose}>
-          {t.deselect}
+          {t.close}
         </button>
       </div>
 
-      {/* Camera, mic, floor */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           aria-pressed={!seat.hostCamOff}
@@ -67,20 +59,9 @@ export function SelectedPlayer({
         >
           {t.mic} {seat.hostMicOff ? "✕" : "✓"}
         </button>
-        <button
-          type="button"
-          aria-pressed={hasFloor}
-          aria-label={fmt(t.floorLabel, { n })}
-          disabled={!seat.alive || phase === "night" || phase === "ended"}
-          className={`${btn} ${hasFloor ? primary : plain} text-sm`}
-          onClick={() => act({ type: "setFloor", seat: hasFloor ? null : n })}
-        >
-          {hasFloor ? t.takeFloor : t.giveFloor}
-        </button>
       </div>
 
-      {/* Fouls and kill */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2">
         <span className="text-sm">{t.fouls}</span>
         <button
           type="button"
@@ -101,62 +82,31 @@ export function SelectedPlayer({
         >
           +
         </button>
-        <span className="flex-1" />
-        {seat.alive ? (
-          <ConfirmButton
-            question={fmt(t.confirmKill, { n })}
-            confirmLabel={t.confirm}
-            cancelLabel={t.cancel}
-            className={`${btn} ${danger}`}
-            onConfirm={() => act({ type: "kill", seat: n })}
-          >
-            {t.kill}
-          </ConfirmButton>
-        ) : (
-          <button type="button" className={`${btn} ${plain}`} onClick={() => act({ type: "revive", seat: n })}>
-            {t.revive}
-          </button>
-        )}
       </div>
+      {seat.fouls >= 4 && seat.alive && inGame && <p className="text-sm font-medium">{t.fourFouls}</p>}
 
-      {/* Seat changes */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3">
-        <form
-          className="flex items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (moveTo) act({ type: "moveSeat", from: n, to: Number(moveTo) });
-            setMoveTo("");
-          }}
-        >
-          <label className="sr-only" htmlFor="host-move-to">
-            {t.moveTo}
-          </label>
-          <select
-            id="host-move-to"
-            value={moveTo}
-            onChange={(e) => setMoveTo(e.target.value)}
-            className="min-h-9 rounded border border-[var(--line)] bg-[var(--surface-raised)] px-2 text-sm"
-          >
-            <option value="">{t.moveTo}</option>
-            {Array.from({ length: 11 }, (_, i) => i + 1)
-              .filter((s) => s !== n)
-              .map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                  {freeSeats.includes(s) ? "" : " ⇄"}
-                </option>
-              ))}
-          </select>
-          <button type="submit" disabled={!moveTo} className={`${btn} ${plain} min-h-9 text-sm`}>
-            {t.move}
-          </button>
-        </form>
+      <div className="flex flex-wrap gap-2 border-t border-[var(--line)] pt-3">
+        {inGame &&
+          (seat.alive ? (
+            <ConfirmButton
+              question={fmt(t.confirmRemove, { n })}
+              confirmLabel={t.confirm}
+              cancelLabel={t.cancel}
+              className={`${btn} ${danger} text-sm`}
+              onConfirm={() => act({ type: "kill", seat: n })}
+            >
+              {t.removeFromGame}
+            </ConfirmButton>
+          ) : (
+            <button type="button" className={`${btn} ${plain} text-sm`} onClick={() => act({ type: "revive", seat: n })}>
+              {t.returnToGame}
+            </button>
+          ))}
         <ConfirmButton
           question={fmt(t.confirmKick, { n })}
           confirmLabel={t.confirm}
           cancelLabel={t.cancel}
-          className={`${btn} ${plain} min-h-9 text-sm`}
+          className={`${btn} ${plain} text-sm`}
           onConfirm={() => {
             act({ type: "kick", seat: n });
             onClose();
