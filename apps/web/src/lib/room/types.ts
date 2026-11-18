@@ -45,9 +45,22 @@ export interface SeatView {
   role?: Role;
 }
 
+/**
+ * A player's own night record, so they can keep track: the Sheriff's checks (result: mafia?),
+ * the Don's checks (result: Sheriff?), the Doctor's heals (count per seat, self-heals included).
+ * Sent only to the player who holds that role.
+ */
+export interface OwnNightMarks {
+  role: "sheriff" | "don" | "doctor";
+  /** seat -> times picked and, for checks, the result of the latest check. */
+  seats: Record<number, { count: number; result?: boolean }>;
+  /** Doctor only: times the Doctor healed themselves (at most 2). */
+  selfHeals?: number;
+}
+
 export type MeView =
   | { kind: "host" }
-  | { kind: "player"; seat: number; role: Role | null; teammates: number[] };
+  | { kind: "player"; seat: number; role: Role | null; teammates: number[]; marks: OwnNightMarks | null };
 
 /**
  * Where the game is. The server walks through these; the host mostly presses "next".

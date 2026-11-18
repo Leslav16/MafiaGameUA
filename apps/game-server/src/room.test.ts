@@ -351,6 +351,26 @@ test("night cameras follow who is awake: asleep, mafia and Don together, then Do
   assert.deepEqual(camsOn(), []);
 });
 
+test("the Sheriff, Don and Doctor each see only their own night record", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  const [sheriff, don, doctor] = (["sheriff", "don", "doctor"] as Role[]).map((r) => roleSeat(room, r));
+  const civ = roleSeat(room, "civilian");
+  const me = (seat: number) => room.view({ kind: "player", seat }).me as { marks: unknown };
+  nextUntil(room, "night");
+  room.apply({ type: "next" });
+  for (const p of [null, sheriff, don, doctor]) room.apply({ type: "nightPick", seat: p });
+  room.apply({ type: "next" });
+  nextUntil(room, "night");
+  room.apply({ type: "next" });
+  for (const p of [null, civ, civ, civ]) room.apply({ type: "nightPick", seat: p });
+  assert.deepEqual(me(sheriff).marks, { role: "sheriff", seats: { [don]: { count: 1, result: true }, [civ]: { count: 1, result: false } } });
+  assert.deepEqual(me(don).marks, { role: "don", seats: { [sheriff]: { count: 1, result: true }, [civ]: { count: 1, result: false } } });
+  assert.deepEqual(me(doctor).marks, { role: "doctor", seats: { [doctor]: { count: 1 }, [civ]: { count: 1 } }, selfHeals: 1 });
+  assert.equal(me(civ).marks, null, "other players get nothing");
+  assert.equal(me(roleSeat(room, "mafia")).marks, null);
+});
+
 // ---- the end -----------------------------------------------------------------------
 
 test("the panel suggests the winner when the game is decided", () => {
