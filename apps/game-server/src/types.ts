@@ -86,6 +86,8 @@ export interface RoomSummary {
   spectators: number;
   /** Where the introduction round is set, if the host picked a place. */
   location: string | null;
+  /** Joining needs the room password. */
+  locked: boolean;
 }
 
 /**
@@ -210,6 +212,10 @@ export interface RoomView {
   location: string | null;
   /** Shown in the list of open tables on the home page, so others can come and watch. */
   isPublic: boolean;
+  /** Joining needs the room password. */
+  locked: boolean;
+  /** Host only: the room password, to share with the players. */
+  roomPassword?: string;
   /** Server clock when this view was sent, to correct for clock differences. */
   serverNow: number;
 }
@@ -241,5 +247,9 @@ export type HostAction =
   | { type: "setLocation"; location: string | null }
   /** Show or hide the table in the home page list. */
   | { type: "setPublic"; on: boolean }
+  /** Lock the room with a password players and spectators must type to come in (1-32 characters); null opens it. */
+  | { type: "setRoomPassword"; password: string | null }
+  /** Close the room for good: everyone is sent back to the home page. Handled by the server, not Room.apply. */
+  | { type: "closeRoom" }
   | { type: "endGame"; winner: Winner }
   | { type: "newGame" };

@@ -120,6 +120,10 @@ export class Room {
   hostName: string;
   hostConnected = 0;
   lastActive = Date.now();
+  /** When the host's last tab closed (or the room was made), or null while the host is here. */
+  hostLeftAt: number | null = Date.now();
+  /** Password players and spectators need to come in; null when the room is open. Shown to the host to share. */
+  private joinPassword: string | null = null;
 
   private readonly passwordHash: string;
   private readonly seats = new Map<number, Player>();
@@ -155,6 +159,21 @@ export class Room {
   }
 
   // ---- joining -----------------------------------------------------------
+
+  get locked(): boolean {
+    return this.joinPassword !== null;
+  }
+
+  /** The room password players and spectators type; always true while the room is open. */
+  checkJoinPassword(password: unknown): boolean {
+    if (this.joinPassword === null) return true;
+    return typeof password === "string" && password.trim() === this.joinPassword;
+  }
+
+  /** Shown in the home page list: public, and the host is here or left less than `graceMs` ago (a reload). */
+  listed(now: number, graceMs: number): boolean {
+    return this.isPublic && (this.hostLeftAt === null || now - this.hostLeftAt < graceMs);
+  }
 
   checkHostPassword(password: unknown): boolean {
     return typeof password === "string" && checkPassword(password, this.passwordHash);
@@ -227,6 +246,7 @@ export class Room {
       freeSeats: this.stage === "lobby" ? this.freeSeats().length : 0,
       spectators: [...this.spectators.values()].filter((w) => w.connected > 0).length,
       location: this.location,
+      locked: this.locked,
     };
   }
 
@@ -295,7 +315,10 @@ export class Room {
   /** Socket connected (+1) or disconnected (-1). Seats are kept for players who drop. */
   presence(viewer: Viewer, delta: 1 | -1): void {
     this.lastActive = Date.now();
-    if (viewer.kind === "host") this.hostConnected = Math.max(0, this.hostConnected + delta);
+    if (viewer.kind === "host") {
+      this.hostConnected = Math.max(0, this.hostConnected + delta);
+      this.hostLeftAt = this.hostConnected > 0 ? null : Date.now();
+    }
     if (viewer.kind === "player") {
       const p = this.seats.get(viewer.seat);
       if (p) p.connected = Math.max(0, p.connected + delta);
@@ -511,6 +534,13 @@ export class Room {
       case "setPublic":
         this.isPublic = action.on === true;
         break;
+      case "setRoomPassword": {
+        const raw = action.password;
+        if (raw === null) this.joinPassword = null;
+        else if (typeof raw === "string" && raw.trim().length >= 1 && raw.trim().length <= 32) this.joinPassword = raw.trim();
+        else throw new GameError("invalid_password");
+        break;
+      }
       case "endGame":
         if (action.winner !== "town" && action.winner !== "mafia") throw new GameError("invalid_action");
         this.stage = "ended";
@@ -917,6 +947,8 @@ export class Room {
       },
       location: this.location,
       isPublic: this.isPublic,
+      locked: this.locked,
+      ...(viewer.kind === "host" && this.joinPassword !== null ? { roomPassword: this.joinPassword } : {}),
       serverNow: now,
     };
   }

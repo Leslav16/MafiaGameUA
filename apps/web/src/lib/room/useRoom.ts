@@ -19,6 +19,7 @@ export type RoomStatus =
   | "join" // this browser has no seat yet: show the join form
   | "joined"
   | "kicked"
+  | "closed" // the host closed the room: go back to the home page
   | "not_found"
   | "offline"; // the game server can't be reached
 
@@ -94,6 +95,8 @@ function mediaOf(p: Participant | undefined, isLocal: boolean): ParticipantMedia
  */
 export function useRoom(code: string) {
   const [status, setStatus] = useState<RoomStatus>("connecting");
+  /** The host locked the room: joining needs the room password. */
+  const [locked, setLocked] = useState(false);
   const [view, setView] = useState<RoomView | null>(null);
   const [clockOffset, setClockOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +167,10 @@ export function useRoom(code: string) {
     socket.on("connect", () => {
       const key = loadKey(code);
       if (!key) {
-        socket.emit("room:peek", { code }, (r: { ok: boolean }) => setStatus(r.ok ? "join" : "not_found"));
+        socket.emit("room:peek", { code }, (r: { ok: boolean; locked?: boolean }) => {
+          setLocked(!!r.locked);
+          setStatus(r.ok ? "join" : "not_found");
+        });
         return;
       }
       socket.emit("room:join", { code, key }, (reply: JoinReply) => {
@@ -178,6 +184,11 @@ export function useRoom(code: string) {
     socket.on("room:state", (v: RoomView) => {
       setClockOffset(v.serverNow - Date.now());
       setView(v);
+    });
+    socket.on("room:closed", () => {
+      saveKey(code, null);
+      setStatus("closed");
+      void videoRef.current?.disconnect();
     });
     socket.on("room:kicked", () => {
       saveKey(code, null);
@@ -199,6 +210,7 @@ export function useRoom(code: string) {
         const socket = socketRef.current;
         if (!socket?.connected) return resolve("offline");
         socket.emit("room:join", { code, ...payload }, (reply: JoinReply) => {
+          if (reply.error === "room_locked" || reply.error === "wrong_room_password") setLocked(true);
           resolve(handleJoinReply(reply) ? null : (reply.error ?? "server_error"));
         });
       }),
@@ -207,12 +219,16 @@ export function useRoom(code: string) {
 
   /** Joins as a player. No seat needed: the server gives the first free one ("4. Name" asks for seat 4). */
   const joinAsPlayer = useCallback(
-    (name: string, seat?: number | null) => emitJoin(seat ? { name, seat } : { name }),
+    (name: string, seat?: number | null, roomPassword?: string) =>
+      emitJoin({ name, ...(seat ? { seat } : {}), ...(roomPassword ? { roomPassword } : {}) }),
     [emitJoin],
   );
   const joinAsHost = useCallback((password: string) => emitJoin({ host: true, password }), [emitJoin]);
   /** Watches the table without a seat (allowed at any time). */
-  const joinAsSpectator = useCallback((name: string) => emitJoin({ name, watch: true }), [emitJoin]);
+  const joinAsSpectator = useCallback(
+    (name: string, roomPassword?: string) => emitJoin({ name, watch: true, ...(roomPassword ? { roomPassword } : {}) }),
+    [emitJoin],
+  );
 
   const freeSeats = useCallback(
     () =>
@@ -350,6 +366,7 @@ export function useRoom(code: string) {
   return useMemo(
     () => ({
       status,
+      locked,
       view,
       error,
       mediaError,
@@ -373,7 +390,7 @@ export function useRoom(code: string) {
       startAudio,
       switchDevice,
     }),
-    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
+    [status, locked, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
   );
 }
 

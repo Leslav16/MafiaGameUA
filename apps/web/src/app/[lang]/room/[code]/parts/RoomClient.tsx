@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Dictionary } from "../../../dictionaries";
 import { useRoom, type ParticipantMedia } from "@/lib/room/useRoom";
@@ -147,6 +148,12 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
   const now = useNow(timerRunning, room.clockOffset);
   const errorText = (c: string) => (t.errors as Record<string, string>)[c] ?? t.errors.server_error;
 
+  // The host closed the room: everyone goes back to the home page.
+  const router = useRouter();
+  useEffect(() => {
+    if (room.status === "closed") router.replace(`/${lang}`);
+  }, [room.status, router, lang]);
+
   const act = (a: HostAction) => {
     setActionError(null);
     void room.hostAction(a).then((err) => err && setActionError(errorText(err)));
@@ -159,6 +166,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
   else if (room.status === "offline") body = <Notice text={t.offline} lang={lang} t={t} />;
   else if (room.status === "not_found") body = <Notice text={t.notFound} lang={lang} t={t} />;
   else if (room.status === "kicked") body = <Notice text={t.kicked} lang={lang} t={t} />;
+  else if (room.status === "closed") body = <Notice text={t.closed} lang={lang} t={t} />;
   else if (room.status === "join") body = <JoinForm room={room} t={t} ui={ui} />;
   else if (!view) body = <p className="text-xl">{t.connecting}</p>;
   else {

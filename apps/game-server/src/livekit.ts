@@ -101,3 +101,12 @@ export async function removeFromVideo(room: string, identity: string): Promise<v
     if (!isMissing(err)) console.warn("livekit: remove failed", err);
   }
 }
+
+/** Ends the video room: everyone in it is disconnected. */
+export async function closeVideoRoom(room: string): Promise<void> {
+  try {
+    await service.deleteRoom(room);
+  } catch (err) {
+    if (!isMissing(err)) console.warn("livekit: close room failed", err);
+  }
+}
