@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { FigureRole } from "@/components/figures/Figure";
 import { RulesBody } from "@/components/RulesBody";
 import { JoinByCode } from "@/components/JoinByCode";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
@@ -10,7 +9,7 @@ import { CameraCheck } from "@/components/landing/CameraCheck";
 import { LampCord } from "@/components/landing/LampCord";
 import { OpenTables } from "@/components/landing/OpenTables";
 import { RoleDraw } from "@/components/landing/RoleDraw";
-import { Stage } from "@/components/Stage";
+import { Hand } from "@/components/landing/Hand";
 import { getDictionary, hasLocale } from "./dictionaries";
 
 const link =
@@ -23,7 +22,6 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const other = lang === "uk" ? "en" : "uk";
-  const roleNames = Object.fromEntries(dict.rules.roles.map((r) => [r.id, r.name])) as Record<FigureRole, string>;
 
   const rules = <RulesBody rules={{ ...dict.rules, game: dict.game, host: dict.host }} />;
 
@@ -35,11 +33,11 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         </Link>
         <nav className="flex flex-1 items-center justify-between gap-3 whitespace-nowrap sm:flex-none sm:justify-end sm:gap-5">
           <ModalButton label={dict.hero.howTo} title={dict.hero.howTo} closeLabel={dict.rules.close} className={link}>
-            <ol className="flex flex-col gap-4">
+            <ol className="howto">
               {dict.hero.howToSteps.map((step, i) => (
-                <li key={i} className="flex items-baseline gap-3">
-                  <span className="font-display text-3xl leading-none text-[var(--accent-strong)] tabular-nums">{i + 1}</span>
-                  <span className="text-lg">{step}</span>
+                <li key={i} className="howto-step">
+                  <span aria-hidden className="howto-num">{i + 1}</span>
+                  <span className="text-lg leading-snug">{step}</span>
                 </li>
               ))}
             </ol>
@@ -67,7 +65,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
             >
               {dict.hero.create}
             </Link>
-            <span className="text-sm tracking-[0.2em] text-[var(--text-muted)] uppercase phase-transition">{dict.hero.or}</span>
+            <span className="hero-or phase-transition text-[var(--text-muted)]">{dict.hero.or}</span>
             <JoinByCode
               lang={lang}
               label={dict.hero.codeLabel}
@@ -93,9 +91,9 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
 
         <div className="hero-stage flex min-h-0 flex-col items-center gap-2">
           <div className="hero-stage-box w-full">
-            <Stage
+            <Hand
               label={dict.hero.tableLabel}
-              roleNames={roleNames}
+              roles={dict.rules.roles}
               cord={<LampCord toNight={dict.hero.toNight} toDay={dict.hero.toDay} />}
             />
           </div>

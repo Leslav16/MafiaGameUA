@@ -54,7 +54,7 @@ export function Modal({
             ×
           </button>
         </header>
-        <div className="overflow-y-auto overscroll-contain px-5 py-6 sm:px-7">{children}</div>
+        <div className="overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-6 sm:px-7">{children}</div>
       </div>
     </dialog>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Role, RoomLabels } from "./types";
+import { RoleArt } from "../cards/RoleArt";
 
 const FACE: Record<Role, { mark: string; tone: string }> = {
   civilian: { mark: "♥", tone: "text-[var(--color-ink)]" },
@@ -38,13 +39,16 @@ export function RoleCard({ role, labels, note }: { role: Role; labels: RoomLabel
         </span>
         {/* Front */}
         <span className="role-face role-front absolute inset-0 flex gap-2 rounded-lg bg-[var(--color-card)] py-3 pr-4 pl-1 text-[var(--color-ink)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
-          <span aria-hidden className={`role-medal grid h-full w-[5.5rem] shrink-0 place-items-center rounded-md text-5xl ${face.tone}`}>
-            {face.mark}
+          <span aria-hidden className="role-medal relative h-full w-[5.5rem] shrink-0 overflow-hidden rounded-md">
+            <RoleArt role={role} className="absolute inset-[4px] h-[calc(100%-8px)] w-[calc(100%-8px)] rounded-[4px]" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex items-baseline justify-between">
             <span className={`font-display text-3xl leading-none font-semibold tracking-wide ${face.tone}`}>
               {labels.role[role]}
+            </span>
+            <span aria-hidden className={`text-2xl leading-none ${face.tone}`}>
+              {face.mark}
             </span>
           </span>
           <span className="mt-1.5 text-[0.8rem] leading-snug text-[#4a3a28]">{roleText}</span>
