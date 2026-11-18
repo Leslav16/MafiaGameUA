@@ -30,6 +30,8 @@ export function RoomDock({
   onReadyChange,
   onDevicesChange,
   extra,
+  note,
+  roleNote,
 }: {
   labels: RoomLabels;
   role?: Role;
@@ -48,13 +50,18 @@ export function RoomDock({
   onDevicesChange?: (choice: DeviceChoice) => void;
   /** More buttons on the right, e.g. Rules. */
   extra?: ReactNode;
+  /** Why the mic or camera is locked, shown next to the switches. */
+  note?: string | null;
+  /** Extra line on the role card, e.g. the mafia teammates. */
+  roleNote?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="phase-transition flex flex-wrap items-center gap-3 border-t border-[var(--line)] px-3 py-2.5 sm:px-6">
-      {role && <RoleCard role={role} labels={labels} />}
-      <div className="ml-auto flex flex-wrap items-center gap-2">
+      {role && <RoleCard role={role} labels={labels} note={roleNote} />}
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        {note && <span className="w-full text-right text-sm text-[var(--text-muted)] sm:w-auto">{note}</span>}
         <button
           type="button"
           onClick={onToggleMic}

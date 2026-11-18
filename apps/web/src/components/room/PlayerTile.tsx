@@ -4,11 +4,11 @@ import { CamIcon, MicIcon } from "./icons";
 import type { RoomLabels, SeatInfo } from "./types";
 
 const ROLE_MARK: Record<NonNullable<SeatInfo["role"]>, string> = {
-  civilian: "bg-[var(--color-card)]",
-  sheriff: "bg-[var(--color-lamp)]",
-  doctor: "bg-[#efe8da] ring-2 ring-[#b3201b]",
-  mafia: "bg-[var(--color-oxblood)]",
-  don: "bg-[var(--color-oxblood)] ring-2 ring-[var(--color-card)]",
+  civilian: "bg-[var(--color-card)] text-[var(--color-ink)]",
+  sheriff: "bg-[var(--color-lamp)] text-[var(--color-ink)]",
+  doctor: "bg-[#efe8da] text-[#9d1714]",
+  mafia: "bg-[var(--color-oxblood)] text-[var(--color-card)]",
+  don: "bg-[var(--color-oxblood)] text-[var(--color-card)] ring-1 ring-[var(--color-card)]",
 };
 
 /**
@@ -115,9 +115,10 @@ export function PlayerTile({
       {showRole && role && (
         <span
           aria-hidden
-          title={labels.role[role]}
-          className={`absolute top-2 right-2 z-10 size-3.5 rounded-full ${ROLE_MARK[role]}`}
-        />
+          className={`absolute top-1.5 right-1.5 z-10 rounded-sm px-1.5 text-[clamp(0.65rem,2.4cqw,0.85rem)] leading-5 font-semibold ${ROLE_MARK[role]}`}
+        >
+          {labels.role[role]}
+        </span>
       )}
 
       {/* Fouls: one notch each, up to four */}

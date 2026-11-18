@@ -7,7 +7,7 @@ async function Room({ params }: { params: PageProps<"/[lang]/room/[code]">["para
   const { lang, code } = await params;
   if (!hasLocale(lang) || !/^[a-z0-9]{4,12}$/.test(code)) notFound();
   const dict = await getDictionary(lang);
-  return <RoomClient lang={lang} code={code} dict={{ roomUi: dict.roomUi, hostPanel: dict.hostPanel }} />;
+  return <RoomClient lang={lang} code={code} dict={{ roomUi: dict.roomUi, hostPanel: dict.hostPanel, ui: dict.ui, rules: dict.rules, game: dict.game, host: dict.host }} />;
 }
 
 /** The game room: video table for 11 players and the host, plus the host's controls. */

@@ -16,7 +16,7 @@ const FACE: Record<Role, { mark: string; tone: string }> = {
  * The player's own role card. Lies face down so nobody behind you sees it;
  * tap (or press Enter/Space) to turn it over, tap again to hide.
  */
-export function RoleCard({ role, labels }: { role: Role; labels: RoomLabels }) {
+export function RoleCard({ role, labels, note }: { role: Role; labels: RoomLabels; note?: string }) {
   const [open, setOpen] = useState(false);
   const face = FACE[role];
   const roleText = labels.role[`${role}Text` as const];
@@ -50,6 +50,7 @@ export function RoleCard({ role, labels }: { role: Role; labels: RoomLabels }) {
             </span>
           </span>
           <span className="mt-1.5 text-[0.8rem] leading-snug text-[#4a3a28]">{roleText}</span>
+          {note && <span className="mt-1 text-[0.8rem] font-semibold text-[var(--color-oxblood)]">{note}</span>}
           <span className="mt-auto text-xs text-[#4a3a28]">{labels.role.hide}</span>
           </span>
         </span>

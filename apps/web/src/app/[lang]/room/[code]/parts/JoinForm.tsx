@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import type { Dictionary } from "../../../dictionaries";
 import type { RoomApi } from "@/lib/room/useRoom";
 import { fmt } from "@/lib/room/format";
+import { Figure } from "@/components/figures/Figure";
+import { SeatPicker } from "@/components/lobby/JoinForm";
 
 const input =
-  "min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface-raised)] px-3 text-[var(--text)]";
+  "phase-transition min-h-12 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-lg text-[var(--text)] placeholder:text-[var(--text-muted)]/70 focus:border-[var(--color-lamp)] focus:outline-none";
 const primary =
-  "inline-flex min-h-12 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)] disabled:opacity-50";
+  "inline-flex min-h-12 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)] transition-transform duration-150 hover:brightness-110 active:scale-[0.98] disabled:opacity-50";
 
 /** Nickname + free seat for players, or the password for the host. Plain; restyled by the design work. */
-export function JoinForm({ room, t }: { room: RoomApi; t: Dictionary["roomUi"] }) {
+export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi"]; ui: Dictionary["ui"] }) {
   const [asHost, setAsHost] = useState(false);
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -46,84 +48,77 @@ export function JoinForm({ room, t }: { room: RoomApi; t: Dictionary["roomUi"] }
     }
   }
 
-  return (
-    <form onSubmit={submit} className="mx-auto flex w-full max-w-lg flex-col gap-5">
-      <h1 className="font-display text-4xl font-medium tracking-tight">{asHost ? t.hostJoin : t.joinTitle}</h1>
+  const taken = Object.fromEntries(
+    Array.from({ length: 11 }, (_, k) => k + 1)
+      .filter((n) => !free.includes(n))
+      .map((n) => [n, ui.join.taken]),
+  ) as Record<number, string>;
 
-      {asHost ? (
-        <label className="flex flex-col gap-1.5">
-          {t.password}
-          <input
-            type="password"
-            className={input}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
-      ) : (
-        <>
+  return (
+    <div className="grid w-full items-center gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <form onSubmit={submit} className="flex w-full max-w-lg flex-col gap-6">
+        <h1 className="font-display text-5xl font-medium tracking-tight">{asHost ? t.hostJoin : t.joinTitle}</h1>
+
+        {asHost ? (
           <label className="flex flex-col gap-1.5">
-            {t.nickname}
+            <span className="font-display text-xl tracking-wide">{t.password}</span>
+            <input
+              type="password"
+              className={input}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              autoFocus
+            />
+          </label>
+        ) : (
+          <label className="flex flex-col gap-1.5">
+            <span className="font-display text-xl tracking-wide">{t.nickname}</span>
             <input
               className={input}
               value={name}
               maxLength={24}
+              placeholder={ui.join.nicknamePlaceholder}
               onChange={(e) => setName(e.target.value)}
               autoComplete="nickname"
               required
+              autoFocus
             />
+            <span className="text-base text-[var(--text-muted)]">{ui.join.nicknameHint}</span>
           </label>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1.5">{t.pickSeat}</legend>
-            <div className="grid grid-cols-6 gap-2">
-              {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => {
-                const isFree = free.includes(n);
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    disabled={!isFree}
-                    aria-pressed={seat === n}
-                    aria-label={fmt(t.seat, { n })}
-                    onClick={() => setSeat(n)}
-                    className={`min-h-12 rounded-md border font-display text-xl font-semibold ${
-                      seat === n
-                        ? "border-lamp bg-lamp text-ink"
-                        : "border-[var(--line)] bg-[var(--surface-raised)] disabled:opacity-30"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        </>
-      )}
+        )}
 
-      {error && (
-        <p role="alert" className="text-[#e05a6a]">
-          {error}
-        </p>
-      )}
+        {error && (
+          <p role="alert" className="text-[var(--urgent)]">
+            {error}
+          </p>
+        )}
 
-      <div className="flex flex-wrap items-center gap-4">
-        <button type="submit" disabled={busy || (!asHost && (!seat || !name.trim()))} className={primary}>
-          {busy ? t.joining : asHost ? t.hostJoin : t.join}
-        </button>
-        <button
-          type="button"
-          className="underline underline-offset-4"
-          onClick={() => {
-            setAsHost(!asHost);
-            setError(null);
-          }}
-        >
-          {asHost ? t.back : t.imHost}
-        </button>
-      </div>
-    </form>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <button type="submit" disabled={busy || (!asHost && (!seat || !name.trim()))} className={primary}>
+            {busy ? t.joining : asHost ? t.hostJoin : seat ? fmt(ui.join.submit, { n: seat }) : ui.join.submitNoSeat}
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--accent)]"
+            onClick={() => {
+              setAsHost(!asHost);
+              setError(null);
+            }}
+          >
+            {asHost ? t.back : t.imHost}
+          </button>
+        </div>
+      </form>
+
+      {asHost ? (
+        <div className="hidden justify-center lg:flex">
+          <Figure role="don" className="w-56" />
+        </div>
+      ) : (
+        <SeatPicker labels={ui} taken={taken} selected={seat} onSelect={setSeat} />
+      )}
+    </div>
   );
 }

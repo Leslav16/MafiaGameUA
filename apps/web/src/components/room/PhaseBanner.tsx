@@ -12,12 +12,15 @@ export function PhaseBanner({
   labels,
   round,
   floorSeat,
+  title,
   children,
 }: {
   phase: RoomPhase;
   labels: RoomLabels;
   round?: number;
   floorSeat?: number | null;
+  /** Replaces the phase name, e.g. "Game over: the town wins". */
+  title?: string;
   /** Usually <Timer />. */
   children?: ReactNode;
 }) {
@@ -33,7 +36,7 @@ export function PhaseBanner({
           className={`size-7 ${phase === "night" ? "text-[var(--color-smoke)]" : "text-[var(--accent-strong)]"}`}
         />
         <h1 className="font-display text-2xl leading-none font-medium tracking-wide sm:text-3xl">
-          {labels.phase[phase]}
+          {title ?? labels.phase[phase]}
         </h1>
         {round != null && phase !== "lobby" && (
           <span className="font-display text-lg leading-none text-[var(--text-muted)] phase-transition">

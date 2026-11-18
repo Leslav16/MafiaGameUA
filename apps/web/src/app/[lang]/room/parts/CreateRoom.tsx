@@ -7,7 +7,7 @@ import type { Dictionary } from "../../dictionaries";
 import { gameServerUrl, saveKey } from "@/lib/room/endpoints";
 
 const input =
-  "min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--surface-raised)] px-3 text-[var(--text)]";
+  "phase-transition mt-1 min-h-12 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-lg text-[var(--text)] focus:border-[var(--color-lamp)] focus:outline-none";
 
 /** The host names themselves and sets a password; the game server returns the room code. Plain; restyled by the design work. */
 export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] }) {
@@ -41,11 +41,11 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
       <h1 className="font-display text-5xl font-medium tracking-tight">{t.createTitle}</h1>
       <p className="text-lg text-[var(--text-muted)]">{t.createLede}</p>
       <label className="flex flex-col gap-1.5">
-        {t.hostName}
+        <span className="font-display text-xl tracking-wide">{t.hostName}</span>
         <input className={input} value={name} maxLength={24} onChange={(e) => setName(e.target.value)} required />
       </label>
       <label className="flex flex-col gap-1.5">
-        {t.password}
+        <span className="font-display text-xl tracking-wide">{t.password}</span>
         <input
           type="password"
           className={input}
@@ -56,17 +56,17 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <span className="text-sm text-[var(--text-muted)]">{t.passwordHint}</span>
+        <span className="text-base text-[var(--text-muted)]">{t.passwordHint}</span>
       </label>
       {error && (
-        <p role="alert" className="text-[#e05a6a]">
+        <p role="alert" className="text-[var(--urgent)]">
           {error}
         </p>
       )}
       <button
         type="submit"
         disabled={busy}
-        className="inline-flex min-h-12 items-center justify-center self-start rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)] disabled:opacity-50"
+        className="inline-flex min-h-12 items-center justify-center self-start rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)] transition-transform duration-150 hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
       >
         {busy ? t.creating : t.create}
       </button>
