@@ -12,7 +12,9 @@ import { RulesBody } from "@/components/RulesBody";
 import { PhaseBanner } from "@/components/room/PhaseBanner";
 import { PlayerTile } from "@/components/room/PlayerTile";
 import { NightFall } from "@/components/room/NightFall";
-import { useShotSound } from "@/components/room/useTableEffects";
+import { useNarrator, useShotSound } from "@/components/room/useTableEffects";
+import { SpectatorsButton } from "@/components/room/SpectatorsButton";
+import { locationName } from "@/components/locations";
 import { useCameraEffect, useEffectsSupported } from "@/components/room/useCameraEffect";
 import { getPrefs, setPrefs, usePrefs } from "@/components/prefs";
 import { RoomDock } from "@/components/room/RoomDock";
@@ -23,7 +25,13 @@ import { useTileOrder } from "@/lib/room/useTileOrder";
 import { JoinForm } from "./JoinForm";
 import { AudioOut, VideoView, formatClock, useNow } from "./media";
 
-type Dict = Pick<Dictionary, "roomUi" | "hostPanel" | "ui" | "rules" | "game" | "host">;
+type Dict = Pick<Dictionary, "roomUi" | "hostPanel" | "ui" | "rules" | "game" | "host" | "locations">;
+
+/** Host view at night: whose camera to show. Everyone's camera is on, but only the woken role is shown. */
+function awakeNow(role: string | undefined, step: RoomView["flow"]["nightStep"]): boolean {
+  if (!role || !step || step === "asleep") return false;
+  return step === "mafia" ? role === "mafia" || role === "don" : role === step;
+}
 
 function Notice({ text, lang, t }: { text: string; lang: string; t: Dictionary["roomUi"] }) {
   return (
@@ -103,6 +111,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
   const room = useRoom(code);
   const [panelHidden, setPanelHidden] = useState(false);
   useShotSound(room.view?.flow.log);
+  useNarrator(room.view?.flow.stage, room.view?.flow.nightStep, lang);
   const isHostView = room.view?.me.kind === "host";
   const mySeatView = room.view?.me.kind === "player" ? room.view.me.seat : null;
   const tiles = useTileOrder(code, {
@@ -160,7 +169,10 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
     const hostMedia = room.media(view.host.identity);
     const problems = [room.error, room.mediaError].filter(Boolean) as string[];
 
-    const reason = lockReason(view, t);
+    const isSpectator = view.me.kind === "spectator";
+    const reason = isSpectator ? { cam: t.youWatch, mic: t.youWatch } : lockReason(view, t);
+    const place = locationName(view.location, dict.locations);
+    const showPlace = !!place && (view.phase === "lobby" || view.flow.round === "intro");
     const myView = view.me.kind === "player" ? view.me : null;
     const toSeatInfo = (s: RoomView["seats"][number], m: ParticipantMedia): SeatInfo => ({
       seat: s.seat,
@@ -182,7 +194,13 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         <PhaseBanner
           phase={view.phase}
           labels={ui}
-          caption={view.phase === "night" && view.flow.nightStep ? ui.nightStep[view.flow.nightStep] : undefined}
+          caption={
+            view.phase === "night" && view.flow.nightStep
+              ? ui.nightStep[view.flow.nightStep]
+              : showPlace
+                ? fmt(t.introAt, { place: place! })
+                : undefined
+          }
           round={Math.max(1, view.day)}
           floorSeat={view.floorSeat}
           title={view.phase === "ended" && view.winner ? phaseTitle(view, t) : undefined}
@@ -235,7 +253,11 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                     onSelect={
                       isHost && s.name ? () => setSelectedSeat(selectedSeat === s.seat ? null : s.seat) : undefined
                     }
-                    video={s.alive ? <VideoView track={m.video} mirror={m.isLocal && prefs.mirror} label={s.name ?? ""} /> : undefined}
+                    video={
+                      s.alive && (!isHost || view.phase !== "night" || awakeNow(s.role, view.flow.nightStep)) ? (
+                        <VideoView track={m.video} mirror={m.isLocal && prefs.mirror} label={s.name ?? ""} />
+                      ) : undefined
+                    }
                     against={view.flow.voting?.votes[s.seat]}
                     nightMark={nightMark(myView?.marks, s.seat, mySeat, ui)}
                   />
@@ -281,6 +303,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                 onDeselect={() => setSelectedSeat(null)}
                 t={dict.hostPanel}
                 roles={t.roles}
+                locations={dict.locations}
               />
             </div>
           )}
@@ -309,7 +332,9 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
             onToggleMic={() => room.setWantMic(!room.wantMic)}
             onToggleCam={() => room.setWantCam(!room.wantCam)}
             note={reason.mic ?? reason.cam}
-            nickname={isHost ? view.host.name : (view.seats[(mySeat ?? 1) - 1].name ?? "")}
+            nickname={
+              isHost ? view.host.name : view.me.kind === "spectator" ? view.me.name : (view.seats[(mySeat ?? 1) - 1].name ?? "")
+            }
             onRename={async (n) => {
               const err = await room.rename(n);
               return err ? errorText(err) : null;
@@ -322,6 +347,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
             }}
             extra={
               <>
+              <SpectatorsButton spectators={view.spectators} t={t} closeLabel={ui.close} />
               {isHost && panelHidden && (
                 <button
                   type="button"

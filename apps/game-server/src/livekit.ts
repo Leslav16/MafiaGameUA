@@ -36,16 +36,20 @@ export async function joinToken(
   room: string,
   identity: string,
   name: string,
-  media: MediaPermission | "host",
+  media: MediaPermission | "host" | "spectator",
 ): Promise<string> {
   const token = new AccessToken(API_KEY, API_SECRET, { identity, name, ttl: "8h" });
   const publish =
     media === "host"
       ? { canPublish: true, canPublishSources: [TrackSource.CAMERA, TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE] }
-      : sourcesFor(media);
+      : media === "spectator"
+        ? { canPublish: false, canPublishSources: [] }
+        : sourcesFor(media);
   token.addGrant({
     room,
     roomJoin: true,
+    // Spectators watch without showing up as participants for the players.
+    ...(media === "spectator" ? { hidden: true } : {}),
     canSubscribe: true,
     canPublishData: false,
     canUpdateOwnMetadata: false,

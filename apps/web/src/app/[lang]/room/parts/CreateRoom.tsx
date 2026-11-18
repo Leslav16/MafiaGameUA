@@ -14,6 +14,7 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
   const router = useRouter();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
       if (err) setError((t.errors as Record<string, string>)[err] ?? t.errors.server_error);
     };
     socket.on("connect_error", () => done("offline"));
-    socket.emit("room:create", { name, password }, (r: { ok: boolean; code?: string; key?: string; error?: string }) => {
+    socket.emit("room:create", { name, password, isPublic }, (r: { ok: boolean; code?: string; key?: string; error?: string }) => {
       if (!r.ok || !r.code || !r.key) return done(r.error ?? "server_error");
       saveKey(r.code, r.key);
       done(null);
@@ -57,6 +58,18 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
           required
         />
         <span className="text-base text-[var(--text-muted)]">{t.passwordHint}</span>
+      </label>
+      <label className="flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={isPublic}
+          onChange={(e) => setIsPublic(e.target.checked)}
+          className="mt-1 size-5 shrink-0 accent-[var(--color-lamp)]"
+        />
+        <span>
+          <span className="font-display text-xl tracking-wide">{t.publicTable}</span>
+          <span className="block text-base text-[var(--text-muted)]">{t.publicTableHint}</span>
+        </span>
       </label>
       {error && (
         <p role="alert" className="text-[var(--urgent)]">

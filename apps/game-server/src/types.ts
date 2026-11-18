@@ -35,7 +35,11 @@ export interface SeatView {
   fouls: number;
   /** Put up for the vote today. */
   nominated: boolean;
-  /** Whether the player may have the camera / mic on right now (host rules, phase, death, who has the floor). */
+  /**
+   * Whether the player may have the camera / mic on right now (host rules, phase, death, who has the floor).
+   * These four are sent only to the host and to the seat's own player (others get false), so they can't
+   * hint at who is awake at night.
+   */
   camAllowed: boolean;
   micAllowed: boolean;
   /** The host switched it off for this player (stays off across phases until the host turns it back on). */
@@ -60,7 +64,29 @@ export interface OwnNightMarks {
 
 export type MeView =
   | { kind: "host" }
-  | { kind: "player"; seat: number; role: Role | null; teammates: number[]; marks: OwnNightMarks | null };
+  | { kind: "player"; seat: number; role: Role | null; teammates: number[]; marks: OwnNightMarks | null }
+  /** Watches the table without a seat: sees and hears the day, never roles or the night. */
+  | { kind: "spectator"; name: string };
+
+/** People watching without a seat. They take no tile; the room shows a small count and a popup of names. */
+export interface SpectatorsView {
+  count: number;
+  /** Names of those online now. */
+  names: string[];
+}
+
+/** One open table, for the list on the home page (only tables the host made public). */
+export interface RoomSummary {
+  code: string;
+  hostName: string;
+  phase: Phase;
+  day: number;
+  players: number;
+  freeSeats: number;
+  spectators: number;
+  /** Where the introduction round is set, if the host picked a place. */
+  location: string | null;
+}
 
 /**
  * Where the game is. The server walks through these; the host mostly presses "next".
@@ -145,16 +171,16 @@ export interface FlowView {
   voting: VotingView | null;
   lastWord: { seat: number; reason: "killed" | "voted" } | null;
   /**
-   * Public: who is awake at night. "asleep" first (everyone's camera off), then the host wakes
-   * "mafia" (the mafia and the Don together, cameras on, no sound), then "don", "sheriff", "doctor".
-   * Only the woken role's camera is on, and each browser lets only the host (and fellow mafia) watch it.
+   * Public: which role is called at night. "asleep" first, then the host wakes "mafia" (the mafia and
+   * the Don together), then "don", "sheriff", "doctor". Every living camera stays on all night (mics off),
+   * but each browser lets only the host watch it, plus fellow mafia during the "mafia" step.
    */
   nightStep: NightStep | "asleep" | null;
   /** Host only. */
   night: NightView | null;
   /** Host only, before announcing the morning: who dies (null = nobody). */
   morning: { killed: number | null } | null;
-  /** The game looks decided: no mafia left, or as many mafia as everyone else. */
+  /** Host only: the game looks decided (no mafia left, or as many mafia as everyone else). */
   suggestedWinner: Winner | null;
   /** What happened. Players see public entries; the host (and everyone after the game) sees all. */
   log: LogEntry[];
@@ -175,6 +201,15 @@ export interface RoomView {
   host: { name: string; identity: string; connected: boolean };
   seats: SeatView[];
   me: MeView;
+  /** Who is watching without a seat. */
+  spectators: SpectatorsView;
+  /**
+   * Where the introduction round is set, picked by the host before the game: either "loc:<id>" for one
+   * of the site's ready places, or the host's own words. Null when not chosen.
+   */
+  location: string | null;
+  /** Shown in the list of open tables on the home page, so others can come and watch. */
+  isPublic: boolean;
   /** Server clock when this view was sent, to correct for clock differences. */
   serverNow: number;
 }
@@ -202,5 +237,9 @@ export type HostAction =
   | { type: "removeBots" }
   /** Before the game: drag a tile onto another seat (swaps the two). */
   | { type: "moveSeat"; from: number; to: number }
+  /** Before the game: where the introduction round is set ("loc:<id>" or the host's own words; null clears it). */
+  | { type: "setLocation"; location: string | null }
+  /** Show or hide the table in the home page list. */
+  | { type: "setPublic"; on: boolean }
   | { type: "endGame"; winner: Winner }
   | { type: "newGame" };

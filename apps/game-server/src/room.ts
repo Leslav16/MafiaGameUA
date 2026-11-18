@@ -10,6 +10,7 @@ import {
   type OutReason,
   type Phase,
   type Role,
+  type RoomSummary,
   type RoomView,
   type SeatView,
   type Stage,
@@ -48,7 +49,20 @@ export interface MediaPermission {
   mic: boolean;
 }
 
-export type Viewer = { kind: "host" } | { kind: "player"; seat: number } | { kind: "nobody" };
+export type Viewer =
+  | { kind: "host" }
+  | { kind: "player"; seat: number }
+  | { kind: "spectator"; key: string }
+  | { kind: "nobody" };
+
+interface Spectator {
+  identity: string;
+  name: string;
+  connected: number;
+}
+
+/** Enough for a full table of friends watching; keeps the video server's load sane. */
+export const MAX_SPECTATORS = 40;
 
 export class GameError extends Error {}
 
@@ -109,6 +123,11 @@ export class Room {
 
   private readonly passwordHash: string;
   private readonly seats = new Map<number, Player>();
+  private readonly spectators = new Map<string, Spectator>();
+  /** Listed on the home page so others can come and watch. */
+  isPublic: boolean;
+  /** Where the introduction round is set: "loc:<id>" or the host's own words. */
+  private location: string | null = null;
   private readonly banned = new Set<string>();
   private winner: Winner | null = null;
   private rolesDealt = false;
@@ -128,8 +147,9 @@ export class Room {
   private doctor: DoctorMemory = { lastHeal: null, selfHeals: 0 };
   private log: LogEntry[] = [];
 
-  constructor(code: string, hostName: string, password: string) {
+  constructor(code: string, hostName: string, password: string, isPublic = false) {
     this.code = code;
+    this.isPublic = isPublic;
     this.hostName = hostName;
     this.passwordHash = hashPassword(password);
   }
@@ -174,12 +194,40 @@ export class Room {
     return { seat, key: player.key, identity: player.identity };
   }
 
+  /** Someone who only watches: allowed at any time, takes no seat, never sees roles or the night. */
+  addSpectator(nameRaw: unknown): { key: string; identity: string } {
+    const name = cleanName(nameRaw);
+    if (this.spectators.size >= MAX_SPECTATORS) throw new GameError("too_many_spectators");
+    const key = newId(18);
+    const identity = `w-${newId(6)}`;
+    this.spectators.set(key, { identity, name, connected: 0 });
+    this.lastActive = Date.now();
+    return { key, identity };
+  }
+
   /** Who a saved key belongs to, for coming back after a page reload. */
   resolveKey(key: unknown): Viewer {
     if (typeof key !== "string" || this.banned.has(key)) return { kind: "nobody" };
     if (key === this.hostKey) return { kind: "host" };
     for (const [seat, p] of this.seats) if (p.key === key) return { kind: "player", seat };
+    if (this.spectators.has(key)) return { kind: "spectator", key };
     return { kind: "nobody" };
+  }
+
+  /** Short public facts for the home page list of open tables. */
+  summary(): RoomSummary {
+    let players = 0;
+    for (const p of this.seats.values()) if (!p.bot) players += 1;
+    return {
+      code: this.code,
+      hostName: this.hostName,
+      phase: this.phase,
+      day: this.day,
+      players,
+      freeSeats: this.stage === "lobby" ? this.freeSeats().length : 0,
+      spectators: [...this.spectators.values()].filter((w) => w.connected > 0).length,
+      location: this.location,
+    };
   }
 
   /**
@@ -191,6 +239,12 @@ export class Room {
     this.lastActive = Date.now();
     if (viewer.kind === "host") {
       this.hostName = cleaned;
+      return viewer;
+    }
+    if (viewer.kind === "spectator") {
+      const w = this.spectators.get(viewer.key);
+      if (!w) throw new GameError("not_joined");
+      w.name = cleaned;
       return viewer;
     }
     if (viewer.kind !== "player") throw new GameError("not_joined");
@@ -231,6 +285,10 @@ export class Room {
       const p = this.seats.get(viewer.seat);
       return p ? { identity: p.identity, name: p.name } : null;
     }
+    if (viewer.kind === "spectator") {
+      const w = this.spectators.get(viewer.key);
+      return w ? { identity: w.identity, name: w.name } : null;
+    }
     return null;
   }
 
@@ -241,6 +299,10 @@ export class Room {
     if (viewer.kind === "player") {
       const p = this.seats.get(viewer.seat);
       if (p) p.connected = Math.max(0, p.connected + delta);
+    }
+    if (viewer.kind === "spectator") {
+      const w = this.spectators.get(viewer.key);
+      if (w) w.connected = Math.max(0, w.connected + delta);
     }
   }
 
@@ -279,19 +341,12 @@ export class Room {
     return n.steps[n.index] ?? null;
   }
 
-  /** Who is awake at this night step: the mafia step wakes the Don and the mafia together. */
-  private awakeAtNight(seat: number): boolean {
-    const role = this.seats.get(seat)?.role;
-    const step = this.nightStep;
-    if (!role || !this.seats.get(seat)?.alive || step === null || step === "asleep") return false;
-    return step === "mafia" ? isMafia(role) : role === step;
-  }
-
   /**
    * What each seated player may publish right now. The host may always publish.
-   * Night: everyone off, except the camera (never the mic) of whoever is woken: the
-   * mafia and the Don together, then the Don, the Sheriff, the Doctor. Who may watch
-   * those cameras is limited in the browser (only the host, and fellow mafia).
+   * Night: every living player's camera stays on and every mic is off, the same for all, so
+   * nothing in the room (camera on/off, track events) shows who is awake. Who may watch a
+   * camera at night is limited by each browser's LiveKit subscription permissions: only the
+   * host, plus fellow mafia while the mafia are awake. Sleepers and spectators get nothing.
    * Speeches, defence and last words: only the speaker's mic.
    * Voting: cameras on (hands up), mics off. Out players stay off, except for their last word.
    */
@@ -304,7 +359,7 @@ export class Room {
       case "ended":
         return host({ cam: true, mic: true });
       case "night":
-        return host({ cam: this.awakeAtNight(seat), mic: false });
+        return host({ cam: p.alive, mic: false });
       case "morning":
         return { cam: false, mic: false };
       case "lastWord":
@@ -445,6 +500,17 @@ export class Room {
       case "moveSeat":
         this.swapSeats(assertSeat(action.from), assertSeat(action.to));
         break;
+      case "setLocation": {
+        if (this.stage !== "lobby") throw new GameError("game_in_progress");
+        const raw = action.location;
+        if (raw === null) this.location = null;
+        else if (typeof raw === "string" && raw.trim()) this.location = raw.replace(/\s+/g, " ").trim().slice(0, 80);
+        else throw new GameError("invalid_action");
+        break;
+      }
+      case "setPublic":
+        this.isPublic = action.on === true;
+        break;
       case "endGame":
         if (action.winner !== "town" && action.winner !== "mafia") throw new GameError("invalid_action");
         this.stage = "ended";
@@ -538,8 +604,7 @@ export class Room {
           this.takeOut(killed, "killed");
           this.log.push({ day: this.day, kind: "killed", seat: killed });
           // Only a player voted out by the town gets a last word.
-        }
-        this.log.push({ day: this.day, kind: "nobody_killed" });
+        } else this.log.push({ day: this.day, kind: "nobody_killed" });
         return this.startSpeeches("day", now);
       }
     }
@@ -772,6 +837,8 @@ export class Room {
       if (ownIsMafia && mafia && viewer.kind === "player" && s !== viewer.seat) teammates.push(s);
       const seeRole =
         p?.role && (isHost || ended || (viewer.kind === "player" && (viewer.seat === s || (ownIsMafia && mafia))));
+      // Camera/mic rules only go to the host and the seat's own player: at night they would hint at roles.
+      const seeMedia = isHost || (viewer.kind === "player" && viewer.seat === s);
       seats.push({
         seat: s,
         name: p?.name ?? null,
@@ -782,15 +849,16 @@ export class Room {
         out: p?.out ?? null,
         fouls: p?.fouls ?? 0,
         nominated: nominated.has(s),
-        camAllowed: media.cam,
-        micAllowed: media.mic,
-        hostCamOff: p?.hostCamOff ?? false,
-        hostMicOff: p?.hostMicOff ?? false,
+        camAllowed: seeMedia && media.cam,
+        micAllowed: seeMedia && media.mic,
+        hostCamOff: seeMedia && (p?.hostCamOff ?? false),
+        hostMicOff: seeMedia && (p?.hostMicOff ?? false),
         ...(seeRole ? { role: p!.role! } : {}),
       });
     }
 
     let me: MeView = { kind: "host" };
+    if (viewer.kind === "spectator") me = { kind: "spectator", name: this.spectators.get(viewer.key)?.name ?? "" };
     if (viewer.kind === "player") {
       me = { kind: "player", seat: viewer.seat, role: own?.role ?? null, teammates, marks: this.ownMarks(viewer.seat) };
     }
@@ -827,7 +895,7 @@ export class Room {
       night,
       morning: isHost && this.stage === "morning" ? { killed: this.morningKilled } : null,
       suggestedWinner:
-        this.rolesDealt && !ended ? suggestWinner(this.aliveSeats().map((s) => this.seats.get(s)!.role)) : null,
+        isHost && this.rolesDealt && !ended ? suggestWinner(this.aliveSeats().map((s) => this.seats.get(s)!.role)) : null,
       log: this.log.filter((e) => isHost || ended || PUBLIC_LOG.has(e.kind)).map((e) => ({ ...e })),
     };
 
@@ -843,6 +911,12 @@ export class Room {
       host: { name: this.hostName, identity: HOST_IDENTITY, connected: this.hostConnected > 0 },
       seats,
       me,
+      spectators: {
+        count: [...this.spectators.values()].filter((w) => w.connected > 0).length,
+        names: [...this.spectators.values()].filter((w) => w.connected > 0).map((w) => w.name),
+      },
+      location: this.location,
+      isPublic: this.isPublic,
       serverNow: now,
     };
   }

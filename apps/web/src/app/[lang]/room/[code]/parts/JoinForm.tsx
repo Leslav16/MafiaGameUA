@@ -7,34 +7,59 @@ import { LineupFigures, SingleFigure } from "@/components/three";
 
 const input =
   "phase-transition min-h-12 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-lg text-[var(--text)] placeholder:text-[var(--text-muted)]/70 focus:border-[var(--color-lamp)] focus:outline-none";
+const link =
+  "inline-flex min-h-11 items-center underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--accent)]";
 const primary =
   "inline-flex min-h-12 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)] transition-transform duration-150 hover:brightness-110 active:scale-[0.98] disabled:opacity-50";
 
-/** Nickname for players (the server gives a seat; "4. Name" asks for seat 4), or the password for the host. */
+type Mode = "player" | "watch" | "host";
+
+/**
+ * Nickname for players (the server gives a seat; "4. Name" asks for seat 4), a nickname
+ * for spectators (no seat, any time, even mid-game), or the password for the host.
+ * A link ending in ?watch opens straight in spectator mode (the home page list uses it).
+ */
 export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi"]; ui: Dictionary["ui"] }) {
-  const [asHost, setAsHost] = useState(false);
+  const [mode, setMode] = useState<Mode>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("watch") ? "watch" : "player",
+  );
+  const asHost = mode === "host";
+  const watching = mode === "watch";
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const switchTo = (m: Mode) => {
+    setMode(m);
+    setError(null);
+  };
   const errorText = (code: string) => (t.errors as Record<string, string>)[code] ?? t.errors.server_error;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const err = asHost ? await room.joinAsHost(password) : await room.joinAsPlayer(name);
+    const err = asHost
+      ? await room.joinAsHost(password)
+      : watching
+        ? await room.joinAsSpectator(name)
+        : await room.joinAsPlayer(name);
     setBusy(false);
     if (err) {
       setError(errorText(err));
+      // The game has started or every seat is taken: offer to watch with the same name.
+      if (err === "game_in_progress" || err === "room_full") setMode("watch");
     }
   }
 
   return (
     <div className="grid w-full items-center gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <form onSubmit={submit} className="flex w-full max-w-lg flex-col gap-6">
-        <h1 className="font-display text-5xl font-medium tracking-tight">{asHost ? t.hostJoin : t.joinTitle}</h1>
+        <h1 className="font-display text-5xl font-medium tracking-tight">
+          {asHost ? t.hostJoin : watching ? t.watchTitle : t.joinTitle}
+        </h1>
+        {watching && <p className="text-lg text-[var(--text-muted)]">{t.watchHint}</p>}
 
         {asHost ? (
           <label className="flex flex-col gap-1.5">
@@ -62,8 +87,12 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
               required
               autoFocus
             />
-            <span className="text-base text-[var(--text-muted)]">{ui.join.nicknameHint}</span>
-            <span className="text-base text-[var(--text-muted)]">{ui.join.seatTip}</span>
+            {!watching && (
+              <>
+                <span className="text-base text-[var(--text-muted)]">{ui.join.nicknameHint}</span>
+                <span className="text-base text-[var(--text-muted)]">{ui.join.seatTip}</span>
+              </>
+            )}
           </label>
         )}
 
@@ -75,18 +104,23 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <button type="submit" disabled={busy || (!asHost && !name.trim())} className={primary}>
-            {busy ? t.joining : asHost ? t.hostJoin : t.join}
+            {busy ? t.joining : asHost ? t.hostJoin : watching ? t.watch : t.join}
           </button>
-          <button
-            type="button"
-            className="inline-flex min-h-11 items-center underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--accent)]"
-            onClick={() => {
-              setAsHost(!asHost);
-              setError(null);
-            }}
-          >
-            {asHost ? t.back : t.imHost}
-          </button>
+          {mode !== "player" && (
+            <button type="button" className={link} onClick={() => switchTo("player")}>
+              {t.joinAsPlayer}
+            </button>
+          )}
+          {mode !== "watch" && (
+            <button type="button" className={link} onClick={() => switchTo("watch")}>
+              {t.watch}
+            </button>
+          )}
+          {mode !== "host" && (
+            <button type="button" className={link} onClick={() => switchTo("host")}>
+              {t.imHost}
+            </button>
+          )}
         </div>
       </form>
 

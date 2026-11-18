@@ -54,6 +54,16 @@ To stop everything: `docker compose down`. To update after new changes: `git pul
 
 You sit on tile 12, after the eleven players. Anyone, including you, can press **Change name** at the bottom of the room to change their name.
 
+### Spectators, open tables, the night
+
+- **Spectators.** Anyone with the link can press **Watch as a spectator**, at any time, even mid-game. They take no tile: the players see only a small 👁 count with a popup of names. Spectators see and hear the day, never roles, and see nothing at night.
+- **Open tables.** A table is listed under **Tables** on the home page unless the host unticks **Show the table on the home page** (when creating it, or later at the bottom of the host panel). Others can watch it from there, or take a seat while it is still gathering players.
+- **The night.** Every living player's camera stays on and every mic is off, the same for all, so nothing on screen shows who is awake. Each browser lets only the host watch its camera (and the other mafia while the mafia are awake); the video server enforces this. The host sees only the woken role's cameras.
+- **Night voice.** A short spoken line when the night falls, each role is called and the morning comes, in different words each time. Players can turn it off in Settings. The Ukrainian lines are files in `apps/web/public/voice/uk/` (`night-1.mp3` and so on): replace any of them with your own recording of the same name.
+- **Introductions.** Before the game, the host picks a place for the introduction round (a random one, one of 27 ready ones, or their own words). Everyone sees it above the table during the lobby and the introduction round.
+- **Game record.** In the host panel's **Game log**, **Download the game record** saves a text file with the roles and everything that happened.
+- Five wrong host passwords in 10 minutes from one address lock that address out of the room for a while.
+
 If you reload the page or come back later on the same browser, you return to your seat. From another device, open the room link and choose **I'm the host** with your password.
 
 ### Testing from another device at home (later, with rooms)

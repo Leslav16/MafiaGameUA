@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { fill } from "./format";
-import { CamIcon, MicIcon } from "./icons";
 import type { RoomLabels, SeatInfo } from "./types";
 
 const ROLE_MARK: Record<NonNullable<SeatInfo["role"]>, string> = {
@@ -63,7 +62,8 @@ export function PlayerTile({
   /** A private note only this viewer sees, e.g. the Sheriff's check result. `tone` colours it. */
   nightMark?: { text: string; tone: "bad" | "good" | "info" } | null;
 }) {
-  const { seat, name, alive, connected, camOn, micOn, fouls, role, nominated = false } = info;
+  // No camera/mic icons on tiles: at night they could hint at who is awake.
+  const { seat, name, alive, connected, camOn, fouls, role, nominated = false } = info;
   const out = alive ? null : (info.out ?? "killed");
   const outLabel = out === "voted" ? labels.votedOut : out === "removed" ? labels.removed : labels.killed;
   const seatLabel = tag ?? fill(labels.seat, seat);
@@ -78,8 +78,6 @@ export function PlayerTile({
     nominated && alive ? labels.nominated : null,
     speaking && alive ? labels.speaking : null,
     !connected ? labels.offline : null,
-    alive && !micOn ? labels.micOff : null,
-    alive && !camOn ? labels.camOff : null,
     fouls > 0 ? fill(labels.fouls, fouls) : null,
     showRole && role ? labels.role[role] : null,
     against && against.length ? fill(labels.votesAgainst, against.length) : null,
@@ -208,13 +206,6 @@ export function PlayerTile({
             </span>
           )}
         </span>
-        {alive && !camOn && <CamIcon off className="size-4 shrink-0 text-[var(--color-smoke)]" />}
-        {alive && (
-          <MicIcon
-            off={!micOn}
-            className={`size-4 shrink-0 ${micOn ? "text-[var(--color-card)]" : "text-[var(--color-blood-light)]"}`}
-          />
-        )}
       </figcaption>
 
       {/* Disconnected */}

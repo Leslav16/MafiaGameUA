@@ -35,7 +35,7 @@ interface JoinReply {
   ok: boolean;
   error?: string;
   key?: string;
-  as?: "host" | "player";
+  as?: "host" | "player" | "spectator";
   token?: string;
   livekitUrl?: string;
 }
@@ -211,6 +211,8 @@ export function useRoom(code: string) {
     [emitJoin],
   );
   const joinAsHost = useCallback((password: string) => emitJoin({ host: true, password }), [emitJoin]);
+  /** Watches the table without a seat (allowed at any time). */
+  const joinAsSpectator = useCallback((name: string) => emitJoin({ name, watch: true }), [emitJoin]);
 
   const freeSeats = useCallback(
     () =>
@@ -266,12 +268,13 @@ export function useRoom(code: string) {
   const camAllowed = isHost || !!mySeat?.camAllowed;
   const micAllowed = isHost || !!mySeat?.micAllowed;
 
-  // At night a woken player's camera is for the host (and fellow mafia) only. LiveKit enforces
-  // this: other browsers can't subscribe to the track. The town falls asleep with every camera
-  // off first, so the limit is in place before anyone wakes.
+  // At night every living camera stays on (the same for everyone, so nothing shows who is awake),
+  // but each player's camera is for the host only, plus fellow mafia while the mafia are awake.
+  // LiveKit enforces this: other browsers and spectators can't subscribe to the track.
+  // The night starts with "asleep", so the limit is in place before anyone wakes.
   const watchers = useMemo(() => {
     if (!view || view.me.kind !== "player" || view.phase !== "night") return null;
-    const teammates = new Set(view.me.teammates);
+    const teammates = new Set(view.flow.nightStep === "mafia" ? view.me.teammates : []);
     const ids = view.seats.filter((s) => teammates.has(s.seat) && s.identity).map((s) => s.identity!);
     return [view.host.identity, ...ids].sort().join("\n");
   }, [view]);
@@ -354,6 +357,7 @@ export function useRoom(code: string) {
       clockOffset,
       joinAsPlayer,
       joinAsHost,
+      joinAsSpectator,
       freeSeats,
       hostAction,
       rename,
@@ -369,7 +373,7 @@ export function useRoom(code: string) {
       startAudio,
       switchDevice,
     }),
-    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
+    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
   );
 }
 

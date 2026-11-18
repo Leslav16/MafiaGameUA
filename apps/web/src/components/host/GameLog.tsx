@@ -2,20 +2,14 @@
 
 import type { LogEntry } from "@/lib/room/types";
 import { fmt } from "@/lib/room/format";
+import { logLine } from "./gameRecord";
 import type { HostDict } from "./ui";
 
 /** The story of the game so far, grouped by day. Night secrets are only sent to the host. */
 export function GameLog({ log, t }: { log: LogEntry[]; t: HostDict }) {
   if (log.length === 0) return <p className="text-sm text-[var(--text-muted)]">{t.logEmpty}</p>;
-  const n = (seat?: number) => (seat ? fmt(t.seatShort, { n: seat }) : "");
   const days = [...new Set(log.map((e) => e.day))];
-  const line = (e: LogEntry) => {
-    const kinds = t.logKinds as Record<string, string>;
-    const key = e.kind === "nominated" && !e.by ? "nominatedNoBy" : e.kind;
-    const result =
-      e.kind === "don_check" ? (e.result ? t.isSheriff : t.notSheriff) : e.kind === "sheriff_check" ? (e.result ? t.isMafia : t.notMafia) : "";
-    return fmt(kinds[key] ?? key, { seat: n(e.seat), by: n(e.by), result });
-  };
+  const line = (e: LogEntry) => logLine(e, t);
   return (
     <ol className="flex flex-col gap-2 text-sm">
       {days.map((d) => (

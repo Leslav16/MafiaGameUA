@@ -3,16 +3,25 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * This browser's own preferences (not shared with anyone): sound effects,
+ * This browser's own preferences (not shared with anyone): sound effects, the night voice,
  * calmer motion, a mirrored self-view and the camera background effect.
  * Kept in localStorage; every read and write is guarded because storage can
  * be blocked.
  */
 export type CamEffect = "none" | "blur" | "study" | "bar" | "wallpaper";
-export type Prefs = { sfx: boolean; calm: boolean; mirror: boolean; effect: CamEffect; cameraId?: string; micId?: string };
+export type Prefs = {
+  sfx: boolean;
+  /** The night narrator's voice ("the town falls asleep", "the mafia wakes up", ...). */
+  voice: boolean;
+  calm: boolean;
+  mirror: boolean;
+  effect: CamEffect;
+  cameraId?: string;
+  micId?: string;
+};
 
 const KEY = "mafia.prefs";
-const DEFAULTS: Prefs = { sfx: true, calm: false, mirror: true, effect: "none" };
+const DEFAULTS: Prefs = { sfx: true, voice: true, calm: false, mirror: true, effect: "none" };
 let current: Prefs = DEFAULTS;
 let loaded = false;
 const listeners = new Set<() => void>();

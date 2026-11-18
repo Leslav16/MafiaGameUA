@@ -26,7 +26,10 @@ export function DeviceCheck({
   preview,
   stacked = false,
   initial,
+  hideReady = false,
 }: {
+  /** No Ready button (the home page check). */
+  hideReady?: boolean;
   /** Devices to open first (a saved choice). */
   initial?: DeviceChoice;
   /** Shown instead of the raw camera, e.g. the room's own track with its background effect. */
@@ -220,6 +223,7 @@ export function DeviceCheck({
           </div>
           <p className="mt-1.5 text-sm text-[var(--text-muted)] phase-transition">{t.levelHint}</p>
         </div>
+        {!hideReady && (
         <button
           type="button"
           aria-pressed={ready}
@@ -234,6 +238,7 @@ export function DeviceCheck({
         >
           {ready ? `✓ ${t.ready}` : t.ready}
         </button>
+        )}
       </div>
     </div>
   );

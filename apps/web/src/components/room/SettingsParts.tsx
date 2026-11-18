@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { BACKGROUNDS, setPrefs, usePrefs, type CamEffect } from "../prefs";
 import type { RoomLabels } from "./types";
 import { playShot } from "./sounds";
+import { narrate } from "./narrator";
 
 /** One soft card in the Settings popup. */
 export function SetCard({ title, icon, children, className = "" }: { title: string; icon: ReactNode; children: ReactNode; className?: string }) {
@@ -49,6 +50,23 @@ export function GamePrefs({ labels }: { labels: RoomLabels }) {
         action={
           p.sfx ? (
             <button type="button" onClick={() => playShot()} className="mt-0.5 rounded-full border border-[var(--line)] px-3 py-1 text-sm hover:border-[var(--color-lamp)]">
+              ▶ {t.test}
+            </button>
+          ) : null
+        }
+      />
+      <Toggle
+        label={t.voice}
+        hint={t.voiceHint}
+        on={p.voice}
+        onChange={(voice) => setPrefs({ voice })}
+        action={
+          p.voice ? (
+            <button
+              type="button"
+              onClick={() => narrate("night", document.documentElement.lang || "uk", true)}
+              className="mt-0.5 rounded-full border border-[var(--line)] px-3 py-1 text-sm hover:border-[var(--color-lamp)]"
+            >
               ▶ {t.test}
             </button>
           ) : null

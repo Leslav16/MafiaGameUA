@@ -10,12 +10,14 @@ import type { HostAction } from "./types.js";
  * and tells LiveKit which cameras and mics are allowed.
  *
  * Socket events (all take an ack callback):
- *   room:create { name, password }            -> { ok, code, key }
+ *   room:create { name, password, isPublic? } -> { ok, code, key }
  *   room:peek   { code }                      -> { ok, freeSeats, phase }
  *   room:join   { code, key }                 (come back with a saved key)
  *             | { code, name, seat? }         (join as a player: first free seat, or "4. Name" / seat if free)
  *             | { code, host: true, password } (join as the host)
- *                                            -> { ok, key, as: "host" | "player", token, livekitUrl }
+ *             | { code, name, watch: true }   (watch without a seat, at any time)
+ *                                            -> { ok, key, as: "host" | "player" | "spectator", token, livekitUrl }
+ * HTTP GET /rooms -> RoomSummary[] of the tables their hosts made public (for the home page).
  *   host:action HostAction                    -> { ok }
  *   me:rename   { name }                      -> { ok }   (own name; "4. Name" also moves a player to seat 4)
  *   me:seat     { seat }                      -> { ok }   (a player moves to a free seat number)
@@ -31,7 +33,32 @@ const rooms = new Map<string, Room>();
 /** Last camera/mic rules sent to LiveKit, per room, to send only what changed. */
 const sentMedia = new Map<string, Map<string, MediaPermission>>();
 
+/** Wrong host passwords per address and room: after 5 in 10 minutes, that address waits. */
+const PASSWORD_TRIES = 5;
+const PASSWORD_WINDOW_MS = 10 * 60 * 1000;
+const passwordFails = new Map<string, number[]>();
+
+function passwordBlocked(id: string, now = Date.now()): boolean {
+  const recent = (passwordFails.get(id) ?? []).filter((t) => t > now - PASSWORD_WINDOW_MS);
+  if (recent.length) passwordFails.set(id, recent);
+  else passwordFails.delete(id);
+  return recent.length >= PASSWORD_TRIES;
+}
+
+function passwordFailed(id: string, now = Date.now()) {
+  passwordFails.set(id, [...(passwordFails.get(id) ?? []), now]);
+}
+
 const http = createServer((req, res) => {
+  if (req.url === "/rooms" && req.method === "GET") {
+    const list = [...rooms.values()]
+      .filter((r) => r.isPublic)
+      .map((r) => r.summary())
+      .sort((a, b) => b.players - a.players);
+    res.writeHead(200, { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "no-store" });
+    res.end(JSON.stringify(list));
+    return;
+  }
   if (req.url === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
@@ -100,11 +127,11 @@ io.on("connection", (socket) => {
 
   socket.on("room:create", (payload: unknown, ack?: Ack) => {
     try {
-      const { name, password } = (payload ?? {}) as Record<string, unknown>;
+      const { name, password, isPublic } = (payload ?? {}) as Record<string, unknown>;
       if (typeof password !== "string" || password.length < 4 || password.length > 64) {
         throw new GameError("invalid_password");
       }
-      const room = new Room(newCode(), cleanName(name), password);
+      const room = new Room(newCode(), cleanName(name), password, isPublic === true);
       rooms.set(room.code, room);
       ack?.({ ok: true, code: room.code, key: room.hostKey });
     } catch (err) {
@@ -132,8 +159,16 @@ io.on("connection", (socket) => {
         key = p.key;
         if (room.resolveKey(key).kind === "nobody") throw new GameError("key_unknown");
       } else if (p.host === true) {
-        if (!room.checkHostPassword(p.password)) throw new GameError("wrong_password");
+        const tries = `${socket.handshake.address}|${room.code}`;
+        if (passwordBlocked(tries)) throw new GameError("too_many_tries");
+        if (!room.checkHostPassword(p.password)) {
+          passwordFailed(tries);
+          throw new GameError("wrong_password");
+        }
+        passwordFails.delete(tries);
         key = room.hostKey;
+      } else if (p.watch === true) {
+        key = room.addSpectator(p.name).key;
       } else {
         key = room.takeSeat(p.seat, p.name).key;
       }
@@ -144,7 +179,11 @@ io.on("connection", (socket) => {
         room.code,
         who.identity,
         who.name,
-        viewer.kind === "host" ? "host" : room.mediaFor((viewer as { seat: number }).seat),
+        viewer.kind === "host"
+          ? "host"
+          : viewer.kind === "spectator"
+            ? "spectator"
+            : room.mediaFor((viewer as { seat: number }).seat),
       );
 
       data.code = room.code;

@@ -163,7 +163,7 @@ test("after the intro round with no nominations comes the night", () => {
   nextUntil(room, "night");
   const v = room.view(host);
   assert.equal(v.phase, "night");
-  assert.ok([...room.allMedia().values()].every((m) => !m.cam && !m.mic));
+  assert.ok([...room.allMedia().values()].every((m) => m.cam && !m.mic), "cameras stay on, hidden by subscription rules");
   assert.deepEqual(v.flow.night!.steps, ["mafia", "don", "sheriff", "doctor"]);
   assert.equal(room.view({ kind: "player", seat: 1 }).flow.night, null, "night secrets are host-only");
 });
@@ -319,36 +319,94 @@ test("a role that is out is still called at night, but can only pick nobody", ()
   assert.equal(flow(room).nightStep, "doctor");
 });
 
-test("night cameras follow who is awake: asleep, mafia and Don together, then Don, Sheriff, Doctor; never a mic", () => {
+test("night: every living camera stays on and every mic off, the same for all, so nothing shows who is awake", () => {
   const room = fullRoom();
   room.apply({ type: "startGame" });
   nextUntil(room, "night");
-  const seatsOf = (pred: (r: Role | undefined) => boolean) =>
-    room.view(host).seats.filter((s) => pred(s.role)).map((s) => s.seat);
-  const camsOn = () => seatsOf(() => true).filter((s) => room.mediaFor(s).cam);
-  const mafia = seatsOf((r) => r === "mafia" || r === "don");
+  const all = room.view(host).seats.map((s) => s.seat);
+  const camsOn = () => all.filter((s) => room.mediaFor(s).cam);
   const player = { kind: "player", seat: 1 } as const;
 
   assert.equal(flow(room).nightStep, "asleep");
-  assert.equal(room.view(player).flow.nightStep, "asleep", "everyone knows who is awake");
-  assert.deepEqual(camsOn(), []);
+  assert.equal(room.view(player).flow.nightStep, "asleep", "everyone knows which role is called");
+  assert.deepEqual(camsOn(), all);
   assert.throws(() => room.apply({ type: "nightPick", seat: null }), /night_asleep/);
 
-  room.apply({ type: "next" });
-  assert.equal(flow(room).nightStep, "mafia");
-  assert.deepEqual(camsOn(), mafia);
-  assert.ok(seatsOf(() => true).every((s) => !room.mediaFor(s).mic), "no sound at night");
-
-  room.apply({ type: "nightPick", seat: null });
-  assert.deepEqual(camsOn(), [roleSeat(room, "don")]);
-  room.apply({ type: "nightPick", seat: null });
-  assert.deepEqual(camsOn(), [roleSeat(room, "sheriff")]);
-  room.apply({ type: "nightPick", seat: null });
-  assert.deepEqual(camsOn(), [roleSeat(room, "doctor")]);
+  for (const step of ["mafia", "don", "sheriff", "doctor"]) {
+    if (step === "mafia") room.apply({ type: "next" });
+    else room.apply({ type: "nightPick", seat: null });
+    assert.equal(flow(room).nightStep, step);
+    assert.deepEqual(camsOn(), all, `same cameras at the ${step} step`);
+    assert.ok(all.every((s) => !room.mediaFor(s).mic), "no sound at night");
+    // Players never see others' camera/mic rules.
+    const others = room.view(player).seats.filter((s) => s.seat !== 1);
+    assert.ok(others.every((s) => !s.camAllowed && !s.micAllowed && !s.hostCamOff && !s.hostMicOff));
+  }
   room.apply({ type: "nightPick", seat: null });
   assert.equal(flow(room).stage, "morning");
   assert.equal(flow(room).nightStep, null);
   assert.deepEqual(camsOn(), []);
+});
+
+test("a dead player's camera stays off at night", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  room.apply({ type: "kill", seat: 4 });
+  nextUntil(room, "night");
+  assert.equal(room.mediaFor(4).cam, false);
+  assert.equal(room.mediaFor(5).cam, true);
+});
+
+test("the morning log says either who was killed or that nobody was", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  toNight(room);
+  room.apply({ type: "nightPick", seat: 2 });
+  quietNight(room);
+  room.apply({ type: "next" });
+  const kinds = flow(room).log.filter((e) => e.day === 1).map((e) => e.kind);
+  assert.ok(kinds.includes("killed"));
+  assert.ok(!kinds.includes("nobody_killed"));
+});
+
+test("only the host sees the suggested winner", () => {
+  const room = fullRoom(3);
+  room.apply({ type: "startGame" });
+  const town = room.view(host).seats.filter((s) => s.role === "civilian").map((s) => s.seat);
+  room.apply({ type: "kill", seat: town[0] });
+  assert.equal(flow(room).suggestedWinner, "mafia");
+  assert.equal(room.view({ kind: "player", seat: town[1] }).flow.suggestedWinner, null);
+});
+
+test("spectators join at any time, take no seat and never see roles or the night", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  const w = room.addSpectator("Watcher");
+  const viewer = room.resolveKey(w.key);
+  assert.equal(viewer.kind, "spectator");
+  room.presence(viewer, 1);
+  const v = room.view(viewer);
+  assert.deepEqual(v.me, { kind: "spectator", name: "Watcher" });
+  assert.ok(v.seats.every((s) => s.role === undefined));
+  assert.equal(v.flow.night, null);
+  assert.deepEqual(room.view(host).spectators, { count: 1, names: ["Watcher"] });
+  assert.equal(room.freeSeats().length, 0, "no seat taken");
+  room.rename(viewer, "Olha");
+  assert.deepEqual(room.view(host).spectators.names, ["Olha"]);
+  room.presence(viewer, -1);
+  assert.equal(room.view(host).spectators.count, 0, "only those online are listed");
+});
+
+test("the host picks the introduction place before the game, and can list the table publicly", () => {
+  const room = fullRoom();
+  room.apply({ type: "setLocation", location: "loc:train" });
+  assert.equal(room.view({ kind: "player", seat: 3 }).location, "loc:train");
+  room.apply({ type: "setPublic", on: true });
+  assert.equal(room.summary().location, "loc:train");
+  assert.equal(room.summary().players, 11);
+  assert.equal(room.isPublic, true);
+  room.apply({ type: "startGame" });
+  assert.throws(() => room.apply({ type: "setLocation", location: null }), /game_in_progress/);
 });
 
 test("the Sheriff, Don and Doctor each see only their own night record", () => {

@@ -5,6 +5,9 @@ import type { HostAction, RoomView } from "@/lib/room/types";
 import { fmt } from "@/lib/room/format";
 import { ConfirmButton } from "./ConfirmButton";
 import { GameLog } from "./GameLog";
+import { downloadGameRecord, gameRecordText } from "./gameRecord";
+import { LocationPicker } from "./LocationPicker";
+import { locationName, type Location } from "../locations";
 import { NowCard } from "./NowCard";
 import { SelectedPlayer } from "./SelectedPlayer";
 import { btn, plain, type HostDict, type RoleNames } from "./ui";
@@ -38,6 +41,7 @@ export function HostPanel({
   onHide,
   t,
   roles,
+  locations,
 }: {
   view: RoomView;
   act: (a: HostAction) => void;
@@ -49,6 +53,8 @@ export function HostPanel({
   onHide?: () => void;
   t: HostDict;
   roles: RoleNames;
+  /** Ready places for the introduction round. */
+  locations: Location[];
 }) {
   const players = view.seats.filter((s) => s.name).length;
   const selected = selectedSeat ? view.seats[selectedSeat - 1] : null;
@@ -75,6 +81,8 @@ export function HostPanel({
 
       <NowCard view={view} act={act} timerText={timerText} timerRunning={timerRunning} t={t} />
 
+      {view.flow.stage === "lobby" && <LocationPicker value={view.location} locations={locations} act={act} t={t} />}
+
       <Fold title={t.player} open={!!selected?.name}>
         {selected?.name ? (
           <SelectedPlayer seat={selected} inGame={inGame} act={act} onClose={onDeselect} t={t} roles={roles} />
@@ -86,6 +94,17 @@ export function HostPanel({
       {view.rolesDealt && (
         <Fold title={t.log}>
           <GameLog log={view.flow.log} t={t} />
+          <button
+            type="button"
+            className={`${btn} ${plain} mt-3 w-full text-sm`}
+            onClick={() => {
+              const when = new Date();
+              downloadGameRecord(gameRecordText(view, t, roles, locationName(view.location, locations), when), view.code, when);
+            }}
+          >
+            ⤓ {t.recordDownload}
+          </button>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{t.recordHint}</p>
         </Fold>
       )}
 
@@ -107,6 +126,18 @@ export function HostPanel({
           </div>
         </Fold>
       )}
+      <label className="flex cursor-pointer items-start gap-2 px-1 text-sm">
+        <input
+          type="checkbox"
+          checked={view.isPublic}
+          onChange={(e) => act({ type: "setPublic", on: e.target.checked })}
+          className="mt-0.5 size-4 shrink-0 accent-[var(--color-lamp)]"
+        />
+        <span>
+          {t.publicTable}
+          <span className="block text-xs text-[var(--text-muted)]">{t.publicTableHint}</span>
+        </span>
+      </label>
     </aside>
   );
 }

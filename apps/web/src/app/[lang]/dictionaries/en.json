@@ -28,7 +28,33 @@
     "codeLabel": "Room code",
     "codePlaceholder": "Code or link",
     "codeError": "Type the room code (letters and digits) or paste the link.",
-    "or": "or"
+    "or": "or",
+    "howTo": "How to start",
+    "howToSteps": [
+      "Create a room and pick a host password.",
+      "Send your friends the link. Each takes a free seat.",
+      "Press Start. Roles are dealt for you, and the panel guides you from there."
+    ],
+    "tables": "Tables",
+    "tablesTitle": "Open tables",
+    "tablesNone": "No open tables right now. Create your own!",
+    "tablesOffline": "The game server isn't answering.",
+    "tableWatch": "Watch",
+    "tablePlay": "Take a seat",
+    "tablePlayers": "players: {n}/11",
+    "tableSpectators": "watching: {n}",
+    "tableLobby": "gathering players",
+    "tableDay": "day {n}",
+    "tableNight": "night",
+    "tableEnded": "game over",
+    "tableHost": "{name}'s table",
+    "drawRole": "Draw a role",
+    "drawTitle": "Draw a role",
+    "drawHint": "The real deck: Don, 2 Mafia, Sheriff, Doctor and 6 civilians. The card is truly random.",
+    "drawPick": "Draw a card",
+    "drawAgain": "Again",
+    "camCheck": "Check your camera",
+    "cordHint": "Pull the lamp cord"
   },
   "game": {
     "title": "How a game goes",
@@ -226,7 +252,9 @@
       "calmHint": "Less motion: no lamp flicker or hopping.",
       "mirror": "Mirror my video",
       "mirrorHint": "Like a mirror. Others don't see you mirrored.",
-      "test": "Test"
+      "test": "Test",
+      "voice": "Night voice",
+      "voiceHint": "Briefly announces who wakes up, in different words each time."
     }
   },
   "rules": {
@@ -331,7 +359,7 @@
       "invalid_name": "Type a name.",
       "invalid_password": "The password needs 4 to 64 characters.",
       "invalid_seat": "Pick a seat.",
-      "game_in_progress": "The game has started. Ask the host to start a new game.",
+      "game_in_progress": "The game has started. You can watch as a spectator.",
       "invalid_role_mix": "That role mix doesn't fit the number of players.",
       "player_dead": "That player is dead.",
       "seat_empty": "Nobody sits there.",
@@ -352,13 +380,26 @@
       "already_voted": "This player has already voted.",
       "not_night": "It isn't night.",
       "night_not_done": "Finish the night steps first.",
-      "heal_blocked": "The Doctor can't heal this player tonight."
+      "heal_blocked": "The Doctor can't heal this player tonight.",
+      "too_many_tries": "Too many wrong tries. Wait 10 minutes.",
+      "too_many_spectators": "Too many spectators, no room left."
     },
     "sound": "Turn on sound",
     "rename": "Change name",
     "renameSave": "Save",
     "renameCancel": "Cancel",
-    "hostSeat": "12 · Host"
+    "hostSeat": "12 · Host",
+    "watch": "Watch as a spectator",
+    "watchTitle": "Watch the game",
+    "watchHint": "Spectators see and hear the table by day, but take no seat and never see roles or the night.",
+    "joinAsPlayer": "Take a seat",
+    "spectators": "Spectators",
+    "spectatorsCount": "Watching now: {n}",
+    "spectatorsNone": "Nobody is watching yet.",
+    "youWatch": "You are watching as a spectator",
+    "introAt": "Introductions: {place}",
+    "publicTable": "Show the table on the home page",
+    "publicTableHint": "Others will see it in the list of tables and can watch. The code and host password stay secret."
   },
   "hostPanel": {
     "title": "Host controls",
@@ -492,13 +533,13 @@
     "removeBots": "Remove bots",
     "botsHint": "Test mode: bots have no camera, but you can run a whole game with them.",
     "asleep": "The town falls asleep",
-    "asleepHint": "Every player's camera and mic is off. When everyone's eyes are closed, wake the mafia.",
+    "asleepHint": "Players' mics are off. Cameras keep running, but at night players and spectators see nobody. When everyone's eyes are closed, wake the mafia.",
     "wakeMafia": "The mafia wakes up",
     "awakeHint": {
-      "mafia": "The mafia and Don cameras are on with no sound: they agree in silence. Only you and the mafia see them.",
-      "don": "Only the Don's camera is on. You (and the mafia) see it.",
-      "sheriff": "Only the Sheriff's camera is on. Only you see it.",
-      "doctor": "Only the Doctor's camera is on. Only you see it."
+      "mafia": "The mafia and Don cameras, no sound: they agree in silence. Only you and the mafia see them.",
+      "don": "You see only the Don's camera. Nobody else does.",
+      "sheriff": "You see only the Sheriff's camera. Nobody else does.",
+      "doctor": "You see only the Doctor's camera. Nobody else does."
     },
     "roleOut": "{role}: this role is already out. Call it out loud anyway so the table can't tell, then press \"Nobody\".",
     "roleNames": {
@@ -510,6 +551,164 @@
     "healedTimes": "healed ×{n}",
     "selfHeals": "Doctor self-heals: {n} of 2.",
     "checkedBefore": "Already checked: {list}.",
-    "healedBefore": "Already healed: {list}."
-  }
+    "healedBefore": "Already healed: {list}.",
+    "location": "Place for introductions",
+    "locationHint": "Pick a place, and everyone introduces themselves as if they were there.",
+    "locationRandom": "Random",
+    "locationNone": "No place",
+    "locationPick": "Pick from the list…",
+    "locationOwn": "Or type your own",
+    "publicTable": "Show the table on the home page",
+    "publicTableHint": "So others can watch the game.",
+    "recordDownload": "Download the game record",
+    "recordHint": "A text file with the roles and everything that happened. The night is in it too, so don't show it before the game ends.",
+    "recordTitle": "MAFIA · game record",
+    "recordRoom": "Room {code} · host {host} · {date}",
+    "recordPlace": "Place: {place}",
+    "recordWinner": "Result: {winner}",
+    "recordOngoing": "Result: the game is still on",
+    "recordPlayers": "Players:",
+    "recordFlow": "How it went:",
+    "recordKilled": "killed by the mafia",
+    "recordVoted": "voted out",
+    "recordRemoved": "removed by the host",
+    "recordFouls": "fouls: {n}"
+  },
+  "locations": [
+    {
+      "id": "train",
+      "name": "Night train Kyiv to Odesa",
+      "text": "A four-berth compartment, tea in metal holders, dark steppe outside."
+    },
+    {
+      "id": "casino",
+      "name": "Casino in Monte Carlo",
+      "text": "Roulette, cigar smoke and a croupier who sees everything."
+    },
+    {
+      "id": "jazz",
+      "name": "Chicago jazz club, 1930s",
+      "text": "Prohibition, a saxophone and whiskey from under the counter."
+    },
+    {
+      "id": "wedding",
+      "name": "A Sicilian wedding",
+      "text": "The Don is receiving guests, and nobody refuses an invitation."
+    },
+    {
+      "id": "liner",
+      "name": "Ocean liner",
+      "text": "A ball in the first-class saloon, three days from shore."
+    },
+    {
+      "id": "chalet",
+      "name": "Mountain chalet",
+      "text": "Snowstorm, the pass is closed, a fireplace and mulled wine."
+    },
+    {
+      "id": "office",
+      "name": "The office before the party",
+      "text": "Someone stole the bonuses and the lift is stuck between floors."
+    },
+    {
+      "id": "village",
+      "name": "A village in Poltava region",
+      "text": "Dumplings, neighbours' gossip and a cow that has seen too much."
+    },
+    {
+      "id": "lviv",
+      "name": "A coffee house in Lviv",
+      "text": "Rain, cobblestones and coffee brewed here for a hundred years."
+    },
+    {
+      "id": "filmset",
+      "name": "Film set",
+      "text": "We're shooting a gangster film, but someone rewrote the script."
+    },
+    {
+      "id": "museum",
+      "name": "Museum at night",
+      "text": "The alarm is off and the painting is still there. But is it real?"
+    },
+    {
+      "id": "station",
+      "name": "Space station",
+      "text": "Half a year from Earth, enough air for all, not enough trust."
+    },
+    {
+      "id": "island",
+      "name": "Desert island",
+      "text": "The plane went down, the radio is silent, not enough coconuts for all."
+    },
+    {
+      "id": "hotel",
+      "name": "Old mountain hotel",
+      "text": "The porter has vanished, and the light is on in room 13."
+    },
+    {
+      "id": "dacha",
+      "name": "Birthday at the dacha",
+      "text": "Barbecue, a guitar, and a cake with one slice missing."
+    },
+    {
+      "id": "vegas",
+      "name": "Wedding in Vegas",
+      "text": "Someone got married, someone lost everything, nobody remembers a thing."
+    },
+    {
+      "id": "reunion",
+      "name": "School reunion",
+      "text": "Twenty years on. Everyone has changed except the old grudges."
+    },
+    {
+      "id": "submarine",
+      "name": "Submarine",
+      "text": "Two hundred metres down, periscope up, the captain says nothing."
+    },
+    {
+      "id": "circus",
+      "name": "Travelling circus",
+      "text": "The clowns aren't laughing and the tiger tamer is in a hurry."
+    },
+    {
+      "id": "privoz",
+      "name": "Odesa market",
+      "text": "They'll sell you anything here, even your alibi."
+    },
+    {
+      "id": "castle",
+      "name": "Castle in the Carpathians",
+      "text": "A thunderstorm, candles and ancestors' portraits whose eyes follow you."
+    },
+    {
+      "id": "auction",
+      "name": "Diamond auction",
+      "text": "A rare stone is up for sale, and someone has already forged the certificate."
+    },
+    {
+      "id": "festival",
+      "name": "Music festival",
+      "text": "Tents, mud, and the headliner is two hours late."
+    },
+    {
+      "id": "metro",
+      "name": "Last metro train",
+      "text": "The station is closed, the lights flicker, no phone signal."
+    },
+    {
+      "id": "bakery",
+      "name": "Bakery at 4 a.m.",
+      "text": "The dough is rising, and there are footprints in the flour."
+    },
+    {
+      "id": "embassy",
+      "name": "Embassy reception",
+      "text": "Champagne, diplomats and a coded message on a napkin."
+    },
+    {
+      "id": "prison",
+      "name": "Island prison",
+      "text": "The escape is set for tonight, but there's an informer among the inmates."
+    }
+  ]
 }

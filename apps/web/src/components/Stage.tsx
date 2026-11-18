@@ -23,15 +23,18 @@ const MAFIA = new Set<FigureRole>(["don", "mafia"]);
 export function Stage({
   label,
   roleNames,
+  cord,
 }: {
   label: string;
   roleNames: Record<FigureRole, string>;
+  /** The lamp's pull cord (a button), hung from the shade so it sways with it. */
+  cord?: React.ReactNode;
 }) {
   const { phase } = usePhase();
   const night = phase === "night";
 
   return (
-    <div role="img" aria-label={label} className="stage relative aspect-[4/3] w-full select-none" data-night={night ? "" : undefined}>
+    <div role="group" aria-label={label} className="stage relative aspect-[4/3] w-full select-none" data-night={night ? "" : undefined}>
       {/* Lamp: cord, shade and the cone of light, swaying together */}
       <div className="stage-lamp pointer-events-none absolute inset-x-0 top-0 z-10 h-full" aria-hidden>
         <div className="absolute top-0 left-1/2 h-[6%] w-[2px] -translate-x-1/2 bg-[var(--text)]/50" />
@@ -48,6 +51,7 @@ export function Stage({
           <ellipse cx="50" cy="30" rx="28" ry="4" fill="#e9c27a" className="stage-bulb" />
         </svg>
         <div className="stage-cone absolute top-[12%] left-1/2 h-[80%] w-[78%] -translate-x-1/2" />
+        {cord && <div className="pointer-events-auto absolute top-[10.6%] left-[54.2%] h-[15%] -translate-x-1/2">{cord}</div>}
       </div>
 
       {/* Table and cast: real 3D when the browser can, flat pictures otherwise */}
