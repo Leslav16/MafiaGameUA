@@ -18,6 +18,12 @@ function nextUntil(room: Room, stage: string) {
   for (let i = 0; i < 40 && flow(room).stage !== stage; i++) room.apply({ type: "next" });
   assert.equal(flow(room).stage, stage);
 }
+/** Goes to the night and wakes the mafia. */
+function toNight(room: Room) {
+  nextUntil(room, "night");
+  room.apply({ type: "next" });
+  assert.equal(flow(room).nightStep, "mafia");
+}
 /** Plays a night where nobody is shot, checked or healed. */
 function quietNight(room: Room) {
   while (flow(room).stage === "night") room.apply({ type: "nightPick", seat: null });
@@ -234,7 +240,7 @@ test("countVotes on its own", () => {
 test("night: mafia shot, Don and Sheriff checks, Doctor heal; a healed player survives", () => {
   const room = fullRoom();
   room.apply({ type: "startGame" });
-  nextUntil(room, "night");
+  toNight(room);
   const sheriff = roleSeat(room, "sheriff");
   const don = roleSeat(room, "don");
   const target = roleSeat(room, "civilian");
@@ -254,19 +260,18 @@ test("night: mafia shot, Don and Sheriff checks, Doctor heal; a healed player su
   assert.ok(!v.flow.log.some((e) => e.kind === "don_check"), "checks stay secret");
 });
 
-test("a player shot and not healed is killed by the mafia, gets a last word, then day 1 starts", () => {
+test("a player shot and not healed is killed by the mafia with no last word, and day 1 starts", () => {
   const room = fullRoom();
   room.apply({ type: "startGame" });
-  nextUntil(room, "night");
+  toNight(room);
   room.apply({ type: "nightPick", seat: 1 });
   quietNight(room);
   room.apply({ type: "next" });
   const v = room.view(host);
-  assert.equal(v.flow.stage, "lastWord");
-  assert.deepEqual(v.flow.lastWord, { seat: 1, reason: "killed" });
+  assert.equal(v.flow.stage, "speeches");
+  assert.equal(v.flow.lastWord, null);
   assert.equal(v.seats[0].out, "killed");
-  room.apply({ type: "next" });
-  assert.deepEqual(flow(room).speakers.slice(0, 2), [2, 3], "seat 1 is out, so seat 2 opens day 1");
+  assert.deepEqual(v.flow.speakers.slice(0, 2), [2, 3], "seat 1 is out, so seat 2 opens day 1");
 });
 
 test("doctor rules: not the same player two nights running; himself at most twice", () => {
@@ -278,30 +283,72 @@ test("doctor rules: not the same player two nights running; himself at most twic
   room.apply({ type: "startGame" });
   const doctor = roleSeat(room, "doctor");
   const playNight = (heal: number | null) => {
-    nextUntil(room, "night");
+    toNight(room);
     while (room.view(host).flow.night!.step !== "doctor") room.apply({ type: "nightPick", seat: null });
     room.apply({ type: "nightPick", seat: heal });
     room.apply({ type: "next" }); // morning -> day
   };
   playNight(doctor);
-  nextUntil(room, "night");
+  toNight(room);
   while (room.view(host).flow.night!.step !== "doctor") room.apply({ type: "nightPick", seat: null });
   assert.throws(() => room.apply({ type: "nightPick", seat: doctor }), /heal_blocked/);
   room.apply({ type: "nightPick", seat: null });
   room.apply({ type: "next" });
   playNight(doctor);
   playNight(null);
-  nextUntil(room, "night");
+  toNight(room);
   while (room.view(host).flow.night!.step !== "doctor") room.apply({ type: "nightPick", seat: null });
   assert.throws(() => room.apply({ type: "nightPick", seat: doctor }), /heal_blocked/, "third self-heal");
 });
 
-test("night steps for dead roles are skipped", () => {
+test("a role that is out is still called at night, but can only pick nobody", () => {
   const room = fullRoom();
   room.apply({ type: "startGame" });
-  room.apply({ type: "kill", seat: roleSeat(room, "sheriff") });
+  const sheriff = roleSeat(room, "sheriff");
+  room.apply({ type: "kill", seat: sheriff });
+  toNight(room);
+  const night = room.view(host).flow.night!;
+  assert.deepEqual(night.steps, ["mafia", "don", "sheriff", "doctor"]);
+  assert.deepEqual(night.stepsOut, ["sheriff"]);
+  room.apply({ type: "nightPick", seat: null });
+  room.apply({ type: "nightPick", seat: null });
+  assert.equal(flow(room).nightStep, "sheriff");
+  assert.equal(room.mediaFor(sheriff).cam, false);
+  assert.throws(() => room.apply({ type: "nightPick", seat: 1 }), /role_out/);
+  room.apply({ type: "nightPick", seat: null });
+  assert.equal(flow(room).nightStep, "doctor");
+});
+
+test("night cameras follow who is awake: asleep, mafia and Don together, then Don, Sheriff, Doctor; never a mic", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
   nextUntil(room, "night");
-  assert.deepEqual(room.view(host).flow.night!.steps, ["mafia", "don", "doctor"]);
+  const seatsOf = (pred: (r: Role | undefined) => boolean) =>
+    room.view(host).seats.filter((s) => pred(s.role)).map((s) => s.seat);
+  const camsOn = () => seatsOf(() => true).filter((s) => room.mediaFor(s).cam);
+  const mafia = seatsOf((r) => r === "mafia" || r === "don");
+  const player = { kind: "player", seat: 1 } as const;
+
+  assert.equal(flow(room).nightStep, "asleep");
+  assert.equal(room.view(player).flow.nightStep, "asleep", "everyone knows who is awake");
+  assert.deepEqual(camsOn(), []);
+  assert.throws(() => room.apply({ type: "nightPick", seat: null }), /night_asleep/);
+
+  room.apply({ type: "next" });
+  assert.equal(flow(room).nightStep, "mafia");
+  assert.deepEqual(camsOn(), mafia);
+  assert.ok(seatsOf(() => true).every((s) => !room.mediaFor(s).mic), "no sound at night");
+
+  room.apply({ type: "nightPick", seat: null });
+  assert.deepEqual(camsOn(), [roleSeat(room, "don")]);
+  room.apply({ type: "nightPick", seat: null });
+  assert.deepEqual(camsOn(), [roleSeat(room, "sheriff")]);
+  room.apply({ type: "nightPick", seat: null });
+  assert.deepEqual(camsOn(), [roleSeat(room, "doctor")]);
+  room.apply({ type: "nightPick", seat: null });
+  assert.equal(flow(room).stage, "morning");
+  assert.equal(flow(room).nightStep, null);
+  assert.deepEqual(camsOn(), []);
 });
 
 // ---- the end -----------------------------------------------------------------------

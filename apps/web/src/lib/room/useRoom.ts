@@ -266,6 +266,28 @@ export function useRoom(code: string) {
   const camAllowed = isHost || !!mySeat?.camAllowed;
   const micAllowed = isHost || !!mySeat?.micAllowed;
 
+  // At night a woken player's camera is for the host (and fellow mafia) only. LiveKit enforces
+  // this: other browsers can't subscribe to the track. The town falls asleep with every camera
+  // off first, so the limit is in place before anyone wakes.
+  const watchers = useMemo(() => {
+    if (!view || view.me.kind !== "player" || view.phase !== "night") return null;
+    const teammates = new Set(view.me.teammates);
+    const ids = view.seats.filter((s) => teammates.has(s.seat) && s.identity).map((s) => s.identity!);
+    return [view.host.identity, ...ids].sort().join("\n");
+  }, [view]);
+
+  useEffect(() => {
+    const room = videoRef.current;
+    if (!room || videoState !== ConnectionState.Connected) return;
+    const lp = room.localParticipant;
+    if (watchers === null) lp.setTrackSubscriptionPermissions(true);
+    else
+      lp.setTrackSubscriptionPermissions(
+        false,
+        watchers.split("\n").map((participantIdentity) => ({ participantIdentity, allowAll: true })),
+      );
+  }, [videoState, watchers]);
+
   // Follow the rules: switch this browser's camera and mic to (wanted AND allowed).
   useEffect(() => {
     const room = videoRef.current;

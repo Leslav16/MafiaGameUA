@@ -178,7 +178,8 @@ function Voting({ view, act, t }: { view: RoomView; act: (a: HostAction) => void
 
 function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void; t: HostDict }) {
   const n = view.flow.night!;
-  const step = n.step as NightStep;
+  const asleep = view.flow.nightStep === "asleep";
+  const step = n.step;
   const result = (s: NightStep) => {
     if (s === "don" && n.donFoundSheriff !== null) return n.donFoundSheriff ? t.isSheriff : t.notSheriff;
     if (s === "sheriff" && n.sheriffFoundMafia !== null) return n.sheriffFoundMafia ? t.isMafia : t.notMafia;
@@ -190,10 +191,38 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
     return p == null ? (s === "mafia" ? t.miss : t.skip) : `№${p}`;
   };
   const blocked = (s: SeatView) => step === "doctor" && n.healBlocked.includes(s.seat);
+  const out = step !== null && n.stepsOut.includes(step);
+
+  // Markers from earlier nights (the host sees the whole log): whom the Doctor healed and how
+  // often, whom the Sheriff and the Don already checked, with the answer they got.
+  const marks = new Map<number, string>();
+  let summary: string | null = null;
+  if (step === "doctor") {
+    const heals = new Map<number, number>();
+    for (const e of view.flow.log) if (e.kind === "healed" && e.seat) heals.set(e.seat, (heals.get(e.seat) ?? 0) + 1);
+    for (const [seat, k] of heals) marks.set(seat, fmt(t.healedTimes, { n: k }));
+    const doctor = view.seats.find((s) => s.role === "doctor")?.seat;
+    const list = [...heals].sort(([a], [b]) => a - b).map(([seat, k]) => `№${seat} ×${k}`);
+    summary = [list.length ? fmt(t.healedBefore, { list: list.join(", ") }) : null, fmt(t.selfHeals, { n: doctor ? (heals.get(doctor) ?? 0) : 0 })]
+      .filter(Boolean)
+      .join(" ");
+  }
+  if (step === "sheriff" || step === "don") {
+    const kind = step === "sheriff" ? "sheriff_check" : "don_check";
+    const yes = step === "sheriff" ? t.isMafia : t.isSheriff;
+    const no = step === "sheriff" ? t.notMafia : t.notSheriff;
+    for (const e of view.flow.log) if (e.kind === kind && e.seat) marks.set(e.seat, e.result ? yes : no);
+    const list = [...marks].sort(([a], [b]) => a - b).map(([seat, r]) => `№${seat} ${r}`);
+    if (list.length) summary = fmt(t.checkedBefore, { list: list.join(", ") });
+  }
 
   return (
     <div className="flex flex-col gap-3">
       <ol className="flex flex-col gap-1">
+        <li className={`flex items-center gap-2 rounded px-2 py-1 ${asleep ? "bg-lamp/20 font-medium" : ""}`}>
+          {asleep ? "▶ " : "✓ "}
+          {t.asleep}
+        </li>
         {n.steps.map((s) => {
           const done = s in n.picks;
           const current = s === step;
@@ -201,7 +230,7 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
           return (
             <li
               key={s}
-              className={`flex items-center justify-between gap-2 rounded px-2 py-1 ${current ? "bg-lamp/20 font-medium" : ""}`}
+              className={`flex items-center justify-between gap-2 rounded px-2 py-1 ${current ? "bg-lamp/20 font-medium" : ""} ${n.stepsOut.includes(s) ? "opacity-60" : ""}`}
             >
               <span>
                 {done ? "✓ " : current ? "▶ " : "○ "}
@@ -215,14 +244,33 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
           );
         })}
       </ol>
-      {step && (
+      {asleep && (
         <>
-          <p className="text-sm text-[var(--text-muted)]">{t.pickHint[step]}</p>
+          <p className="text-sm text-[var(--text-muted)]">{t.asleepHint}</p>
+          <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "next" })}>
+            {t.wakeMafia} ▶
+          </button>
+        </>
+      )}
+      {step && out && (
+        <>
+          <p className="text-sm text-[var(--text-muted)]">{fmt(t.roleOut, { role: t.roleNames[step] })}</p>
+          <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "nightPick", seat: null })}>
+            {t.skip} ▶
+          </button>
+        </>
+      )}
+      {step && !out && (
+        <>
+          <p className="text-sm text-[var(--text-muted)]">
+            {t.pickHint[step]} {t.awakeHint[step]}
+          </p>
+          {summary && <p className="text-sm">{summary}</p>}
           <SeatPad
             seats={view.seats}
             label={t.steps[step]}
             state={(s) => (!s.alive || blocked(s) ? "disabled" : "normal")}
-            badge={(s) => (blocked(s) ? t.blocked : null)}
+            badge={(s) => (blocked(s) ? t.blocked : (marks.get(s.seat) ?? null))}
             onTap={(seat) => act({ type: "nightPick", seat })}
           />
           <button type="button" className={`${btn} ${plain}`} onClick={() => act({ type: "nightPick", seat: null })}>

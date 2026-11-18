@@ -51,7 +51,7 @@ export type MeView =
 
 /**
  * Where the game is. The server walks through these; the host mostly presses "next".
- *   lobby -> speeches (intro round) -> night -> morning -> [lastWord] -> speeches (day)
+ *   lobby -> speeches (intro round) -> night (asleep, mafia, don, sheriff, doctor) -> morning -> speeches (day)
  *   -> [defence -> voting -> [lastWord]] -> night -> ... -> ended
  */
 export type Stage = "lobby" | "speeches" | "defence" | "voting" | "lastWord" | "night" | "morning" | "ended";
@@ -81,8 +81,10 @@ export interface VotingView {
 /** Host only: the night checklist. */
 export interface NightView {
   steps: NightStep[];
-  /** Step being done now; null when all are done (then the stage is "morning"). */
+  /** Step being done now; null while the town is still asleep, or when all are done (then the stage is "morning"). */
   step: NightStep | null;
+  /** Steps whose role is already out: they are still called, so the table can't tell, but the pick is "nobody". */
+  stepsOut: NightStep[];
   /** Seat picked at each step; null = nobody (a miss, or no check / heal). */
   picks: Partial<Record<NightStep, number | null>>;
   /** Result of the Don's check: did he find the Sheriff? */
@@ -129,6 +131,12 @@ export interface FlowView {
   nominees: number[];
   voting: VotingView | null;
   lastWord: { seat: number; reason: "killed" | "voted" } | null;
+  /**
+   * Public: who is awake at night. "asleep" first (everyone's camera off), then the host wakes
+   * "mafia" (the mafia and the Don together, cameras on, no sound), then "don", "sheriff", "doctor".
+   * Only the woken role's camera is on, and each browser lets only the host (and fellow mafia) watch it.
+   */
+  nightStep: NightStep | "asleep" | null;
   /** Host only. */
   night: NightView | null;
   /** Host only, before announcing the morning: who dies (null = nobody). */
@@ -160,7 +168,7 @@ export interface RoomView {
 
 export type HostAction =
   | { type: "startGame" }
-  /** Move the game on: next speaker, next candidate, count the vote, confirm, end the last word, announce the morning. */
+  /** Move the game on: next speaker, next candidate, count the vote, confirm, end the last word, wake the mafia, announce the morning. */
   | { type: "next" }
   /** Put a player up for the vote (or take them back off) during speeches. */
   | { type: "nominate"; seat: number }
