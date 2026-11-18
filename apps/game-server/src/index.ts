@@ -45,6 +45,20 @@ function passwordBlocked(id: string, now = Date.now()): boolean {
   return recent.length >= PASSWORD_TRIES;
 }
 
+/**
+ * The player's own address. Through the internet link every connection reaches the game
+ * server from the gateway, so the real address comes from Cloudflare's header
+ * (or the gateway's X-Forwarded-For).
+ */
+function clientAddress(socket: Socket): string {
+  const h = socket.handshake.headers;
+  const cf = h["cf-connecting-ip"];
+  if (typeof cf === "string" && cf) return cf;
+  const xff = h["x-forwarded-for"];
+  const first = (Array.isArray(xff) ? xff[0] : xff)?.split(",")[0]?.trim();
+  return first || socket.handshake.address;
+}
+
 function passwordFailed(id: string, now = Date.now()) {
   passwordFails.set(id, [...(passwordFails.get(id) ?? []), now]);
 }
@@ -159,7 +173,7 @@ io.on("connection", (socket) => {
         key = p.key;
         if (room.resolveKey(key).kind === "nobody") throw new GameError("key_unknown");
       } else if (p.host === true) {
-        const tries = `${socket.handshake.address}|${room.code}`;
+        const tries = `${clientAddress(socket)}|${room.code}`;
         if (passwordBlocked(tries)) throw new GameError("too_many_tries");
         if (!room.checkHostPassword(p.password)) {
           passwordFailed(tries);

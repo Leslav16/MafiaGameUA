@@ -11,7 +11,8 @@ The plan, stack and design direction are in [docs/PLAN.md](docs/PLAN.md).
 | `apps/web` | The website (Next.js), in Ukrainian and English: landing page, create a room, the video room, and the host's controls. |
 | `apps/game-server` | The game server (Node + Socket.IO). Holds seats, secret roles, day and night, the timer and fouls, and tells LiveKit whose camera and mic are allowed. |
 | `livekit.yaml` | Settings for LiveKit, the free video server for cameras and microphones. |
-| `docker-compose.yml` | Starts all three with one command. |
+| `docker-compose.yml` | Starts all three with one command, plus a gateway that puts them behind one address (http://localhost:8080). |
+| `start-online.bat` | Double-click to play with friends over the internet: starts everything and prints a private link to share. Guide in Ukrainian below. |
 
 ## Run it on Windows 11
 
@@ -66,13 +67,60 @@ You sit on tile 12, after the eleven players. Anyone, including you, can press *
 
 If you reload the page or come back later on the same browser, you return to your seat. From another device, open the room link and choose **I'm the host** with your password.
 
-### Testing from another device at home (later, with rooms)
+### Testing from another device at home
 
 1. Run `ipconfig` and find your computer's **IPv4 Address** (for example `192.168.1.20`).
 2. Put it in `.env` as `LIVEKIT_NODE_IP=192.168.1.20` and run `docker compose up -d` again.
 3. If Windows asks whether Docker may use the network, allow **private networks**.
 
-Opening the game to players outside your home (router ports, a free domain and HTTPS) is milestone 5 and has its own guide then.
+## Гра з друзями через інтернет
+
+Двічі клацніть **`start-online.bat`** у папці гри. Скрипт сам:
+
+1. перевірить (і за потреби запустить) Docker Desktop;
+2. створить `.env` з випадковим секретом, якщо його ще немає;
+3. запустить сайт, ігровий сервер і відео;
+4. відкриє безкоштовне захищене посилання Cloudflare на кшталт `https://slova-slova.trycloudflare.com/uk`, скопіює його і відкриє у браузері.
+
+Вставте посилання в чат друзям. Воно **працює лише поки відкрите чорне вікно** і щоразу нове, тож знають його тільки ті, кому ви його надіслали. Щоб завершити гру для всіх, натисніть **Enter** у вікні (або просто закрийте його).
+
+Акаунт Cloudflare не потрібен. Сайт працює через `https`, тому браузери дозволяють камеру й мікрофон.
+
+### Відео: через ваш комп'ютер (рекомендовано)
+
+Сайт і гра йдуть через посилання Cloudflare, а саме відео йде напряму між друзями і вашим комп'ютером. З вашим інтернетом (500–1000 Мбіт/с на віддачу) 12 камер у найкращій якості проходять з запасом, безкоштовно і без лімітів. Для цього **один раз** треба відкрити два порти на роутері:
+
+1. У PowerShell виконайте `ipconfig` і запишіть **IPv4 Address** комп'ютера (наприклад `192.168.1.20`).
+2. Відкрийте сторінку роутера у браузері: зазвичай `http://192.168.0.1` або `http://192.168.1.1` (логін і пароль часто на наклейці знизу роутера).
+3. Знайдіть розділ **Port Forwarding** (також «Переадресація портів», «Virtual Server», «NAT»). Додайте два правила на IPv4-адресу комп'ютера:
+   - порт **7881**, протокол **TCP**;
+   - порт **7882**, протокол **UDP**.
+4. Там же, у розділі **DHCP** («Резервування адрес», «Address Reservation»), закріпіть цю адресу за комп'ютером, щоб вона не змінювалась.
+5. Коли Windows спитає, чи дозволити Docker доступ до мережі, дозвольте.
+
+Перевірка: попросіть друга відкрити посилання з телефона **через мобільний інтернет** (не через ваш Wi-Fi) і сісти за стіл. Якщо він бачить сайт, але не бачить відео:
+
+- ще раз перевірте правила на роутері (номери портів, TCP/UDP, IPv4-адресу);
+- порівняйте адресу, яку показує скрипт («Ваша інтернет-адреса»), з адресою **WAN** на сторінці роутера. Якщо вони різні, провайдер дає «сіру» адресу, і порти відкрити не вийде. Можна попросити в провайдера «білу» (статичну) IP-адресу, або перейти на LiveKit Cloud нижче.
+
+### Відео: через LiveKit Cloud (без налаштування роутера)
+
+Підходить, якщо порти відкрити не вдається, або щоб просто спробувати. Безкоштовний тариф має жорсткий місячний ліміт 50 ГБ відеотрафіку: для столу з 12 камер це приблизно **1–2 години гри на місяць**, потім відео перестає підключатись до 1-го числа.
+
+1. Зареєструйтеся на **cloud.livekit.io** і створіть проєкт (безкоштовно, без картки).
+2. У проєкті відкрийте **Settings → API Keys**, створіть ключ і скопіюйте **URL**, **API Key** і **API Secret**.
+3. Відкрийте `.env` у Блокноті (`notepad .env`) і змініть:
+   ```
+   LIVEKIT_KEYS=APIключ: секрет
+   LIVEKIT_URL=https://ваш-проєкт.livekit.cloud
+   LIVEKIT_PUBLIC_URL=wss://ваш-проєкт.livekit.cloud
+   ```
+   (у двох останніх рядках приберіть `#` на початку, якщо він там є).
+4. Збережіть і запустіть `start-online.bat`. Щоб повернутися до відео через комп'ютер, поставте `#` на початку рядків `LIVEKIT_URL` і `LIVEKIT_PUBLIC_URL`.
+
+### Як це влаштовано
+
+`docker compose` тепер також запускає **gateway** (Caddy) на `http://localhost:8080`: сайт, ігровий сервер (`/socket.io`, `/rooms`) і підключення до LiveKit (`/rtc`) за однією адресою. `start-online.bat` запускає `scripts/online.ps1`, який робить безкоштовний тунель Cloudflare (`cloudflared`, завантажується один раз у папку `tools/`) на цю адресу. Якщо сайт відкритий на порту 3000, як раніше, він іде напряму на порти 4000 і 7880.
 
 ## Developing without Docker
 
