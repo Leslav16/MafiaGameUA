@@ -995,9 +995,7 @@ html[data-motion="calm"] *::after {
   100% { height: 100%; }
 }
 .lamp-cord-hint {
-  font-size: 0.9rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.95rem;
 }
 
 /* ---------- Landing: draw a role (the create screen's deck, face down) ---------- */
@@ -1064,4 +1062,350 @@ html[data-motion="calm"] *::after {
   .lamp-cord-string[data-tug] {
     animation: none;
   }
+}
+
+/* ---------- Role cards (illustrated, shared) ---------- */
+.card-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: 7% / 4.5%;
+  background: #d6c7a1;
+  box-shadow:
+    inset 0 0 0 1px rgb(22 17 15 / 0.35),
+    inset 0 0 0 5px #d6c7a1,
+    inset 0 0 0 6px rgb(120 18 16 / 0.55);
+  container-type: inline-size;
+}
+.card-art {
+  position: absolute;
+  inset: 7px 7px 0;
+  width: calc(100% - 14px);
+  height: calc(100% - 7px);
+  border-radius: 5% / 3.5%;
+}
+.card-corner {
+  position: absolute;
+  top: 6%;
+  left: 9%;
+  font-size: 13cqw;
+  line-height: 1;
+  color: #16110f;
+}
+.card-face[data-mob] .card-corner {
+  color: #781210;
+}
+.card-corner-end {
+  left: auto;
+  right: 9%;
+}
+.card-name {
+  position: absolute;
+  inset: auto 7px 7px;
+  padding: 9cqw 0 5cqw;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13cqw;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: #f3ead2;
+  background: linear-gradient(transparent, rgb(13 10 8 / 0.92) 55%);
+  border-radius: 0 0 5% 5% / 0 0 18% 18%;
+}
+.card-face[data-mob] .card-name {
+  color: #f0b3a8;
+}
+.card-back {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7% / 4.5%;
+  background:
+    repeating-linear-gradient(45deg, rgb(224 176 106 / 0.22) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgb(224 176 106 / 0.22) 0 1px, transparent 1px 9px),
+    radial-gradient(circle at 50% 40%, #8e1a16, #5c0c0a);
+  box-shadow:
+    inset 0 0 0 4px #5c0c0a,
+    inset 0 0 0 5px rgb(224 176 106 / 0.7);
+}
+.card-back-seal {
+  display: grid;
+  place-items: center;
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  color: #e0b06a;
+  background: #5c0c0a;
+  box-shadow: 0 0 0 1.5px #e0b06a;
+}
+.art-smoke {
+  filter: blur(0.6px);
+  animation: art-smoke 5s ease-in-out infinite;
+}
+@keyframes art-smoke {
+  50% {
+    opacity: 0.45;
+    translate: 1.5px -1px;
+  }
+}
+
+/* ---------- Landing: the hand under the lamp ---------- */
+.hand-scene {
+  aspect-ratio: 4 / 3;
+}
+/* The pool of lamplight on a leather desk; no hard edges, it fades into the page. */
+.hand-pool {
+  position: absolute;
+  inset: 40% -6% -4%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(116 73 30 / 0.45), rgb(116 73 30 / 0.18) 60%, transparent);
+  transition: background var(--phase-duration) var(--ease-phase);
+}
+.hand-scene[data-night] .hand-pool {
+  background: radial-gradient(closest-side, rgb(116 73 30 / 0.5), rgb(44 24 13 / 0.4) 60%, transparent);
+}
+.hand {
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  width: 23%;
+  aspect-ratio: 5 / 8;
+  translate: -50% 0;
+  z-index: 10;
+}
+.hand-slot {
+  --spread: 12deg;
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 230%;
+  transform: rotate(calc(var(--i) * var(--spread))) translateY(calc(var(--i) * var(--i) * 3px));
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hand:hover .hand-slot {
+  --spread: 15deg;
+}
+.hand-card {
+  position: absolute;
+  inset: 0;
+  perspective: 1000px;
+  cursor: pointer;
+  border-radius: 7% / 4.5%;
+  transition: translate 350ms cubic-bezier(0.22, 1, 0.36, 1), scale 350ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: drop-shadow(0 14px 14px rgb(0 0 0 / 0.45));
+}
+.hand-card:hover,
+.hand-card:focus-visible,
+.hand-card[data-open] {
+  translate: 0 -12%;
+  scale: 1.06;
+  z-index: 2;
+}
+.hand-card:focus-visible {
+  outline: 3px solid var(--color-lamp);
+  outline-offset: 4px;
+}
+.hand-card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 700ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.hand-card[data-down] .hand-card-inner {
+  transform: rotateY(180deg);
+}
+.hand-front,
+.hand-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.hand-back {
+  transform: rotateY(180deg);
+}
+.hand-note {
+  position: absolute;
+  inset: auto 7px 7px;
+  padding: 0.6rem 0.55rem 0.7rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-size: clamp(0.62rem, 1vw, 0.8rem);
+  line-height: 1.3;
+  color: #f3ead2;
+  background: rgb(13 10 8 / 0.94);
+  opacity: 0;
+  translate: 0 12px;
+  transition: opacity 250ms, translate 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hand-card[data-open] .hand-note {
+  opacity: 1;
+  translate: 0 0;
+}
+.hand-scene[data-night] .hand-card:not([data-down]) {
+  filter: drop-shadow(0 0 14px rgb(160 30 24 / 0.55)) drop-shadow(0 14px 14px rgb(0 0 0 / 0.5));
+}
+@media (prefers-reduced-motion: reduce) {
+  .hand-slot,
+  .hand-card,
+  .hand-card-inner {
+    transition: none;
+  }
+  .art-smoke {
+    animation: none;
+  }
+}
+
+/* ---------- Popups never scroll sideways; scrollbars stay thin and warm ---------- */
+dialog.modal {
+  white-space: normal;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(200 137 63 / 0.45) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgb(200 137 63 / 0.45);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+/* Host panel: scrolls, but no visible bar; a soft fade hints there's more. */
+.room-panel {
+  scrollbar-width: none;
+}
+.room-panel::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .room-panel {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+    padding-bottom: 2.5rem;
+  }
+}
+
+/* ---------- How-to steps: a short dotted path from one step to the next ---------- */
+.howto {
+  display: grid;
+  gap: 1.1rem;
+}
+.howto-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
+  align-items: start;
+  gap: 0.9rem;
+}
+.howto-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 1.2rem;
+  top: 2.6rem;
+  bottom: -1rem;
+  border-left: 2px dotted color-mix(in srgb, var(--accent-strong) 55%, transparent);
+}
+.howto-num {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--color-card);
+  background: var(--color-oxblood);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-oxblood) 25%, transparent);
+}
+
+/* "or" between the two ways in, with a short rule either side */
+.hero-or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(100%, 24rem);
+  font-size: 0.95rem;
+}
+.hero-or::before,
+.hero-or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- Open tables ---------- */
+.tables-item {
+  background: color-mix(in srgb, var(--surface) 82%, var(--color-card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent);
+}
+.table-mark {
+  color: var(--color-card);
+  background: var(--color-umber);
+}
+.table-mark[data-phase="lobby"] {
+  background: var(--color-lamp);
+  color: var(--color-ink);
+}
+.table-mark[data-phase="night"] {
+  background: var(--color-ink);
+}
+.table-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+}
+.table-pill-live::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  background: var(--color-blood-light);
+}
+
+/* ---------- A small decorative fan of role cards (join screen) ---------- */
+.card-fan {
+  aspect-ratio: 5 / 4;
+}
+.card-fan-pool {
+  position: absolute;
+  inset: 25% -5% -5%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(200 137 63 / 0.35), transparent);
+}
+.card-fan-hand {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  width: 34%;
+  aspect-ratio: 5 / 8;
+  translate: -50% 0;
+}
+.card-fan-slot {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 180%;
+  transform: rotate(calc(var(--i) * 12deg));
+  filter: drop-shadow(0 14px 14px rgb(0 0 0 / 0.4));
+  animation: deck-float 5s ease-in-out var(--d) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-fan-slot {
+    animation: none;
+  }
+}
+.hand-slot:has(.hand-card:hover),
+.hand-slot:has(.hand-card:focus-visible),
+.hand-slot:has(.hand-card[data-open]) {
+  z-index: 5;
 }

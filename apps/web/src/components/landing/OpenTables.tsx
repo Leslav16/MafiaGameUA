@@ -76,37 +76,42 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={t.tablesTitle} closeLabel={t.close}>
         {offline && !tables ? (
-          <p>{t.tablesOffline}</p>
+          <TablesEmpty text={t.tablesOffline} />
         ) : !tables || tables.length === 0 ? (
-          <p>{t.tablesNone}</p>
+          <TablesEmpty text={t.tablesNone} />
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-2.5">
             {tables.map((r) => {
               const place = locationName(r.location, locations);
+              const live = r.phase === "day" || r.phase === "night";
               return (
-                <li key={r.code} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-[var(--line)] p-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-xl leading-tight tracking-wide">{fmt(t.tableHost, { name: r.hostName })}</p>
-                    <p className="text-sm text-[var(--text-muted)]">
-                      {[state(r), fmt(t.tablePlayers, { n: r.players }), fmt(t.tableSpectators, { n: r.spectators }), place]
-                        .filter(Boolean)
-                        .join(" · ")}
+                <li key={r.code} className="tables-item grid grid-cols-[auto_1fr] items-center gap-x-3.5 gap-y-3 rounded-xl p-3 sm:grid-cols-[auto_1fr_auto]">
+                  <span aria-hidden className="table-mark grid size-11 place-items-center rounded-full font-display text-lg" data-phase={r.phase}>
+                    {r.phase === "night" ? "☾" : r.phase === "lobby" ? "♠" : r.phase === "ended" ? "✓" : "☀"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-lg leading-tight tracking-wide">{fmt(t.tableHost, { name: r.hostName })}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[var(--text-muted)]">
+                      <span className={`table-pill ${live ? "table-pill-live" : ""}`}>{state(r)}</span>
+                      <span className="table-pill">{fmt(t.tablePlayers, { n: r.players })}</span>
+                      {r.spectators > 0 && <span className="table-pill">{fmt(t.tableSpectators, { n: r.spectators })}</span>}
+                      {place && <span className="table-pill max-w-full truncate">{place}</span>}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="col-span-2 flex gap-2 sm:col-span-1">
                     {r.phase === "lobby" && r.freeSeats > 0 && (
                       <Link
                         href={`/${lang}/room/${r.code}`}
-                        className="inline-flex min-h-10 items-center rounded-md bg-[var(--accent)] px-4 font-display tracking-wide text-[var(--accent-text)]"
+                        className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full bg-[var(--accent)] px-4 font-display tracking-wide text-[var(--accent-text)] sm:flex-none"
                       >
                         {t.tablePlay}
                       </Link>
                     )}
                     <Link
                       href={`/${lang}/room/${r.code}?watch`}
-                      className="inline-flex min-h-10 items-center rounded-md border border-[var(--line)] px-4 font-display tracking-wide hover:border-[var(--accent)]"
+                      className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full border border-[var(--line)] px-4 font-display tracking-wide hover:border-[var(--accent)] sm:flex-none"
                     >
-                      👁 {t.tableWatch}
+                      {t.tableWatch}
                     </Link>
                   </div>
                 </li>
@@ -116,5 +121,16 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
         )}
       </Modal>
     </>
+  );
+}
+
+function TablesEmpty({ text }: { text: string }) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-4 text-center">
+      <span aria-hidden className="relative block aspect-[5/7] w-16 rotate-[-6deg]">
+        <span className="card-back" />
+      </span>
+      <p className="max-w-[36ch] text-[var(--text-muted)]">{text}</p>
+    </div>
   );
 }
