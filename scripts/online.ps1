@@ -86,6 +86,22 @@ for ($i = 0; $i -lt 90; $i++) {
 }
 if (-not $ready) { Fail 'Сайт не відповідає на http://localhost:8080. Відкрийте Docker Desktop і подивіться, чи всі контейнери зелені.' }
 
+# Is the video server answering, and does it accept our key? (Wrong keys = no cameras for anyone.)
+try {
+  $video = (Invoke-RestMethod -Uri 'http://localhost:4000/video-check' -TimeoutSec 20).video
+} catch { $video = 'unknown' }
+if ($video -eq 'ok') {
+  Say '     Відеосервер відповідає, ключі підходять.' 'DarkGray'
+} elseif ($video -eq 'bad_keys') {
+  Fail "Відеосервер не приймає ключ і секрет з .env. Відкрийте .env (notepad .env) і перевірте: лише ОДИН рядок LIVEKIT_KEYS=, у форматі LIVEKIT_KEYS=APIключ: секрет, ключ і секрет з того самого проєкту LiveKit, що й адреса в LIVEKIT_URL."
+} elseif ($video -eq 'unreachable') {
+  if ($cloud) {
+    Say "     УВАГА: відеосервер $($settings['LIVEKIT_URL']) не відповідає. Перевірте адресу в .env. Якщо вона правильна, його, мабуть, блокує провайдер: тоді камер не буде." 'Red'
+  } else {
+    Say '     УВАГА: відеосервер на цьому комп''ютері не відповідає. Відкрийте Docker Desktop і перевірте контейнер livekit.' 'Red'
+  }
+}
+
 # 4. The free Cloudflare link. cloudflared.exe is downloaded once into the tools folder.
 Say '4/5  Відкриваю посилання для друзів...'
 $tools = Join-Path $root 'tools'

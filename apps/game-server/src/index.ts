@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { randomInt } from "node:crypto";
 import { Server, type Socket } from "socket.io";
-import { applyMedia, closeVideoRoom, joinToken, LIVEKIT_PUBLIC_URL, removeFromVideo } from "./livekit.js";
+import { applyMedia, checkVideoServer, closeVideoRoom, joinToken, LIVEKIT_PUBLIC_URL, removeFromVideo } from "./livekit.js";
 import { GameError, Room, cleanName, type MediaPermission, type Viewer } from "./room.js";
 import type { HostAction } from "./types.js";
 
@@ -77,6 +77,14 @@ const http = createServer((req, res) => {
       .sort((a, b) => b.players - a.players);
     res.writeHead(200, { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "no-store" });
     res.end(JSON.stringify(list));
+    return;
+  }
+  if (req.url === "/video-check" && req.method === "GET") {
+    // Used by start-online.bat to tell wrong LiveKit keys apart from a blocked LiveKit address.
+    void checkVideoServer().then((video) => {
+      res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+      res.end(JSON.stringify({ video }));
+    });
     return;
   }
   if (req.url === "/health") {
