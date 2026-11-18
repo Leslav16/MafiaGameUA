@@ -105,7 +105,7 @@ if (-not (Test-Path $cf)) {
 # Links left over from an earlier run that did not close properly.
 Get-Process cloudflared -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $cf } | Stop-Process -Force
 Get-CimInstance Win32_Process -Filter "Name = 'ssh.exe'" -ErrorAction SilentlyContinue |
-  Where-Object { $_.CommandLine -like '*localhost.run*' } |
+  Where-Object { $_.CommandLine -match 'localhost\.run|serveo\.net|pinggy\.io' } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 # Starts a tunnel program and waits for its https address to appear in its output.
@@ -116,51 +116,91 @@ function Open-Tunnel($exe, $arguments, $pattern, $outFile, $errFile, $seconds, [
   $window = if ($Hidden) { @{ WindowStyle = 'Hidden' } } else { @{ NoNewWindow = $true } }
   $proc = Start-Process -FilePath $exe -PassThru -ArgumentList $arguments @window `
     -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+  Write-Host '     ' -NoNewline
   for ($i = 0; $i -lt $seconds; $i++) {
     Start-Sleep -Seconds 1
+    if ($i % 3 -eq 2) { Write-Host '.' -NoNewline -ForegroundColor DarkGray }
     foreach ($f in @($outFile, $errFile)) {
       if (Test-Path $f) {
         $m = Select-String -Path $f -Pattern $pattern | Select-Object -First 1
-        if ($m) { return @{ Process = $proc; Url = $m.Matches[0].Value } }
+        if ($m) { Write-Host ' ok' -ForegroundColor Green; return @{ Process = $proc; Url = $m.Matches[0].Value } }
       }
     }
     if ($proc.HasExited) { break }
   }
+  Write-Host ' немає відповіді' -ForegroundColor DarkYellow
   if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
   return $null
 }
 
-$log = Join-Path $tools 'cloudflared.log'
+$ssh = (Get-Command ssh.exe -ErrorAction SilentlyContinue).Source
+$sshBase = @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=15', '-o', 'ServerAliveInterval=30',
+  '-o', 'ExitOnForwardFailure=yes')
 $tunnel = $null
-# Cloudflare's free links sometimes time out for a moment, so try a few times.
-for ($attempt = 1; $attempt -le 3 -and -not $tunnel; $attempt++) {
-  if ($attempt -gt 1) { Say "     Cloudflare не відповів, пробую ще раз ($attempt/3)..." 'DarkYellow'; Start-Sleep -Seconds 5 }
-  $tunnel = Open-Tunnel $cf @('tunnel', '--no-autoupdate', '--url', 'http://localhost:8080') `
-    'https://[a-z0-9-]+\.trycloudflare\.com' (Join-Path $tools 'cloudflared.out.log') $log 45
+$limitNote = $null
+
+# 0. ngrok, if you put your free NGROK_AUTHTOKEN in .env (most reliable, needs a free account).
+if ($settings['NGROK_AUTHTOKEN']) {
+  $ngrok = Join-Path $tools 'ngrok.exe'
+  if (-not (Test-Path $ngrok)) {
+    Say '     Завантажую ngrok (один раз)...' 'DarkGray'
+    try {
+      $zip = Join-Path $tools 'ngrok.zip'
+      Invoke-WebRequest -UseBasicParsing -OutFile $zip -Uri 'https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip'
+      Expand-Archive -Path $zip -DestinationPath $tools -Force
+      Remove-Item $zip -ErrorAction SilentlyContinue
+    } catch { Say '     Не вдалося завантажити ngrok.' 'DarkYellow' }
+  }
+  if (Test-Path $ngrok) {
+    Get-Process ngrok -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $ngrok } | Stop-Process -Force
+    Say '     ngrok (до 30 секунд)...' 'DarkGray'
+    $tunnel = Open-Tunnel $ngrok @('http', '8080', '--authtoken', $settings['NGROK_AUTHTOKEN'], '--log', 'stdout', '--log-format', 'logfmt') `
+      'https://[a-z0-9.-]+\.ngrok(-free)?\.(app|dev|io)' (Join-Path $tools 'ngrok.out.log') (Join-Path $tools 'ngrok.err.log') 30
+  }
 }
 
-# Backup: localhost.run, through the ssh program built into Windows. No account, no download.
-if (-not $tunnel) {
-  Say '     Cloudflare зараз недоступний. Пробую запасний сервіс localhost.run...' 'DarkYellow'
-  $ssh = (Get-Command ssh.exe -ErrorAction SilentlyContinue).Source
-  if ($ssh) {
-    $tunnel = Open-Tunnel $ssh @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'ServerAliveInterval=30',
-        '-o', 'ExitOnForwardFailure=yes', '-R', '80:localhost:8080', 'nokey@localhost.run') `
-      'https://[a-z0-9-]+\.(lhr\.life|lhr\.rocks|localhost\.run)' (Join-Path $tools 'lhr.out.log') (Join-Path $tools 'lhr.err.log') 45 -Hidden
+# 1. Cloudflare quick tunnel: no account. Some internet providers block it.
+for ($attempt = 1; $attempt -le 2 -and -not $tunnel; $attempt++) {
+  Say "     Cloudflare, спроба $attempt з 2 (до 25 секунд)..." 'DarkGray'
+  $tunnel = Open-Tunnel $cf @('tunnel', '--no-autoupdate', '--url', 'http://localhost:8080') `
+    'https://[a-z0-9-]+\.trycloudflare\.com' (Join-Path $tools 'cloudflared.out.log') (Join-Path $tools 'cloudflared.log') 25
+}
+
+# 2-4. Free ssh tunnels through the ssh program built into Windows. ssh gets its own
+# hidden window so it never reads the Enter meant for this one, and never waits forever.
+if (-not $ssh -and -not $tunnel) { Say '     У Windows немає програми ssh, запасні сервіси пропускаю.' 'DarkYellow' }
+if ($ssh) {
+  $backups = @(
+    @{ Name = 'localhost.run'; Args = @('-R', '80:localhost:8080', 'nokey@localhost.run');
+       Pattern = 'https://[a-z0-9-]+\.(lhr\.life|lhr\.rocks|localhost\.run)'; Note = $null },
+    @{ Name = 'serveo'; Args = @('-R', '80:localhost:8080', 'serveo.net');
+       Pattern = 'https://[a-z0-9-]+\.(serveo\.net|serveousercontent\.com)'; Note = $null },
+    @{ Name = 'pinggy'; Args = @('-p', '443', '-R0:localhost:8080', 'a.pinggy.io');
+       Pattern = 'https://[a-z0-9-]+\.[a-z0-9.-]*pinggy\.(link|online|io)';
+       Note = 'Це безкоштовне посилання pinggy діє 60 хвилин. Потім запустіть start-online.bat ще раз.' }
+  )
+  foreach ($b in $backups) {
+    if ($tunnel) { break }
+    Say "     Запасний сервіс $($b.Name) (до 30 секунд)..." 'DarkGray'
+    $tunnel = Open-Tunnel $ssh ($sshBase + $b.Args) $b.Pattern `
+      (Join-Path $tools "$($b.Name).out.log") (Join-Path $tools "$($b.Name).err.log") 30 -Hidden
+    if ($tunnel) { $limitNote = $b.Note }
   }
 }
 
 if (-not $tunnel) {
-  Fail "Не вдалося відкрити посилання ні через Cloudflare, ні через localhost.run. Схоже, інтернет-провайдер або антивірус їх блокує. Спробуйте ще раз за кілька хвилин. Подробиці у файлах у папці $tools"
+  Fail "Жоден безкоштовний сервіс посилань зараз не відповів з вашої мережі. Надішліть у чат файли з папки $tools (ті, що закінчуються на .log). Найнадійніший вихід: безкоштовний акаунт ngrok, див. README."
 }
 $url = $tunnel.Url
 
-# Wait until the link actually answers (it can take a few seconds to spread).
-for ($i = 0; $i -lt 30; $i++) {
+# A new link can take up to a minute to start answering everywhere. Check briefly, never wait long.
+Say '     Перевіряю посилання (до 20 секунд)...' 'DarkGray'
+$answers = $false
+$deadline = (Get-Date).AddSeconds(20)
+while (-not $answers -and (Get-Date) -lt $deadline) {
   try {
-    if ((Invoke-WebRequest -Uri "$url/health" -UseBasicParsing -TimeoutSec 5).StatusCode -eq 200) { break }
-  } catch { }
-  Start-Sleep -Seconds 2
+    if ((Invoke-WebRequest -Uri "$url/health" -UseBasicParsing -TimeoutSec 4).StatusCode -eq 200) { $answers = $true }
+  } catch { Start-Sleep -Seconds 2 }
 }
 
 $link = "$url/uk"
@@ -173,6 +213,13 @@ Say ''
 Say "     $link" 'Cyan'
 Say ''
 Say '     Посилання працює, лише поки відкрите це вікно. Наступного разу воно буде інше.' 'Yellow'
+if ($limitNote) { Say "     $limitNote" 'Yellow' }
+if ($settings['NGROK_AUTHTOKEN'] -and $url -match 'ngrok') {
+  Say '     ngrok спершу показує друзям сторінку-попередження: треба натиснути "Visit Site".' 'DarkGray'
+}
+if (-not $answers) {
+  Say '     Якщо посилання одразу не відкривається, зачекайте хвилину й оновіть сторінку: нове посилання стає доступним не миттєво.' 'DarkGray'
+}
 if (-not $cloud) {
   Say "     Якщо друзі бачать сайт, але не бачать відео, перевірте на роутері порти 7881 (TCP) і 7882 (UDP) (див. README)." 'DarkGray'
 }
