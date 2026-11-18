@@ -5,11 +5,11 @@ import { usePhase } from "./Phase";
 
 /** Who stands around the table, left to right. */
 const CAST: { role: FigureRole; left: number; top: number; width: number; z: number }[] = [
-  { role: "civilian", left: 12, top: 27, width: 23, z: 1 },
-  { role: "sheriff", left: 31, top: 19, width: 23, z: 0 },
-  { role: "don", left: 50, top: 15, width: 24, z: 0 },
-  { role: "mafia", left: 69, top: 19, width: 23, z: 0 },
-  { role: "doctor", left: 88, top: 27, width: 23, z: 1 },
+  { role: "civilian", left: 11, top: 28, width: 20, z: 1 },
+  { role: "sheriff", left: 30.5, top: 20, width: 20, z: 0 },
+  { role: "don", left: 50, top: 16, width: 21, z: 0 },
+  { role: "mafia", left: 69.5, top: 20, width: 20, z: 0 },
+  { role: "doctor", left: 89, top: 28, width: 20, z: 1 },
 ];
 
 const MAFIA = new Set<FigureRole>(["don", "mafia"]);

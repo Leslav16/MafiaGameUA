@@ -219,11 +219,19 @@ body {
   animation-delay: var(--fig-delay, 0s);
   transform-origin: 50% 95%;
 }
-.figure .figure-head {
+.figure .figure-head,
+.figure .figure-leg,
+.figure .figure-arm {
   transform-box: fill-box;
+}
+.figure .figure-head {
   transform-origin: 50% 100%;
   animation: figure-tilt 5.5s ease-in-out infinite;
   animation-delay: var(--fig-delay, 0s);
+}
+.figure .figure-leg,
+.figure .figure-arm {
+  transform-origin: 50% 0;
 }
 @keyframes figure-bob {
   0%, 100% { transform: translateY(0); }
@@ -235,9 +243,49 @@ body {
   70% { transform: rotate(3deg); }
 }
 
+/* Hover: a little run to the left and back, then to the right and back. */
+.figure:hover {
+  animation: figure-run 1.6s ease-in-out infinite;
+}
+.figure:hover .figure-head {
+  animation: figure-wobble 0.4s ease-in-out infinite alternate;
+}
+.figure:hover .figure-leg-l,
+.figure:hover .figure-arm-r {
+  animation: figure-swing 0.2s ease-in-out infinite alternate;
+}
+.figure:hover .figure-leg-r,
+.figure:hover .figure-arm-l {
+  animation: figure-swing 0.2s ease-in-out infinite alternate-reverse;
+}
+@keyframes figure-run {
+  0%, 50%, 100% { transform: translate(0, 0); }
+  6%, 19%, 56%, 69% { transform: translateY(-5%); }
+  12.5% { transform: translate(-9%, 0); }
+  25% { transform: translate(-14%, 0); }
+  31%, 44% { transform: translate(-9%, -5%); }
+  37.5% { transform: translate(-5%, 0); }
+  62.5% { transform: translate(9%, 0); }
+  75% { transform: translate(14%, 0); }
+  81%, 94% { transform: translate(9%, -5%); }
+  87.5% { transform: translate(5%, 0); }
+}
+@keyframes figure-wobble {
+  from { transform: rotate(-5deg); }
+  to { transform: rotate(5deg); }
+}
+@keyframes figure-swing {
+  from { transform: rotate(-22deg); }
+  to { transform: rotate(22deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .figure,
-  .figure .figure-head {
+  .figure:hover,
+  .figure .figure-head,
+  .figure:hover .figure-head,
+  .figure:hover .figure-leg,
+  .figure:hover .figure-arm {
     animation: none;
   }
 }
