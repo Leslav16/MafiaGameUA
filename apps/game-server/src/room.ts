@@ -6,6 +6,7 @@ import {
   type LogEntry,
   type MeView,
   type NightStep,
+  type OwnNightMarks,
   type OutReason,
   type Phase,
   type Role,
@@ -738,6 +739,22 @@ export class Room {
 
   // ---- views -------------------------------------------------------------
 
+  /** The Sheriff's, Don's or Doctor's own night record, for that player only. */
+  private ownMarks(seat: number): OwnNightMarks | null {
+    const role = this.seats.get(seat)?.role;
+    if (role !== "sheriff" && role !== "don" && role !== "doctor") return null;
+    const kind = role === "sheriff" ? "sheriff_check" : role === "don" ? "don_check" : "healed";
+    const marks: OwnNightMarks = { role, seats: {} };
+    for (const e of this.log) {
+      if (e.kind !== kind || !e.seat) continue;
+      const m = (marks.seats[e.seat] ??= { count: 0 });
+      m.count += 1;
+      if (e.result !== undefined) m.result = e.result;
+    }
+    if (role === "doctor") marks.selfHeals = marks.seats[seat]?.count ?? 0;
+    return marks;
+  }
+
   /** The room as one viewer may see it. Roles and night secrets are filtered here, never in the browser. */
   view(viewer: Viewer, now = Date.now()): RoomView {
     const own = viewer.kind === "player" ? this.seats.get(viewer.seat) : undefined;
@@ -774,7 +791,9 @@ export class Room {
     }
 
     let me: MeView = { kind: "host" };
-    if (viewer.kind === "player") me = { kind: "player", seat: viewer.seat, role: own?.role ?? null, teammates };
+    if (viewer.kind === "player") {
+      me = { kind: "player", seat: viewer.seat, role: own?.role ?? null, teammates, marks: this.ownMarks(viewer.seat) };
+    }
 
     const n = this.night;
     const night =
