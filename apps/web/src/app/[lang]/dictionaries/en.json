@@ -382,7 +382,9 @@
       "night_not_done": "Finish the night steps first.",
       "heal_blocked": "The Doctor can't heal this player tonight.",
       "too_many_tries": "Too many wrong tries. Wait 10 minutes.",
-      "too_many_spectators": "Too many spectators, no room left."
+      "too_many_spectators": "Too many spectators, no room left.",
+      "room_locked": "This room is locked. Ask the host for the password.",
+      "wrong_room_password": "Wrong room password."
     },
     "sound": "Turn on sound",
     "rename": "Change name",
@@ -399,7 +401,9 @@
     "youWatch": "You are watching as a spectator",
     "introAt": "Introductions: {place}",
     "publicTable": "Show the table on the home page",
-    "publicTableHint": "Others will see it in the list of tables and can watch. The code and host password stay secret."
+    "publicTableHint": "Others will see it in the list of tables and can watch. The code and host password stay secret.",
+    "roomPasswordLabel": "Room password",
+    "closed": "The host closed the room."
   },
   "hostPanel": {
     "title": "Host controls",
@@ -572,7 +576,17 @@
     "recordKilled": "killed by the mafia",
     "recordVoted": "voted out",
     "recordRemoved": "removed by the host",
-    "recordFouls": "fouls: {n}"
+    "recordFouls": "fouls: {n}",
+    "roomSettings": "Room",
+    "roomOpen": "The room is open: anyone with the link can come in.",
+    "roomLocked": "The room is locked",
+    "roomLock": "Lock with password",
+    "roomUnlock": "Unlock",
+    "roomPasswordPlaceholder": "Password for players",
+    "roomPasswordHint": "New players and spectators must type this password. Anyone already in stays.",
+    "closeRoom": "Close the room",
+    "closeRoomQuestion": "Close the room for everyone?",
+    "closeRoomHint": "The game ends and everyone, you included, goes back to the home page."
   },
   "locations": [
     {

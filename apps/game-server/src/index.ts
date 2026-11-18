@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { randomInt } from "node:crypto";
 import { Server, type Socket } from "socket.io";
-import { applyMedia, joinToken, LIVEKIT_PUBLIC_URL, removeFromVideo } from "./livekit.js";
+import { applyMedia, closeVideoRoom, joinToken, LIVEKIT_PUBLIC_URL, removeFromVideo } from "./livekit.js";
 import { GameError, Room, cleanName, type MediaPermission, type Viewer } from "./room.js";
 import type { HostAction } from "./types.js";
 
@@ -11,9 +11,10 @@ import type { HostAction } from "./types.js";
  *
  * Socket events (all take an ack callback):
  *   room:create { name, password, isPublic? } -> { ok, code, key }
- *   room:peek   { code }                      -> { ok, freeSeats, phase }
+ *   room:peek   { code }                      -> { ok, freeSeats, phase, locked }
  *   room:join   { code, key }                 (come back with a saved key)
- *             | { code, name, seat? }         (join as a player: first free seat, or "4. Name" / seat if free)
+ *             | { code, name, seat?, roomPassword? } (join as a player: first free seat, or "4. Name" / seat if free;
+ *                                               roomPassword when the host locked the room, also for watching)
  *             | { code, host: true, password } (join as the host)
  *             | { code, name, watch: true }   (watch without a seat, at any time)
  *                                            -> { ok, key, as: "host" | "player" | "spectator", token, livekitUrl }
@@ -21,6 +22,7 @@ import type { HostAction } from "./types.js";
  *   host:action HostAction                    -> { ok }
  *   me:rename   { name }                      -> { ok }   (own name; "4. Name" also moves a player to seat 4)
  *   me:seat     { seat }                      -> { ok }   (a player moves to a free seat number)
+ * The server pushes "room:closed" when the host closes the room (or it is dropped): go back home.
  * The server pushes "room:state" (RoomView) to each socket whenever anything changes.
  */
 
@@ -28,6 +30,10 @@ const PORT = Number(process.env.PORT ?? 4000);
 // Comma-separated list of allowed site addresses. Empty: allow any (fine on a home network).
 const WEB_ORIGIN = (process.env.WEB_ORIGIN ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const ROOM_IDLE_MS = 6 * 60 * 60 * 1000;
+/** A table leaves the home page list this long after the host's last tab closed (a reload comes back sooner). */
+const HOST_GRACE_MS = 30 * 1000;
+/** A room whose host has been gone this long is closed. */
+const HOST_GONE_MS = 30 * 60 * 1000;
 
 const rooms = new Map<string, Room>();
 /** Last camera/mic rules sent to LiveKit, per room, to send only what changed. */
@@ -52,7 +58,7 @@ function passwordFailed(id: string, now = Date.now()) {
 const http = createServer((req, res) => {
   if (req.url === "/rooms" && req.method === "GET") {
     const list = [...rooms.values()]
-      .filter((r) => r.isPublic)
+      .filter((r) => r.listed(Date.now(), HOST_GRACE_MS))
       .map((r) => r.summary())
       .sort((a, b) => b.players - a.players);
     res.writeHead(200, { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "no-store" });
@@ -114,6 +120,19 @@ async function publish(room: Room): Promise<void> {
   }
 }
 
+/** Closes a room for good: every browser in it goes back home, and the video room ends. */
+async function closeRoom(room: Room): Promise<void> {
+  rooms.delete(room.code);
+  sentMedia.delete(room.code);
+  for (const s of await io.in(room.code).fetchSockets()) {
+    s.emit("room:closed");
+    s.leave(room.code);
+    (s.data as SocketData).code = undefined;
+    (s.data as SocketData).key = undefined;
+  }
+  await closeVideoRoom(room.code);
+}
+
 function fail(ack: Ack | undefined, err: unknown) {
   if (err instanceof GameError) ack?.({ ok: false, error: err.message });
   else {
@@ -144,7 +163,7 @@ io.on("connection", (socket) => {
     const room = typeof code === "string" ? rooms.get(code) : undefined;
     if (!room) return ack?.({ ok: false, error: "room_not_found" });
     const view = room.view({ kind: "nobody" });
-    ack?.({ ok: true, freeSeats: room.freeSeats(), phase: view.phase, hostName: room.hostName });
+    ack?.({ ok: true, freeSeats: room.freeSeats(), phase: view.phase, hostName: room.hostName, locked: room.locked });
   });
 
   socket.on("room:join", async (payload: unknown, ack?: Ack) => {
@@ -167,6 +186,12 @@ io.on("connection", (socket) => {
         }
         passwordFails.delete(tries);
         key = room.hostKey;
+      } else if (room.locked && !room.checkJoinPassword(p.roomPassword)) {
+        // Players and spectators of a locked room need its password; the same limit on wrong tries as the host's.
+        const tries = `${socket.handshake.address}|${room.code}|room`;
+        if (passwordBlocked(tries)) throw new GameError("too_many_tries");
+        if (typeof p.roomPassword === "string" && p.roomPassword) passwordFailed(tries);
+        throw new GameError(p.roomPassword ? "wrong_room_password" : "room_locked");
       } else if (p.watch === true) {
         key = room.addSpectator(p.name).key;
       } else {
@@ -201,6 +226,10 @@ io.on("connection", (socket) => {
     const ctx = viewerOf(socket);
     if (!ctx || ctx.viewer.kind !== "host") return ack?.({ ok: false, error: "not_host" });
     try {
+      if ((action as { type?: unknown })?.type === "closeRoom") {
+        ack?.({ ok: true });
+        return await closeRoom(ctx.room);
+      }
       const { removed } = ctx.room.apply(action);
       for (const identity of removed) {
         void removeFromVideo(ctx.room.code, identity);
@@ -264,16 +293,15 @@ io.on("connection", (socket) => {
   });
 });
 
-// Forget rooms nobody has touched for a long time.
+// Forget rooms nobody has touched for a long time, and close rooms whose host is long gone.
 setInterval(() => {
-  const cutoff = Date.now() - ROOM_IDLE_MS;
-  for (const [code, room] of rooms) {
-    if (room.lastActive < cutoff && room.hostConnected === 0) {
-      rooms.delete(code);
-      sentMedia.delete(code);
-    }
+  const now = Date.now();
+  for (const room of rooms.values()) {
+    const hostGone = room.hostLeftAt !== null && now - room.hostLeftAt > HOST_GONE_MS;
+    const idle = room.lastActive < now - ROOM_IDLE_MS && room.hostConnected === 0;
+    if (hostGone || idle) void closeRoom(room);
   }
-}, 10 * 60 * 1000).unref();
+}, 60 * 1000).unref();
 
 http.listen(PORT, () => {
   console.log(`game server listening on :${PORT}`);

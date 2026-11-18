@@ -27,6 +27,7 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
   const watching = mode === "watch";
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [roomPassword, setRoomPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +44,8 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
     const err = asHost
       ? await room.joinAsHost(password)
       : watching
-        ? await room.joinAsSpectator(name)
-        : await room.joinAsPlayer(name);
+        ? await room.joinAsSpectator(name, roomPassword)
+        : await room.joinAsPlayer(name, null, roomPassword);
     setBusy(false);
     if (err) {
       setError(errorText(err));
@@ -93,6 +94,20 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
                 <span className="text-base text-[var(--text-muted)]">{ui.join.seatTip}</span>
               </>
             )}
+          </label>
+        )}
+
+        {!asHost && room.locked && (
+          <label className="flex flex-col gap-1.5">
+            <span className="font-display text-xl tracking-wide">🔒 {t.roomPasswordLabel}</span>
+            <input
+              className={input}
+              value={roomPassword}
+              maxLength={32}
+              onChange={(e) => setRoomPassword(e.target.value)}
+              autoComplete="off"
+              required
+            />
           </label>
         )}
 

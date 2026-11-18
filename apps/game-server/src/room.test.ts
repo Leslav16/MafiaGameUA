@@ -490,3 +490,30 @@ test("test mode: bots fill the free seats and can be removed before the game", (
   assert.equal(room.view(host).seats.filter((s) => s.role).length, 11);
   assert.throws(() => room.apply({ type: "removeBots" }), /game_in_progress/);
 });
+
+test("the host can lock the room with a password, and only the host sees it", () => {
+  const room = fullRoom(2);
+  assert.equal(room.checkJoinPassword(undefined), true, "an open room needs nothing");
+  room.apply({ type: "setRoomPassword", password: "  tiger " });
+  assert.equal(room.locked, true);
+  assert.equal(room.checkJoinPassword("tiger"), true);
+  assert.equal(room.checkJoinPassword("lion"), false);
+  assert.equal(room.view(host).roomPassword, "tiger");
+  assert.equal(room.view({ kind: "player", seat: 1 }).roomPassword, undefined);
+  assert.equal(room.view({ kind: "player", seat: 1 }).locked, true);
+  assert.throws(() => room.apply({ type: "setRoomPassword", password: "   " }), /invalid_password/);
+  room.apply({ type: "setRoomPassword", password: null });
+  assert.equal(room.locked, false);
+});
+
+test("a public table leaves the list shortly after the host's last tab closes", () => {
+  const room = new Room("abc123", "Host", "secret", true);
+  room.presence(host, 1);
+  assert.equal(room.listed(Date.now() + 3_600_000, 30_000), true, "listed while the host is here");
+  room.presence(host, -1);
+  const left = room.hostLeftAt!;
+  assert.equal(room.listed(left + 10_000, 30_000), true, "a reload keeps it");
+  assert.equal(room.listed(left + 31_000, 30_000), false);
+  room.presence(host, 1);
+  assert.equal(room.hostLeftAt, null);
+});

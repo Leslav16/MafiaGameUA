@@ -9,6 +9,7 @@ import { downloadGameRecord, gameRecordText } from "./gameRecord";
 import { LocationPicker } from "./LocationPicker";
 import { locationName, type Location } from "../locations";
 import { NowCard } from "./NowCard";
+import { RoomSettings } from "./RoomSettings";
 import { SelectedPlayer } from "./SelectedPlayer";
 import { btn, plain, type HostDict, type RoleNames } from "./ui";
 
@@ -65,7 +66,7 @@ export function HostPanel({
     // so nothing in the panel changes the page's size or shifts the video tiles.
     <aside
       aria-label={t.title}
-      className="flex w-full flex-col gap-3 lg:max-h-[calc(100dvh-2rem)] lg:w-[22rem] lg:overflow-y-auto lg:pr-1 lg:[scrollbar-gutter:stable]"
+      className="flex w-full flex-col gap-3 lg:max-h-[calc(100dvh-2rem)] lg:w-[22rem] lg:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-display text-2xl font-medium tracking-wide">{t.title}</h2>
@@ -126,18 +127,9 @@ export function HostPanel({
           </div>
         </Fold>
       )}
-      <label className="flex cursor-pointer items-start gap-2 px-1 text-sm">
-        <input
-          type="checkbox"
-          checked={view.isPublic}
-          onChange={(e) => act({ type: "setPublic", on: e.target.checked })}
-          className="mt-0.5 size-4 shrink-0 accent-[var(--color-lamp)]"
-        />
-        <span>
-          {t.publicTable}
-          <span className="block text-xs text-[var(--text-muted)]">{t.publicTableHint}</span>
-        </span>
-      </label>
+      <Fold title={t.roomSettings}>
+        <RoomSettings view={view} act={act} t={t} />
+      </Fold>
     </aside>
   );
 }
