@@ -23,6 +23,8 @@ export type SeatInfo = {
   out?: OutReason | null;
   /** Put up for the vote today: everyone sees the marker. */
   nominated?: boolean;
+  /** A test bot (no camera or mic). */
+  bot?: boolean;
 };
 
 export type OutReason = "killed" | "voted" | "removed";

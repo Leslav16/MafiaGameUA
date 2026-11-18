@@ -131,6 +131,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
       role: s.role,
       out: s.out,
       nominated: s.nominated,
+      bot: s.bot,
     });
 
     body = (

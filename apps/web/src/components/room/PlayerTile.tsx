@@ -111,6 +111,11 @@ export function PlayerTile({
           >
             {mark}
           </span>
+          {info.bot && (
+            <span aria-hidden className="absolute bottom-9 font-display text-[clamp(0.7rem,2.4cqw,0.9rem)] tracking-[0.2em] text-[var(--tile-number)] uppercase">
+              ⚙ bot
+            </span>
+          )}
         </div>
       )}
 
