@@ -189,7 +189,9 @@
     "dragHint": "Drag your tile onto another seat to change your number. Seats lock when the game starts.",
     "votedOut": "Voted out",
     "removed": "Removed",
-    "nominated": "Nominated"
+    "nominated": "Nominated",
+    "nightFalls": "The town falls asleep",
+    "dayBreaks": "The town wakes up"
   },
   "rules": {
     "open": "Rules",

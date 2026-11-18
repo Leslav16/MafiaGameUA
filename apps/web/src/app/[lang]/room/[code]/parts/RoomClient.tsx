@@ -11,6 +11,8 @@ import { ModalButton } from "@/components/Modal";
 import { RulesBody } from "@/components/RulesBody";
 import { PhaseBanner } from "@/components/room/PhaseBanner";
 import { PlayerTile } from "@/components/room/PlayerTile";
+import { NightFall } from "@/components/room/NightFall";
+import { useShotSound, useVoteChips } from "@/components/room/useTableEffects";
 import { RoomDock } from "@/components/room/RoomDock";
 import { RoomGrid } from "@/components/room/RoomGrid";
 import { Timer } from "@/components/room/Timer";
@@ -79,6 +81,8 @@ function lockReason(view: RoomView, t: Dictionary["roomUi"]) {
 export function RoomClient({ lang, code, dict }: { lang: string; code: string; dict: Dict }) {
   const room = useRoom(code);
   const [panelHidden, setPanelHidden] = useState(false);
+  useShotSound(room.view?.flow.log);
+  useVoteChips(room.view?.flow.voting?.votes);
   const isHostView = room.view?.me.kind === "host";
   const mySeatView = room.view?.me.kind === "player" ? room.view.me.seat : null;
   const tiles = useTileOrder(code, {
@@ -135,7 +139,8 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
     });
 
     body = (
-      <div className="flex w-full flex-col">
+      <div className="flex w-full flex-col lg:h-dvh">
+        <NightFall phase={view.phase} nightText={ui.nightFalls} dayText={ui.dayBreaks} />
         <PhaseBanner
           phase={view.phase}
           labels={ui}
@@ -170,14 +175,17 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
           )}
         </div>
 
-        <div className={`grid items-start gap-4 py-3 ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
+        <div
+          className={`grid items-start gap-3 py-2 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}
+        >
+          <div className="room-video">
           {/* 11 players, then the host on tile 12, set apart */}
           <RoomGrid
             seats={tiles.order.map((n) => {
               const s = view.seats[n - 1];
               const m = room.media(s.identity);
               return (
-                <div key={s.seat} className="tile-slot" title={view.phase === "lobby" ? ui.dragHint : undefined} {...tiles.dragProps(s.seat)}>
+                <div key={s.seat} data-seat={s.seat} className="tile-slot" title={view.phase === "lobby" ? ui.dragHint : undefined} {...tiles.dragProps(s.seat)}>
                   <PlayerTile
                     info={toSeatInfo(s, m)}
                     labels={ui}
@@ -218,8 +226,10 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
             }
           />
 
+          </div>
+
           {isHost && !panelHidden && (
-            <div className="lg:sticky lg:top-4 lg:self-start">
+            <div className="room-panel lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
               <HostPanel
                 onHide={() => setPanelHidden(true)}
                 view={view}
@@ -289,8 +299,8 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
   }
 
   return (
-    <main data-phase={surface} className="phase-surface min-h-dvh px-2 sm:px-6">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[110rem] flex-col items-stretch justify-center">{body}</div>
+    <main data-phase={surface} className="phase-surface min-h-dvh px-2 sm:px-4">
+      <div className="mx-auto flex min-h-dvh w-full flex-col items-stretch justify-center">{body}</div>
     </main>
   );
 }
