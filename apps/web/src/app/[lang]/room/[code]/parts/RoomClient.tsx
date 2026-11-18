@@ -7,8 +7,8 @@ import { useRoom, type RoomApi } from "@/lib/room/useRoom";
 import type { HostAction, RoomView } from "@/lib/room/types";
 import { fmt } from "@/lib/room/format";
 import { HostPanel } from "@/components/host/HostPanel";
-import { HostSeatControls } from "@/components/host/HostSeatControls";
 import { JoinForm } from "./JoinForm";
+import { RenameButton } from "./RenameButton";
 import { SeatTile } from "./SeatTile";
 import { CamIcon, MicIcon } from "./icons";
 import { formatClock, useNow } from "./media";
@@ -118,6 +118,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
   const t = dict.roomUi;
   const { view } = room;
   const [actionError, setActionError] = useState<string | null>(null);
+  const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const timerRunning = view?.timer.endsAt != null;
   const now = useNow(timerRunning, room.clockOffset);
   const errorText = (c: string) => (t.errors as Record<string, string>)[c] ?? t.errors.server_error;
@@ -141,7 +142,6 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
     const mySeat = view.me.kind === "player" ? view.me.seat : null;
     const timerMs = view.timer.endsAt != null ? view.timer.endsAt - now : view.timer.remainingMs;
     const timerText = formatClock(timerMs);
-    const freeSeats = view.seats.filter((s) => !s.name).map((s) => s.seat);
     const hostMedia = room.media(view.host.identity);
     const problems = [room.error, room.mediaError].filter(Boolean) as string[];
 
@@ -178,9 +178,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
 
         <div className={`grid gap-4 ${isHost ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
           <div className="flex flex-col gap-4">
-            <ul className="mx-auto grid w-full max-w-md grid-cols-1">
-              <SeatTile label={t.host} name={view.host.name} isYou={isHost} connected={view.host.connected} media={hostMedia} t={t} large />
-            </ul>
+            {/* 11 players, then the host on tile 12, set apart */}
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {view.seats.map((s) => (
                 <SeatTile
@@ -195,25 +193,34 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                   role={s.role}
                   media={room.media(s.identity)}
                   t={t}
-                >
-                  {isHost && (
-                    <HostSeatControls
-                      seat={s}
-                      phase={view.phase}
-                      floorSeat={view.floorSeat}
-                      freeSeats={freeSeats}
-                      act={act}
-                      t={dict.hostPanel}
-                    />
-                  )}
-                </SeatTile>
+                  selected={isHost && selectedSeat === s.seat}
+                  onSelect={isHost ? () => setSelectedSeat(selectedSeat === s.seat ? null : s.seat) : undefined}
+                />
               ))}
+              <SeatTile
+                label={t.hostSeat}
+                name={view.host.name}
+                isYou={isHost}
+                connected={view.host.connected}
+                media={hostMedia}
+                t={t}
+                hostTile
+              />
             </ul>
           </div>
 
           {isHost && (
             <div className="lg:sticky lg:top-4 lg:self-start">
-              <HostPanel view={view} act={act} timerText={timerText} timerRunning={timerRunning} t={dict.hostPanel} />
+              <HostPanel
+                view={view}
+                act={act}
+                timerText={timerText}
+                timerRunning={timerRunning}
+                selectedSeat={selectedSeat}
+                onDeselect={() => setSelectedSeat(null)}
+                t={dict.hostPanel}
+                roles={t.roles}
+              />
             </div>
           )}
         </div>
@@ -221,12 +228,16 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         {!isHost && (
           <footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] bg-[var(--surface)] py-3">
             <RoleCard view={view} t={t} />
-            <MyMedia room={room} view={view} t={t} />
+            <div className="flex flex-wrap items-center gap-2">
+              <RenameButton room={room} current={view.seats[(mySeat ?? 1) - 1].name ?? ""} t={t} />
+              <MyMedia room={room} view={view} t={t} />
+            </div>
           </footer>
         )}
         {isHost && (
           <footer className="flex flex-wrap items-center gap-3 border-t border-[var(--line)] py-3">
             <HostOwnMedia room={room} t={t} />
+            <RenameButton room={room} current={view.host.name} t={t} />
           </footer>
         )}
       </div>

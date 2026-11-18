@@ -18,6 +18,7 @@ import {
 
 export const DEFAULT_SPEECH_SECONDS = 60;
 export const HOST_IDENTITY = "host";
+export const MIN_PLAYERS = 3;
 
 interface Player {
   identity: string;
@@ -130,6 +131,18 @@ export class Room {
     return { kind: "nobody" };
   }
 
+  /** Anyone may change their own name at any time. */
+  rename(viewer: Viewer, nameRaw: unknown): void {
+    const name = cleanName(nameRaw);
+    if (viewer.kind === "host") this.hostName = name;
+    else if (viewer.kind === "player") {
+      const p = this.seats.get(viewer.seat);
+      if (!p) throw new GameError("seat_empty");
+      p.name = name;
+    } else throw new GameError("not_joined");
+    this.lastActive = Date.now();
+  }
+
   identityOf(viewer: Viewer): { identity: string; name: string } | null {
     if (viewer.kind === "host") return { identity: HOST_IDENTITY, name: this.hostName };
     if (viewer.kind === "player") {
@@ -195,6 +208,12 @@ export class Room {
       case "unmuteAll":
         for (const p of this.seats.values()) p.hostMicOff = false;
         break;
+      case "camsOffAll":
+        for (const p of this.seats.values()) p.hostCamOff = true;
+        break;
+      case "camsOnAll":
+        for (const p of this.seats.values()) p.hostCamOff = false;
+        break;
       case "setFloor": {
         if (action.seat === null) {
           this.floorSeat = null;
@@ -218,8 +237,14 @@ export class Room {
         this.pauseTimer(now);
         this.timer.remainingMs = this.timer.durationMs;
         break;
-      case "dealRoles":
-        this.dealRoles(action.mafia, action.sheriff);
+      case "startGame":
+        // Deal the cards and open with the introduction night.
+        if (this.phase !== "lobby") throw new GameError("game_in_progress");
+        this.dealRoles();
+        this.phase = "night";
+        this.floorSeat = null;
+        this.pauseTimer(now);
+        this.timer.remainingMs = this.timer.durationMs;
         break;
       case "kill": {
         const p = player(action.seat);
@@ -293,18 +318,24 @@ export class Room {
     return { removed };
   }
 
-  private dealRoles(mafiaRaw: unknown, sheriffRaw: unknown): void {
-    if (this.phase === "ended") throw new GameError("game_ended");
-    const seats = [...this.seats.keys()];
-    const mafia = typeof mafiaRaw === "number" && Number.isInteger(mafiaRaw) ? mafiaRaw : NaN;
-    const sheriff = sheriffRaw === true;
-    // At least one mafia (the Don), and the town must outnumber the mafia.
-    if (!(mafia >= 1) || mafia * 2 >= seats.length || mafia + (sheriff ? 1 : 0) > seats.length) {
-      throw new GameError("invalid_role_mix");
-    }
+  /**
+   * The owner's lineup for 11 players: Don, 2 Mafia, Sheriff, Doctor, 6 civilians.
+   * With fewer players (test games) the mafia shrinks so the town still outnumbers it,
+   * and the Doctor, then the Sheriff, drop out when there is no room for them.
+   */
+  static deck(players: number): Role[] {
+    if (players < MIN_PLAYERS) throw new GameError("not_enough_players");
+    const mafia = Math.min(3, Math.ceil(players / 2) - 1);
     const deck: Role[] = ["don", ...Array<Role>(mafia - 1).fill("mafia")];
-    if (sheriff) deck.push("sheriff");
-    while (deck.length < seats.length) deck.push("civilian");
+    if (players >= 4) deck.push("sheriff");
+    if (players >= 5) deck.push("doctor");
+    while (deck.length < players) deck.push("civilian");
+    return deck;
+  }
+
+  private dealRoles(): void {
+    const seats = [...this.seats.keys()];
+    const deck = Room.deck(seats.length);
     // Fisher-Yates shuffle with a cryptographic random source.
     for (let i = deck.length - 1; i > 0; i--) {
       const j = randomInt(i + 1);

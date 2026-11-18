@@ -42,20 +42,17 @@ To stop everything: `docker compose down`. To update after new changes: `git pul
 
 1. Open http://localhost:3000, press **Create a room**, type your name and a host password. You land in the room.
 2. Copy the **invite link** at the top and send it to the players. Each one types a nickname and picks a free seat.
-3. Use the **Host controls** on the right and the buttons under each player:
+3. When everyone is seated, press **Start the table**. Roles are dealt automatically (Don, 2 Mafia, Sheriff, Doctor, the rest civilians) and the game opens with the introduction night. Each player sees only their card, the mafia see each other, and you see everyone's.
+4. Run the game from the **Host controls** on the right. They are grouped by purpose:
 
-| Control | What it does |
+| Group | What's in it |
 |---|---|
-| **Camera / Mic** under a player | Turns that player's camera or mic off or back on. The player can't turn back on what you turned off; the video server enforces it, not just the page. |
-| **Mute all / Unmute all** | Every player's mic at once. |
-| **Floor** under a player | Only that player's mic stays on, and the speech timer starts. **End speech** gives everyone their mic back. |
-| **Day / Night** | Night turns off every player's camera and mic. Day turns them back on for living players. |
-| **Deal roles** | Deals at random: the Don plus the other mafia, a Sheriff if ticked, and civilians. Each player sees only their card; the mafia see each other; you see everyone's. |
-| **Kill** (asks to confirm) | Marks the player killed: camera and mic stay off for the rest of the game, but they keep watching. **Undo kill** fixes a misclick. |
-| **− F +** | Removes or adds a foul (up to 4), shown on the player's tile. |
-| **Timer** | Start, pause, reset, and set the speech length (60 seconds by default). Everyone sees it. |
-| **More → Move to seat / Remove from room** | Swaps or moves a player to another seat, or removes them (they can't come back with the same link session). |
-| **Town wins / Mafia wins** | Ends the game and shows everyone's roles. **New game** keeps the players seated and clears roles, kills and fouls. |
+| **Game** | **Day / Night** (night turns off every player's camera and mic; day turns them back on for living players), **Town wins / Mafia wins** (ends the game and shows all roles), then **New game** (keeps players seated, clears roles, kills and fouls). |
+| **Speech** | Who has the floor, **End speech**, and the timer: start, pause, reset, speech length (60 seconds by default). Everyone sees the timer. |
+| **Everyone's mics and cameras** | Mute all, unmute all, all cameras off, all cameras on. |
+| **Selected player** | Click a player's tile to pick them. Then: camera and mic on/off (the player can't turn back on what you turned off; the video server enforces it), **Give the floor** (only their mic stays on and the timer starts), fouls − / + (up to 4), **Kill** (asks to confirm; camera and mic stay off for the rest of the game, they keep watching) or **Undo kill**, move to another seat, remove from the room. |
+
+You sit on tile 12, after the eleven players. Anyone, including you, can press **Change name** at the bottom of the room to change their name.
 
 If you reload the page or come back later on the same browser, you return to your seat. From another device, open the room link and choose **I'm the host** with your password.
 

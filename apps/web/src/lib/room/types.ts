@@ -5,7 +5,7 @@
 
 export const SEAT_COUNT = 11;
 
-export type Role = "don" | "mafia" | "sheriff" | "civilian";
+export type Role = "don" | "mafia" | "sheriff" | "doctor" | "civilian";
 export type Phase = "lobby" | "day" | "night" | "ended";
 export type Winner = "town" | "mafia";
 
@@ -62,9 +62,11 @@ export type HostAction =
   | { type: "setMic"; seat: number; on: boolean }
   | { type: "muteAll" }
   | { type: "unmuteAll" }
+  | { type: "camsOffAll" }
+  | { type: "camsOnAll" }
   | { type: "setFloor"; seat: number | null }
   | { type: "setPhase"; phase: "day" | "night" }
-  | { type: "dealRoles"; mafia: number; sheriff: boolean }
+  | { type: "startGame" }
   | { type: "kill"; seat: number }
   | { type: "revive"; seat: number }
   | { type: "foul"; seat: number; delta: 1 | -1 }

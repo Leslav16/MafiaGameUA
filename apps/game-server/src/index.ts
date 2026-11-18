@@ -17,6 +17,7 @@ import type { HostAction } from "./types.js";
  *             | { code, host: true, password } (join as the host)
  *                                            -> { ok, key, as: "host" | "player", token, livekitUrl }
  *   host:action HostAction                    -> { ok }
+ *   me:rename   { name }                      -> { ok }   (player or host changes their own name)
  * The server pushes "room:state" (RoomView) to each socket whenever anything changes.
  */
 
@@ -177,6 +178,18 @@ io.on("connection", (socket) => {
           }
         }
       }
+    } catch (err) {
+      fail(ack, err);
+    }
+  });
+
+  socket.on("me:rename", async (payload: unknown, ack?: Ack) => {
+    const ctx = viewerOf(socket);
+    if (!ctx) return ack?.({ ok: false, error: "not_joined" });
+    try {
+      ctx.room.rename(ctx.viewer, (payload as { name?: unknown })?.name);
+      ack?.({ ok: true });
+      await publish(ctx.room);
     } catch (err) {
       fail(ack, err);
     }

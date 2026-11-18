@@ -20,24 +20,49 @@ test("a seat can only be taken once", () => {
   assert.deepEqual(room.freeSeats(), [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 });
 
-test("dealing roles: one Don, the right number of mafia, one Sheriff", () => {
+test("starting the table deals Don, 2 Mafia, Sheriff, Doctor and 6 civilians, then opens with night", () => {
   const room = fullRoom();
-  room.apply({ type: "dealRoles", mafia: 3, sheriff: true });
-  const roles = room.view({ kind: "host" }).seats.map((s) => s.role);
-  assert.equal(roles.filter((r) => r === "don").length, 1);
-  assert.equal(roles.filter((r) => r === "mafia").length, 2);
-  assert.equal(roles.filter((r) => r === "sheriff").length, 1);
-  assert.equal(roles.filter((r) => r === "civilian").length, 7);
+  room.apply({ type: "startGame" });
+  const v = room.view({ kind: "host" });
+  const count = (r: string) => v.seats.filter((s) => s.role === r).length;
+  assert.deepEqual([count("don"), count("mafia"), count("sheriff"), count("doctor"), count("civilian")], [1, 2, 1, 1, 6]);
+  assert.equal(v.phase, "night");
+  assert.throws(() => room.apply({ type: "startGame" }), /game_in_progress/);
 });
 
-test("too many mafia is refused", () => {
-  const room = fullRoom(6);
-  assert.throws(() => room.apply({ type: "dealRoles", mafia: 3, sheriff: true }), /invalid_role_mix/);
+test("smaller test tables keep the town ahead of the mafia", () => {
+  assert.deepEqual(Room.deck(5).sort(), ["doctor", "don", "mafia", "sheriff", "civilian"].sort());
+  for (let n = 3; n <= 11; n++) {
+    const deck = Room.deck(n);
+    const mafia = deck.filter((r) => r === "don" || r === "mafia").length;
+    assert.equal(deck.length, n);
+    assert.ok(mafia * 2 < n, `n=${n}`);
+    assert.equal(deck.filter((r) => r === "don").length, 1);
+  }
+  assert.throws(() => Room.deck(2), /not_enough_players/);
+});
+
+test("players and the host can change their names", () => {
+  const room = fullRoom(2);
+  room.rename({ kind: "player", seat: 2 }, "  New   name ");
+  room.rename({ kind: "host" }, "Boss");
+  const v = room.view({ kind: "host" });
+  assert.equal(v.seats[1].name, "New name");
+  assert.equal(v.host.name, "Boss");
+  assert.throws(() => room.rename({ kind: "player", seat: 1 }, "   "), /invalid_name/);
+});
+
+test("all cameras off and back on", () => {
+  const room = fullRoom(3);
+  room.apply({ type: "camsOffAll" });
+  assert.ok([...room.allMedia().values()].every((m) => !m.cam && m.mic));
+  room.apply({ type: "camsOnAll" });
+  assert.ok([...room.allMedia().values()].every((m) => m.cam));
 });
 
 test("players see only their own role, mafia see each other, host sees all", () => {
   const room = fullRoom();
-  room.apply({ type: "dealRoles", mafia: 3, sheriff: true });
+  room.apply({ type: "startGame" });
   const all = room.view({ kind: "host" }).seats;
   const civilian = all.find((s) => s.role === "civilian")!.seat;
   const civView = room.view({ kind: "player", seat: civilian });
@@ -55,8 +80,7 @@ test("players see only their own role, mafia see each other, host sees all", () 
 
 test("night turns everyone's camera and mic off, day turns them back on for the living", () => {
   const room = fullRoom();
-  room.apply({ type: "dealRoles", mafia: 3, sheriff: true });
-  room.apply({ type: "setPhase", phase: "night" });
+  room.apply({ type: "startGame" });
   assert.ok([...room.allMedia().values()].every((m) => !m.cam && !m.mic));
   room.apply({ type: "kill", seat: 4 });
   room.apply({ type: "setPhase", phase: "day" });
@@ -134,7 +158,7 @@ test("move a player to a free seat or swap two players", () => {
 
 test("new game keeps the players and clears roles, deaths and fouls", () => {
   const room = fullRoom();
-  room.apply({ type: "dealRoles", mafia: 3, sheriff: true });
+  room.apply({ type: "startGame" });
   room.apply({ type: "kill", seat: 1 });
   room.apply({ type: "foul", seat: 2, delta: 1 });
   room.apply({ type: "endGame", winner: "mafia" });

@@ -230,6 +230,19 @@ export function useRoom(code: string) {
     [],
   );
 
+  /** Changes this browser's own name (player or host). */
+  const rename = useCallback(
+    (name: string) =>
+      new Promise<string | null>((resolve) => {
+        const socket = socketRef.current;
+        if (!socket?.connected) return resolve("offline");
+        socket.emit("me:rename", { name }, (r: { ok: boolean; error?: string }) =>
+          resolve(r.ok ? null : (r.error ?? "server_error")),
+        );
+      }),
+    [],
+  );
+
   // What this browser may publish right now.
   const isHost = view?.me.kind === "host";
   const mySeat = view?.me.kind === "player" ? view.seats[view.me.seat - 1] : undefined;
@@ -286,6 +299,7 @@ export function useRoom(code: string) {
       joinAsHost,
       freeSeats,
       hostAction,
+      rename,
       media,
       wantCam,
       wantMic,
@@ -296,7 +310,7 @@ export function useRoom(code: string) {
       audioBlocked,
       startAudio,
     }),
-    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, freeSeats, hostAction, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio],
+    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, freeSeats, hostAction, rename, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio],
   );
 }
 

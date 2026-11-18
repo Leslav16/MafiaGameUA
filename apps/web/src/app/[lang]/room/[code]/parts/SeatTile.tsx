@@ -12,6 +12,7 @@ const roleTone: Record<Role, string> = {
   don: "bg-oxblood text-card",
   mafia: "bg-oxblood text-card",
   sheriff: "bg-lamp text-ink",
+  doctor: "bg-[#2f7a5a] text-card",
   civilian: "bg-card text-ink",
 };
 
@@ -32,6 +33,9 @@ export function SeatTile({
   media,
   t,
   large,
+  hostTile,
+  selected,
+  onSelect,
   children,
 }: {
   label: string;
@@ -45,15 +49,38 @@ export function SeatTile({
   media: ParticipantMedia;
   t: Dictionary["roomUi"];
   large?: boolean;
+  /** The host's own tile: seat 12, set apart from the players. */
+  hostTile?: boolean;
+  /** Host only: this tile is the player chosen in the host panel. */
+  selected?: boolean;
+  /** Host only: clicking the tile chooses this player in the host panel. */
+  onSelect?: () => void;
   children?: ReactNode;
 }) {
-  const ring = media.speaking && media.micOn ? "ring-4 ring-lamp" : isFloor ? "ring-2 ring-lamp/70" : "ring-1 ring-[var(--line)]";
+  const ring = selected
+    ? "ring-4 ring-[#5aa9e6]"
+    : media.speaking && media.micOn
+      ? "ring-4 ring-lamp"
+      : isFloor
+        ? "ring-2 ring-lamp/70"
+        : hostTile
+          ? "ring-2 ring-card/80"
+          : "ring-1 ring-[var(--line)]";
 
   return (
-    <li className="flex flex-col gap-2">
+    <li className={`flex flex-col gap-2 ${hostTile ? "rounded-xl bg-card/10 p-1.5" : ""}`}>
       <div
         className={`relative overflow-hidden rounded-lg bg-[#10162a] ${large ? "aspect-video" : "aspect-[4/3]"} ${ring} transition-shadow`}
       >
+        {onSelect && name && (
+          <button
+            type="button"
+            aria-pressed={!!selected}
+            aria-label={`${label} ${name}`}
+            onClick={onSelect}
+            className="absolute inset-0 z-10 cursor-pointer"
+          />
+        )}
         <VideoView track={alive ? media.video : undefined} mirror={media.isLocal} label={name ?? label} />
         {!media.isLocal && <AudioOut track={media.audio} />}
 
