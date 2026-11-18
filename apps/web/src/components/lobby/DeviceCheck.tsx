@@ -25,7 +25,10 @@ export function DeviceCheck({
   onDevicesChange,
   preview,
   stacked = false,
+  initial,
 }: {
+  /** Devices to open first (a saved choice). */
+  initial?: DeviceChoice;
   /** Shown instead of the raw camera, e.g. the room's own track with its background effect. */
   preview?: ReactNode;
   /** One column: picture on top, pickers below (for the Settings popup). */
@@ -39,7 +42,7 @@ export function DeviceCheck({
   const [state, setState] = useState<State>("idle");
   const [cams, setCams] = useState<MediaDeviceInfo[]>([]);
   const [mics, setMics] = useState<MediaDeviceInfo[]>([]);
-  const [choice, setChoice] = useState<DeviceChoice>({});
+  const [choice, setChoice] = useState<DeviceChoice>(initial ?? {});
   const [level, setLevel] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -63,10 +66,19 @@ export function DeviceCheck({
       setState("asking");
       stop();
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { ...VIDEO, ...(want.cameraId ? { deviceId: { exact: want.cameraId } } : {}) },
-          audio: { ...AUDIO, ...(want.micId ? { deviceId: { exact: want.micId } } : {}) },
-        });
+        const open = (w: DeviceChoice) =>
+          navigator.mediaDevices.getUserMedia({
+            video: { ...VIDEO, ...(w.cameraId ? { deviceId: { exact: w.cameraId } } : {}) },
+            audio: { ...AUDIO, ...(w.micId ? { deviceId: { exact: w.micId } } : {}) },
+          });
+        let stream: MediaStream;
+        try {
+          stream = await open(want);
+        } catch (e) {
+          // A saved device that was unplugged: fall back to the default ones.
+          if ((e as DOMException)?.name !== "OverconstrainedError" || !(want.cameraId || want.micId)) throw e;
+          stream = await open({});
+        }
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
 

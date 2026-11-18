@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Dictionary } from "../../../dictionaries";
 import { useRoom, type ParticipantMedia } from "@/lib/room/useRoom";
 import type { HostAction, OwnNightMarks, RoomView } from "@/lib/room/types";
@@ -14,7 +14,7 @@ import { PlayerTile } from "@/components/room/PlayerTile";
 import { NightFall } from "@/components/room/NightFall";
 import { useShotSound } from "@/components/room/useTableEffects";
 import { useCameraEffect, useEffectsSupported } from "@/components/room/useCameraEffect";
-import { usePrefs } from "@/components/prefs";
+import { getPrefs, setPrefs, usePrefs } from "@/components/prefs";
 import { RoomDock } from "@/components/room/RoomDock";
 import { RoomGrid } from "@/components/room/RoomGrid";
 import { Timer } from "@/components/room/Timer";
@@ -120,6 +120,14 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         : null;
   const myMedia = room.media(myIdentity);
   useCameraEffect(myMedia.isLocal ? myMedia.video : undefined, prefs.effect);
+  // Restore this browser's saved camera and mic once the video connection is up.
+  const { videoConnected, switchDevice } = room;
+  useEffect(() => {
+    if (!videoConnected) return;
+    const { cameraId, micId } = getPrefs();
+    if (cameraId) void switchDevice("videoinput", cameraId);
+    if (micId) void switchDevice("audioinput", micId);
+  }, [videoConnected, switchDevice]);
   const t = dict.roomUi;
   const ui = dict.ui;
   const rules = { ...dict.rules, game: dict.game, host: dict.host };
@@ -281,6 +289,13 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         <div className="sticky bottom-0 bg-[var(--surface)] phase-transition">
           <RoomDock
             effectsSupported={effectsOk}
+            initialDevices={{ cameraId: prefs.cameraId, micId: prefs.micId }}
+            onDevicesChange={(c) => {
+              const saved = getPrefs();
+              if (c.cameraId && c.cameraId !== saved.cameraId) void room.switchDevice("videoinput", c.cameraId);
+              if (c.micId && c.micId !== saved.micId) void room.switchDevice("audioinput", c.micId);
+              setPrefs({ cameraId: c.cameraId, micId: c.micId });
+            }}
             preview={myMedia.video ? <VideoView track={myMedia.video} mirror={prefs.mirror} label={ui.lobby.mirror} /> : undefined}
             labels={ui}
             role={myView?.role ?? undefined}

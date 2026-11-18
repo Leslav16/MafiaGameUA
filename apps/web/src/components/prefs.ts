@@ -9,7 +9,7 @@ import { useSyncExternalStore } from "react";
  * be blocked.
  */
 export type CamEffect = "none" | "blur" | "study" | "bar" | "wallpaper";
-export type Prefs = { sfx: boolean; calm: boolean; mirror: boolean; effect: CamEffect };
+export type Prefs = { sfx: boolean; calm: boolean; mirror: boolean; effect: CamEffect; cameraId?: string; micId?: string };
 
 const KEY = "mafia.prefs";
 const DEFAULTS: Prefs = { sfx: true, calm: false, mirror: true, effect: "none" };

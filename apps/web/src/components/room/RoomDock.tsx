@@ -39,6 +39,7 @@ export function RoomDock({
   onChooseSeat,
   preview,
   effectsSupported = null,
+  initialDevices,
 }: {
   labels: RoomLabels;
   role?: Role;
@@ -70,6 +71,8 @@ export function RoomDock({
   /** Your live camera as the others see it (with the background effect). */
   preview?: ReactNode;
   effectsSupported?: boolean | null;
+  /** The camera and mic this browser chose last time. */
+  initialDevices?: DeviceChoice;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -114,6 +117,7 @@ export function RoomDock({
                 onReadyChange={onReadyChange ?? (() => {})}
                 onDevicesChange={onDevicesChange}
                 preview={preview}
+                initial={initialDevices}
                 stacked
               />
               <EffectPicker labels={labels} supported={effectsSupported} />
