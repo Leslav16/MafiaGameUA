@@ -61,6 +61,16 @@ export function cleanName(raw: unknown): string {
   return name;
 }
 
+/** "4. Olena", "4) Olena", "4 - Olena" or "4 Olena" -> seat 4, name "Olena". */
+export function splitSeatFromName(name: string): { seat: number | null; name: string } {
+  const m = /^\s*(\d{1,2})\s*[.):\-–]?\s+(.+)$|^\s*(\d{1,2})\s*[.):\-–]\s*(.+)$/.exec(name);
+  if (!m) return { seat: null, name };
+  const seat = Number(m[1] ?? m[3]);
+  const rest = (m[2] ?? m[4]).trim();
+  if (seat < 1 || seat > SEAT_COUNT || !rest) return { seat: null, name };
+  return { seat, name: rest };
+}
+
 function assertSeat(seat: unknown): number {
   if (typeof seat !== "number" || !Number.isInteger(seat) || seat < 1 || seat > SEAT_COUNT) {
     throw new GameError("invalid_seat");
@@ -103,11 +113,20 @@ export class Room {
     return free;
   }
 
+  /**
+   * Seats a new player. Players don't pick a seat when joining: they get the
+   * first free one and set their real seat number afterwards (chooseSeat), or
+   * type it in front of their name, like "4. Olena".
+   * An explicit seat is still accepted when it is free.
+   */
   takeSeat(seatRaw: unknown, nameRaw: unknown): { seat: number; key: string; identity: string } {
-    const seat = assertSeat(seatRaw);
-    const name = cleanName(nameRaw);
-    if (this.seats.has(seat)) throw new GameError("seat_taken");
     if (this.phase !== "lobby") throw new GameError("game_in_progress");
+    const parsed = splitSeatFromName(cleanName(nameRaw));
+    const name = parsed.name;
+    const free = this.freeSeats();
+    if (free.length === 0) throw new GameError("room_full");
+    const wanted = seatRaw !== undefined && seatRaw !== null ? assertSeat(seatRaw) : parsed.seat;
+    const seat = wanted && !this.seats.has(wanted) ? wanted : free[0];
     const player: Player = {
       identity: `p-${newId(6)}`,
       key: newId(18),
@@ -131,16 +150,40 @@ export class Room {
     return { kind: "nobody" };
   }
 
-  /** Anyone may change their own name at any time. */
-  rename(viewer: Viewer, nameRaw: unknown): void {
-    const name = cleanName(nameRaw);
-    if (viewer.kind === "host") this.hostName = name;
-    else if (viewer.kind === "player") {
-      const p = this.seats.get(viewer.seat);
-      if (!p) throw new GameError("seat_empty");
-      p.name = name;
-    } else throw new GameError("not_joined");
+  /**
+   * Anyone may change their own name at any time. A player who types a seat
+   * number in front ("4. Olena") also moves to that seat, if it is free.
+   * Returns the viewer's seat afterwards.
+   */
+  rename(viewer: Viewer, nameRaw: unknown): Viewer {
+    const cleaned = cleanName(nameRaw);
     this.lastActive = Date.now();
+    if (viewer.kind === "host") {
+      this.hostName = cleaned;
+      return viewer;
+    }
+    if (viewer.kind !== "player") throw new GameError("not_joined");
+    const p = this.seats.get(viewer.seat);
+    if (!p) throw new GameError("seat_empty");
+    const { seat, name } = splitSeatFromName(cleaned);
+    const next = seat && seat !== viewer.seat ? this.chooseSeat(viewer, seat) : viewer;
+    p.name = name;
+    return next;
+  }
+
+  /** A player moves themselves to a free seat number. Taken seats are refused; the host can swap people. */
+  chooseSeat(viewer: Viewer, seatRaw: unknown): Viewer {
+    if (viewer.kind !== "player") throw new GameError("not_joined");
+    const to = assertSeat(seatRaw);
+    if (to === viewer.seat) return viewer;
+    if (this.seats.has(to)) throw new GameError("seat_taken");
+    const p = this.seats.get(viewer.seat);
+    if (!p) throw new GameError("seat_empty");
+    this.seats.delete(viewer.seat);
+    this.seats.set(to, p);
+    if (this.floorSeat === viewer.seat) this.floorSeat = to;
+    this.lastActive = Date.now();
+    return { kind: "player", seat: to };
   }
 
   identityOf(viewer: Viewer): { identity: string; name: string } | null {

@@ -16,9 +16,11 @@ export const primary = "border-lamp bg-lamp text-ink hover:brightness-105";
 export const danger = "border-oxblood bg-oxblood text-card hover:brightness-110";
 
 /** One labelled group of controls. Groups are ordered by how often the host reaches for them. */
-function Group({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
+function Group({ title, children, hint, minHeight }: { title: string; children: ReactNode; hint?: string; minHeight?: boolean }) {
   return (
-    <section className="flex flex-col gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface)]/60 p-3">
+    <section
+      className={`flex flex-col gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface)]/60 p-3 ${minHeight ? "min-h-[17rem]" : ""}`}
+    >
       <h3 className="font-display text-sm font-medium tracking-[0.12em] text-[var(--text-muted)] uppercase">{title}</h3>
       {children}
       {hint && <p className="text-sm text-[var(--text-muted)]">{hint}</p>}
@@ -59,7 +61,13 @@ export function HostPanel({
   const selected = selectedSeat ? view.seats[selectedSeat - 1] : null;
 
   return (
-    <aside aria-label={t.title} className="flex flex-col gap-3">
+    // Fixed width, and on wide screens a fixed height that scrolls inside itself, so
+    // picking a player or opening a confirm never changes the page's size and the
+    // video tiles never shift.
+    <aside
+      aria-label={t.title}
+      className="flex w-full flex-col gap-3 lg:max-h-[calc(100dvh-2rem)] lg:w-[22rem] lg:overflow-y-auto lg:[scrollbar-gutter:stable] lg:pr-1"
+    >
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-display text-2xl font-medium tracking-wide">{t.title}</h2>
         <span className="text-sm text-[var(--text-muted)]">{fmt(t.players, { n: players })}</span>
@@ -198,8 +206,8 @@ export function HostPanel({
         </div>
       </Group>
 
-      {/* 4. Selected player */}
-      <Group title={t.groupPlayer}>
+      {/* 4. Selected player: same height whether or not someone is picked */}
+      <Group title={t.groupPlayer} minHeight>
         {selected?.name ? (
           <SelectedPlayer
             seat={selected}
