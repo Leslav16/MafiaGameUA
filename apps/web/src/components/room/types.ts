@@ -19,4 +19,10 @@ export type SeatInfo = {
   micOn: boolean;
   fouls: number;
   role?: Role;
+  /** Why the player is out of the game: killed at night, voted out by the town, or removed by the host. */
+  out?: OutReason | null;
+  /** Put up for the vote today: everyone sees the marker. */
+  nominated?: boolean;
 };
+
+export type OutReason = "killed" | "voted" | "removed";

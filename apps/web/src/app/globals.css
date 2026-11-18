@@ -587,3 +587,19 @@ body {
     animation: none;
   }
 }
+
+/* Out-of-game stamps: killed (blood red), voted out (lamp), removed (smoke). */
+.stamp-voted {
+  color: var(--color-lamp);
+  transform: rotate(6deg);
+}
+.stamp-removed {
+  color: var(--color-smoke);
+  transform: rotate(-3deg);
+}
+/* Nominated: an oxblood frame everyone can see. */
+.tile[data-nominated]:not([data-speaking]) {
+  box-shadow:
+    0 0 0 3px var(--color-oxblood),
+    0 0 22px -6px rgb(208 84 78 / 0.7);
+}

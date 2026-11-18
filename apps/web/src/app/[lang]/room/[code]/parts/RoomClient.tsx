@@ -78,7 +78,14 @@ function lockReason(view: RoomView, t: Dictionary["roomUi"]) {
 
 export function RoomClient({ lang, code, dict }: { lang: string; code: string; dict: Dict }) {
   const room = useRoom(code);
-  const tiles = useTileOrder(code);
+  const [panelHidden, setPanelHidden] = useState(false);
+  const isHostView = room.view?.me.kind === "host";
+  const mySeatView = room.view?.me.kind === "player" ? room.view.me.seat : null;
+  const tiles = useTileOrder(code, {
+    canDrag: (seat) => isHostView || seat === mySeatView,
+    onMove: (from, to) => (isHostView ? room.hostAction({ type: "moveSeat", from, to }) : room.chooseSeat(to)),
+    locked: room.view?.phase !== "lobby",
+  });
   const t = dict.roomUi;
   const ui = dict.ui;
   const rules = { ...dict.rules, game: dict.game, host: dict.host };
@@ -122,6 +129,8 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
       micOn: m.micOn,
       fouls: s.fouls,
       role: s.role,
+      out: s.out,
+      nominated: s.nominated,
     });
 
     body = (
@@ -160,14 +169,14 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
           )}
         </div>
 
-        <div className={`grid items-start gap-4 py-3 ${isHost ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
+        <div className={`grid items-start gap-4 py-3 ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
           {/* 11 players, then the host on tile 12, set apart */}
           <RoomGrid
             seats={tiles.order.map((n) => {
               const s = view.seats[n - 1];
               const m = room.media(s.identity);
               return (
-                <div key={s.seat} className="tile-slot" title={ui.dragHint} {...tiles.dragProps(s.seat)}>
+                <div key={s.seat} className="tile-slot" title={view.phase === "lobby" ? ui.dragHint : undefined} {...tiles.dragProps(s.seat)}>
                   <PlayerTile
                     info={toSeatInfo(s, m)}
                     labels={ui}
@@ -208,9 +217,10 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
             }
           />
 
-          {isHost && (
+          {isHost && !panelHidden && (
             <div className="lg:sticky lg:top-4 lg:self-start">
               <HostPanel
+                onHide={() => setPanelHidden(true)}
                 view={view}
                 act={act}
                 timerText={timerText}
@@ -251,13 +261,13 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
             }}
             extra={
               <>
-              {tiles.isCustom && (
+              {isHost && panelHidden && (
                 <button
                   type="button"
-                  onClick={tiles.reset}
-                  className="phase-transition inline-flex min-h-12 items-center rounded-full border border-dashed border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--color-lamp)]"
+                  onClick={() => setPanelHidden(false)}
+                  className="phase-transition inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--color-lamp)] px-4 font-display text-base tracking-wide text-[var(--color-ink)]"
                 >
-                  ↺ {ui.resetOrder}
+                  ☰ {dict.hostPanel.show}
                 </button>
               )}
               <ModalButton

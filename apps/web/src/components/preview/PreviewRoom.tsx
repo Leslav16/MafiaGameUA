@@ -51,7 +51,7 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
 
   const seats: SeatInfo[] = NAMES.map((name, i) => {
     const seat = i + 1;
-    const alive = seat !== 7 && seat !== 2;
+    const alive = seat !== 7 && seat !== 2 && seat !== 11;
     const me = seat === ME;
     return {
       seat,
@@ -61,6 +61,8 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
       camOn: !night && seat !== 9 && (!me || myCam),
       micOn: !night && (seat === floorSeat || seat === 5 || (me && myMic)),
       fouls: seat === 3 ? 2 : seat === 8 ? 1 : 0,
+      out: seat === 2 ? "voted" : seat === 11 ? "removed" : alive ? null : "killed",
+      nominated: !night && (seat === 4 || seat === 6),
     };
   });
 

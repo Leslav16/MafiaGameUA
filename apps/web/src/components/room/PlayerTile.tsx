@@ -11,6 +11,13 @@ const ROLE_MARK: Record<NonNullable<SeatInfo["role"]>, string> = {
   don: "bg-[var(--color-oxblood)] text-[var(--color-card)] ring-1 ring-[var(--color-card)]",
 };
 
+/** Each way out of the game gets its own emblem and stamp colour. */
+const OUT_STYLE = {
+  killed: { glyph: "✝", cls: "stamp-killed" },
+  voted: { glyph: "✋", cls: "stamp-voted" },
+  removed: { glyph: "⊘", cls: "stamp-removed" },
+} as const;
+
 /**
  * One seat at the table: a video tile with the seat number pinned to its
  * corner like an evidence tag. No game logic: everything comes in as props.
@@ -50,7 +57,9 @@ export function PlayerTile({
   children?: ReactNode;
   className?: string;
 }) {
-  const { seat, name, alive, connected, camOn, micOn, fouls, role } = info;
+  const { seat, name, alive, connected, camOn, micOn, fouls, role, nominated = false } = info;
+  const out = alive ? null : (info.out ?? "killed");
+  const outLabel = out === "voted" ? labels.votedOut : out === "removed" ? labels.removed : labels.killed;
   const seatLabel = tag ?? fill(labels.seat, seat);
   const mark = tag ?? seat;
   const showVideo = alive && camOn && connected && video;
@@ -59,7 +68,8 @@ export function PlayerTile({
     seatLabel,
     name,
     isMe ? labels.you : null,
-    !alive ? labels.killed : null,
+    out ? outLabel : null,
+    nominated && alive ? labels.nominated : null,
     speaking && alive ? labels.speaking : null,
     !connected ? labels.offline : null,
     alive && !micOn ? labels.micOff : null,
@@ -77,6 +87,7 @@ export function PlayerTile({
       data-alive={alive ? "" : undefined}
       data-host={isHost ? "" : undefined}
       data-selected={selected ? "" : undefined}
+      data-nominated={nominated && alive ? "" : undefined}
       className={`tile group relative isolate aspect-[4/3] overflow-hidden rounded-lg bg-[var(--tile)] text-[var(--color-card)] ${className}`}
     >
       {onSelect && (
@@ -118,6 +129,17 @@ export function PlayerTile({
           className={`absolute top-1.5 right-1.5 z-10 rounded-sm px-1.5 text-[clamp(0.65rem,2.4cqw,0.85rem)] leading-5 font-semibold ${ROLE_MARK[role]}`}
         >
           {labels.role[role]}
+        </span>
+      )}
+
+      {/* Nominated: a raised-hand badge, top-centre, seen by everyone */}
+      {nominated && alive && (
+        <span
+          aria-hidden
+          className="nominee-badge absolute top-1.5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--color-oxblood)] px-2 font-display text-[clamp(0.65rem,2.4cqw,0.9rem)] leading-6 tracking-wide text-[var(--color-card)] uppercase ring-1 ring-[var(--color-card)]/60"
+        >
+          <span aria-hidden>☝</span>
+          {labels.nominated}
         </span>
       )}
 
@@ -163,11 +185,14 @@ export function PlayerTile({
         </div>
       )}
 
-      {/* Killed: the tile goes dark and gets stamped */}
-      {!alive && (
+      {/* Out of the game: the tile goes dark and gets a stamp per reason */}
+      {out && (
         <div className="absolute inset-0 z-[5] grid place-items-center bg-[#0b0806]/80">
-          <span className="stamp font-display text-[clamp(0.9rem,3.2cqw,1.6rem)] font-semibold tracking-[0.12em] uppercase">
-            {labels.killed} · {mark}
+          <span
+            className={`stamp ${OUT_STYLE[out].cls} flex items-center gap-2 font-display text-[clamp(0.9rem,3.2cqw,1.6rem)] font-semibold tracking-[0.12em] uppercase`}
+          >
+            <span aria-hidden className="text-[1.2em] leading-none">{OUT_STYLE[out].glyph}</span>
+            {outLabel} · {mark}
           </span>
         </div>
       )}

@@ -186,8 +186,10 @@
     "toggleCam": "Camera",
     "select": "Select player",
     "close": "Close",
-    "resetOrder": "Reset order",
-    "dragHint": "Drag the tiles to arrange them like the real table. Only you see this order."
+    "dragHint": "Drag your tile onto another seat to change your number. Seats lock when the game starts.",
+    "votedOut": "Voted out",
+    "removed": "Removed",
+    "nominated": "Nominated"
   },
   "rules": {
     "open": "Rules",
