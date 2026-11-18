@@ -1,0 +1,714 @@
+{
+  "meta": {
+    "title": "MafiaGameUA: Mafia online with cameras",
+    "description": "Play Mafia with cameras and microphones: 11 players and a host at one table."
+  },
+  "nav": {
+    "home": "MafiaGameUA",
+    "language": "Language",
+    "switchTo": "Українська",
+    "switchToLabel": "Перейти на українську"
+  },
+  "hero": {
+    "title": "The city falls asleep.",
+    "lede": "Mafia with cameras and microphones. Eleven players, one host, and a table where you can see every face.",
+    "create": "Create a room",
+    "how": "How a game goes",
+    "toNight": "Switch to night",
+    "toDay": "Switch to day",
+    "phaseNight": "Night",
+    "phaseDay": "Day",
+    "host": "Host",
+    "seatLabel": "Seat {n}",
+    "tableLabel": "A table for 11 players and a host",
+    "lineup": "The Don, 2 mafia, the Sheriff, the Doctor and 6 civilians. Roles are dealt automatically when the host starts the table.",
+    "preview": "See the room",
+    "tagline": "The mafia wakes up.",
+    "join": "Join",
+    "codeLabel": "Room code",
+    "codePlaceholder": "Code or link",
+    "codeError": "Type the room code (letters and digits) or paste the link.",
+    "or": "or",
+    "howTo": "How to start",
+    "howToSteps": [
+      "Create a room and pick a host password.",
+      "Send your friends the link. Each takes a free seat.",
+      "Press Start. Roles are dealt for you, and the panel guides you from there."
+    ],
+    "tables": "Tables",
+    "tablesTitle": "Open tables",
+    "tablesNone": "No open tables right now. Create your own!",
+    "tablesOffline": "The game server isn't answering.",
+    "tableWatch": "Watch",
+    "tablePlay": "Take a seat",
+    "tablePlayers": "players: {n}/11",
+    "tableSpectators": "watching: {n}",
+    "tableLobby": "gathering players",
+    "tableDay": "day {n}",
+    "tableNight": "night",
+    "tableEnded": "game over",
+    "tableHost": "{name}'s table",
+    "drawRole": "Draw a role",
+    "drawTitle": "Draw a role",
+    "drawHint": "The real deck: Don, 2 Mafia, Sheriff, Doctor and 6 civilians. The card is truly random.",
+    "drawPick": "Draw a card",
+    "drawAgain": "Again",
+    "camCheck": "Check your camera",
+    "cordHint": "Pull the lamp cord"
+  },
+  "game": {
+    "title": "How a game goes",
+    "lede": "The game runs in rounds: day, night, day again. It ends when the mafia are found out, or when there are as many mafia as civilians.",
+    "steps": [
+      {
+        "name": "Introduction",
+        "text": "The first night. Everyone sees their role card, and the mafia open their eyes to recognise each other. All cameras and mics are off."
+      },
+      {
+        "name": "Speeches",
+        "text": "Day breaks. The host gives the floor in seat order, and everyone has one minute to convince the table."
+      },
+      {
+        "name": "Nominations",
+        "text": "During their minute, a player can put someone up for the vote by naming a seat number."
+      },
+      {
+        "name": "Vote",
+        "text": "The table votes on the nominees. The player voted out says a last word, then the host turns off their camera and mic."
+      },
+      {
+        "name": "Night",
+        "text": "The mafia shoot, the Don hunts for the Sheriff, the Sheriff checks a player. In the morning the host says who was killed."
+      }
+    ]
+  },
+  "host": {
+    "title": "The host runs the table",
+    "lede": "The host sees every role and controls each player's camera and mic. A player can't turn back on what the host turned off.",
+    "items": [
+      {
+        "name": "Camera and mic",
+        "text": "Turns them on or off for any of the eleven players."
+      },
+      {
+        "name": "Quiet table",
+        "text": "One click leaves only the speaker's mic on."
+      },
+      {
+        "name": "Kill",
+        "text": "Marks a player as killed, and their camera and mic stay off for the rest of the game."
+      },
+      {
+        "name": "Timer and fouls",
+        "text": "Gives the floor, pauses the minute, records warnings."
+      }
+    ]
+  },
+  "footer": {
+    "note": "The first version runs on the host's own computer."
+  },
+  "room": {
+    "title": "Rooms are being built",
+    "text": "The next update adds a room with cameras for 11 players and a host.",
+    "back": "Back to the start"
+  },
+  "ui": {
+    "seat": "Seat {n}",
+    "host": "Host",
+    "you": "You",
+    "micOff": "Mic off",
+    "camOff": "Camera off",
+    "offline": "Disconnected",
+    "speaking": "Speaking",
+    "killed": "Killed",
+    "fouls": "Fouls: {n}",
+    "phase": {
+      "lobby": "Gathering players",
+      "day": "Day",
+      "night": "Night",
+      "ended": "Game over"
+    },
+    "round": "Round {n}",
+    "timerLabel": "Time left",
+    "paused": "Paused",
+    "floor": "Seat {n} has the floor",
+    "role": {
+      "title": "Your role",
+      "peek": "Tap to look",
+      "hide": "Tap to hide",
+      "civilian": "Civilian",
+      "sheriff": "Sheriff",
+      "mafia": "Mafia",
+      "don": "Don",
+      "civilianText": "Find the mafia and vote them out.",
+      "sheriffText": "Each night, check one player. The host tells you if they are mafia.",
+      "mafiaText": "Each night, choose with your team who to kill. Don't give yourself away by day.",
+      "donText": "You lead the mafia. Each night, hunt for the Sheriff.",
+      "doctor": "Doctor",
+      "doctorText": "Each night, choose someone to save. If the mafia shoot them, they survive."
+    },
+    "create": {
+      "title": "New room",
+      "lede": "You'll be the host. Send the link to the players and they'll take their seats.",
+      "name": "Room name",
+      "namePlaceholder": "For example: Friday at Lesia's",
+      "password": "Host password",
+      "passwordHint": "You need it to get back into the host seat.",
+      "submit": "Create the room",
+      "ready": "The room is ready",
+      "share": "Send this link to the players",
+      "copy": "Copy",
+      "copied": "Copied",
+      "enter": "Enter as host",
+      "deckLabel": "The host's deck of roles"
+    },
+    "join": {
+      "title": "Take a seat",
+      "nickname": "Your name in the game",
+      "nicknamePlaceholder": "For example: Olia",
+      "nicknameHint": "The other players will see it.",
+      "pickSeat": "Pick a free seat",
+      "taken": "Taken",
+      "free": "Free",
+      "selected": "Your seat",
+      "submit": "Sit in seat {n}",
+      "submitNoSeat": "Pick a seat",
+      "seatsFree": "Free seats: {n} of 11",
+      "seatTip": "You get a seat automatically. Type “4. Olia” to sit in seat 4 straight away, or change your seat later in Settings."
+    },
+    "lobby": {
+      "title": "Camera and mic check",
+      "lede": "This is how the others will see and hear you. Check it before the game starts.",
+      "camera": "Camera",
+      "microphone": "Microphone",
+      "level": "Mic level",
+      "levelHint": "Say something: the bar should move.",
+      "allow": "Allow camera and mic",
+      "allowHint": "Your browser will ask. Click “Allow”.",
+      "denied": "The browser blocked the camera or mic. Click the lock icon next to the site address, allow them, then reload the page.",
+      "noDevice": "No camera or microphone found.",
+      "ready": "I'm ready",
+      "notReady": "Not ready yet",
+      "waiting": "Waiting for players: {n} of 11 ready",
+      "mirror": "Your camera"
+    },
+    "preview": {
+      "title": "What the room will look like",
+      "lede": "A sample with made-up players. The real room arrives with the camera connection.",
+      "asPlayer": "As a player sees it",
+      "sample": "Sample"
+    },
+    "settings": {
+      "open": "Settings",
+      "title": "Settings",
+      "nickname": "Name in the game",
+      "save": "Save",
+      "saved": "Saved",
+      "seat": "Your seat at the table",
+      "seatHint": "Pick your number. Taken numbers are greyed out.",
+      "seatNow": "Now: seat {n}"
+    },
+    "toggleMic": "Microphone",
+    "toggleCam": "Camera",
+    "select": "Select player",
+    "close": "Close",
+    "dragHint": "Drag your tile onto another seat to change your number. Seats lock when the game starts.",
+    "votedOut": "Voted out",
+    "removed": "Removed",
+    "nominated": "Nominated",
+    "nightFalls": "The town falls asleep",
+    "dayBreaks": "The town wakes up",
+    "nightStep": {
+      "asleep": "The town sleeps",
+      "mafia": "The mafia wakes up",
+      "don": "The Don wakes up",
+      "sheriff": "The Sheriff wakes up",
+      "doctor": "The Doctor wakes up"
+    },
+    "votesAgainst": "Against: {n}",
+    "marks": {
+      "mafia": "Mafia",
+      "notMafia": "Not mafia",
+      "sheriff": "Sheriff",
+      "notSheriff": "Not Sheriff",
+      "healed": "Healed ×{n}",
+      "self": "Self {n}/2"
+    },
+    "prefs": {
+      "profile": "Profile",
+      "media": "Camera and mic",
+      "effects": "Camera background",
+      "effectsHint": "Everyone sees the blur or background. Works in Chrome and Edge.",
+      "effectsNo": "This browser can't change the camera background.",
+      "none": "No effect",
+      "blur": "Blur",
+      "study": "Study",
+      "bar": "Bar",
+      "wallpaper": "Wallpaper",
+      "game": "Game",
+      "sfx": "Sound effects",
+      "sfxHint": "The night shot and other table sounds.",
+      "calm": "Calm animations",
+      "calmHint": "Less motion: no lamp flicker or hopping.",
+      "mirror": "Mirror my video",
+      "mirrorHint": "Like a mirror. Others don't see you mirrored.",
+      "test": "Test",
+      "voice": "Night voice",
+      "voiceHint": "Briefly announces who wakes up, in different words each time."
+    }
+  },
+  "rules": {
+    "open": "Rules",
+    "close": "Close",
+    "rolesTitle": "Roles at the table",
+    "roles": [
+      {
+        "id": "don",
+        "name": "Don",
+        "text": "Head of the mafia. Hunts for the Sheriff at night."
+      },
+      {
+        "id": "mafia",
+        "name": "Mafia",
+        "text": "Two of them. Each night they choose, with the Don, who to kill."
+      },
+      {
+        "id": "sheriff",
+        "name": "Sheriff",
+        "text": "At night, checks a player: mafia or not."
+      },
+      {
+        "id": "doctor",
+        "name": "Doctor",
+        "text": "At night, saves one player from the shot."
+      },
+      {
+        "id": "civilian",
+        "name": "Civilians",
+        "text": "Six of them. They have only their vote and their wits."
+      }
+    ]
+  },
+  "roomUi": {
+    "createTitle": "Create a room",
+    "createLede": "You will be the host. Players join with the link you share.",
+    "hostName": "Your name",
+    "password": "Host password",
+    "passwordHint": "At least 4 characters. You need it to come back as the host from another device.",
+    "create": "Create the room",
+    "creating": "Creating…",
+    "joinTitle": "Join the table",
+    "nickname": "Your nickname",
+    "pickSeat": "Pick a free seat",
+    "join": "Sit down",
+    "joining": "Joining…",
+    "imHost": "I'm the host",
+    "hostJoin": "Join as host",
+    "back": "Back",
+    "connecting": "Connecting…",
+    "notFound": "This room doesn't exist or has closed.",
+    "offline": "Can't reach the game server. Is it running?",
+    "kicked": "The host removed you from this room.",
+    "toStart": "Back to the start",
+    "invite": "Invite link",
+    "copy": "Copy",
+    "copied": "Copied",
+    "seat": "Seat {n}",
+    "host": "Host",
+    "empty": "Free seat",
+    "you": "you",
+    "offlineBadge": "offline",
+    "killed": "Killed",
+    "fouls": "Fouls: {n}",
+    "speaking": "Has the floor",
+    "camera": "Camera",
+    "mic": "Microphone",
+    "cameraOn": "Turn camera on",
+    "cameraOff": "Turn camera off",
+    "micOn": "Turn mic on",
+    "micOff": "Turn mic off",
+    "lockedByHost": "Turned off by the host",
+    "lockedNight": "Off for the night",
+    "lockedDead": "Off: you were killed",
+    "lockedFloor": "Another player has the floor",
+    "phase": {
+      "lobby": "Waiting for players",
+      "day": "Day {n}",
+      "night": "Night",
+      "ended": "Game over"
+    },
+    "winner": {
+      "town": "The town wins",
+      "mafia": "The mafia wins"
+    },
+    "roles": {
+      "don": "Don",
+      "mafia": "Mafia",
+      "sheriff": "Sheriff",
+      "civilian": "Civilian",
+      "doctor": "Doctor"
+    },
+    "yourRole": "Your role",
+    "noRole": "Roles are not dealt yet",
+    "teammates": "Your mafia: seats {seats}",
+    "timer": "Time left",
+    "errors": {
+      "seat_taken": "Someone just took that seat. Pick another.",
+      "wrong_password": "Wrong host password.",
+      "room_not_found": "This room doesn't exist.",
+      "invalid_name": "Type a name.",
+      "invalid_password": "The password needs 4 to 64 characters.",
+      "invalid_seat": "Pick a seat.",
+      "game_in_progress": "The game has started. You can watch as a spectator.",
+      "invalid_role_mix": "That role mix doesn't fit the number of players.",
+      "player_dead": "That player is dead.",
+      "seat_empty": "Nobody sits there.",
+      "game_ended": "The game is over. Start a new game first.",
+      "offline": "No connection to the game server.",
+      "video_failed": "Couldn't connect to the video server.",
+      "media_denied": "The browser blocked the camera or mic. Allow them in the address bar.",
+      "media_missing": "No camera or mic found.",
+      "media_failed": "The camera or mic couldn't start.",
+      "server_error": "Something went wrong. Try again.",
+      "not_enough_players": "At least 3 players are needed to start.",
+      "room_full": "All 11 seats are taken.",
+      "not_joined": "Join the room first.",
+      "seats_locked": "Seats are locked once the game starts.",
+      "not_started": "Start the game first.",
+      "not_speeches": "You can put players up only during speeches.",
+      "not_voting": "There is no vote right now.",
+      "already_voted": "This player has already voted.",
+      "not_night": "It isn't night.",
+      "night_not_done": "Finish the night steps first.",
+      "heal_blocked": "The Doctor can't heal this player tonight.",
+      "too_many_tries": "Too many wrong tries. Wait 10 minutes.",
+      "too_many_spectators": "Too many spectators, no room left."
+    },
+    "sound": "Turn on sound",
+    "rename": "Change name",
+    "renameSave": "Save",
+    "renameCancel": "Cancel",
+    "hostSeat": "12 · Host",
+    "watch": "Watch as a spectator",
+    "watchTitle": "Watch the game",
+    "watchHint": "Spectators see and hear the table by day, but take no seat and never see roles or the night.",
+    "joinAsPlayer": "Take a seat",
+    "spectators": "Spectators",
+    "spectatorsCount": "Watching now: {n}",
+    "spectatorsNone": "Nobody is watching yet.",
+    "youWatch": "You are watching as a spectator",
+    "introAt": "Introductions: {place}",
+    "publicTable": "Show the table on the home page",
+    "publicTableHint": "Others will see it in the list of tables and can watch. The code and host password stay secret."
+  },
+  "hostPanel": {
+    "title": "Host controls",
+    "hide": "Hide",
+    "show": "Host controls",
+    "players": "{n} of 11 seats taken",
+    "now": "Now",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "lobbyHint": "Players can drag their tile to change their seat number. Seats lock when the game starts.",
+    "startGame": "Start the game",
+    "startHint": "Deals the roles (Don, 2 Mafia, Sheriff, Doctor, the rest civilians) and starts the introduction round. Needs at least 3 players.",
+    "intro": "Introduction round",
+    "dayN": "Day {n}: speeches",
+    "defence": "Defence speeches",
+    "revote": "Re-vote",
+    "voting": "Voting",
+    "lastWord": "Last word",
+    "night": "Night {n}",
+    "morning": "Morning",
+    "ended": "Game over",
+    "speaking": "Speaking: seat {n}",
+    "next": "Next speaker",
+    "endRound": "End speeches",
+    "endDefence": "Go to the vote",
+    "endLastWord": "Continue",
+    "pause": "Pause",
+    "resume": "Resume",
+    "restart": "Restart minute",
+    "order": "Order",
+    "nominate": "Put up for the vote",
+    "nominateHint": "Tap the seat the speaker names. Tap again to take it back.",
+    "firstMustNominate": "The first speaker hasn't put anyone up yet.",
+    "nominees": "On the vote: {list}",
+    "noNominees": "Nobody is up for the vote yet.",
+    "against": "Against seat {n}",
+    "votedHint": "Tap the seats that raise a hand. Each player votes once.",
+    "handsCount": "{n} hands",
+    "lastCandidate": "Everyone who hasn't voted ({n}) votes against seat {seat}.",
+    "nextCandidate": "Next candidate",
+    "count": "Count the votes",
+    "resultOut": "Seat {n} is voted out.",
+    "resultTie": "Tie between seats {list}.",
+    "resultKeep": "Tie again: everyone stays.",
+    "confirmOut": "Confirm: seat {n} leaves",
+    "startRevote": "Re-vote between {list}",
+    "toNight": "Nobody leaves: go to night",
+    "voteFor": "{n}: {votes}",
+    "lastWordOf": "Seat {n}: last word",
+    "reasonKilled": "killed by the mafia",
+    "reasonVoted": "voted out by the town",
+    "steps": {
+      "mafia": "Mafia shoots",
+      "don": "Don looks for the Sheriff",
+      "sheriff": "Sheriff looks for the mafia",
+      "doctor": "Doctor heals"
+    },
+    "pickHint": {
+      "mafia": "Tap the seat the mafia shoots.",
+      "don": "Tap the seat the Don checks.",
+      "sheriff": "Tap the seat the Sheriff checks.",
+      "doctor": "Tap the seat the Doctor heals."
+    },
+    "miss": "Miss",
+    "skip": "Nobody",
+    "isSheriff": "Sheriff!",
+    "notSheriff": "Not the Sheriff",
+    "isMafia": "Mafia!",
+    "notMafia": "Not mafia",
+    "blocked": "can't heal",
+    "morningKilled": "The mafia killed seat {n}.",
+    "morningNobody": "Nobody died tonight.",
+    "announce": "Announce the morning",
+    "suggestTown": "No mafia left: the town has won.",
+    "suggestMafia": "The mafia equals the town: the mafia has won.",
+    "endNow": "End the game",
+    "winner": {
+      "town": "The town wins",
+      "mafia": "The mafia wins"
+    },
+    "newGame": "New game",
+    "newGameHint": "Keeps the players in their seats, clears roles, kills and fouls.",
+    "endByHand": "End the game early",
+    "townWins": "Town wins",
+    "mafiaWins": "Mafia wins",
+    "player": "Player",
+    "pickPlayer": "Click a player's tile for their camera, mic, fouls and more.",
+    "close": "Close",
+    "cam": "Camera",
+    "mic": "Mic",
+    "fouls": "Fouls",
+    "foulAdd": "Add foul",
+    "foulRemove": "Remove foul",
+    "fourFouls": "4 fouls: the player leaves the game.",
+    "removeFromGame": "Remove from the game",
+    "confirmRemove": "Remove seat {n} from the game?",
+    "returnToGame": "Return to the game",
+    "kick": "Remove from the room",
+    "confirmKick": "Remove seat {n} from the room?",
+    "alive": "In the game",
+    "out": {
+      "killed": "Killed by the mafia",
+      "voted": "Voted out",
+      "removed": "Removed"
+    },
+    "camOffLabel": "Turn off camera of seat {n}",
+    "camOnLabel": "Turn on camera of seat {n}",
+    "micOffLabel": "Mute seat {n}",
+    "micOnLabel": "Unmute seat {n}",
+    "log": "Game log",
+    "logEmpty": "Nothing yet.",
+    "logDay": "Day {n}",
+    "logIntro": "Introduction",
+    "logKinds": {
+      "nominated": "{by} put up {seat}",
+      "nominatedNoBy": "{seat} put up for the vote",
+      "voted_out": "{seat} voted out",
+      "revote": "Tie: re-vote",
+      "nobody_out": "Nobody voted out",
+      "killed": "{seat} killed by the mafia",
+      "nobody_killed": "Nobody died at night",
+      "removed": "{seat} removed",
+      "shot": "Mafia shot {seat}",
+      "missed": "Mafia missed",
+      "don_check": "Don checked {seat}: {result}",
+      "sheriff_check": "Sheriff checked {seat}: {result}",
+      "healed": "Doctor healed {seat}"
+    },
+    "seatShort": "№{n}",
+    "addBots": "Fill empty seats with bots",
+    "removeBots": "Remove bots",
+    "botsHint": "Test mode: bots have no camera, but you can run a whole game with them.",
+    "asleep": "The town falls asleep",
+    "asleepHint": "Players' mics are off. Cameras keep running, but at night players and spectators see nobody. When everyone's eyes are closed, wake the mafia.",
+    "wakeMafia": "The mafia wakes up",
+    "awakeHint": {
+      "mafia": "The mafia and Don cameras, no sound: they agree in silence. Only you and the mafia see them.",
+      "don": "You see only the Don's camera. Nobody else does.",
+      "sheriff": "You see only the Sheriff's camera. Nobody else does.",
+      "doctor": "You see only the Doctor's camera. Nobody else does."
+    },
+    "roleOut": "{role}: this role is already out. Call it out loud anyway so the table can't tell, then press \"Nobody\".",
+    "roleNames": {
+      "mafia": "Mafia",
+      "don": "Don",
+      "sheriff": "Sheriff",
+      "doctor": "Doctor"
+    },
+    "healedTimes": "healed ×{n}",
+    "selfHeals": "Doctor self-heals: {n} of 2.",
+    "checkedBefore": "Already checked: {list}.",
+    "healedBefore": "Already healed: {list}.",
+    "location": "Place for introductions",
+    "locationHint": "Pick a place, and everyone introduces themselves as if they were there.",
+    "locationRandom": "Random",
+    "locationNone": "No place",
+    "locationPick": "Pick from the list…",
+    "locationOwn": "Or type your own",
+    "publicTable": "Show the table on the home page",
+    "publicTableHint": "So others can watch the game.",
+    "recordDownload": "Download the game record",
+    "recordHint": "A text file with the roles and everything that happened. The night is in it too, so don't show it before the game ends.",
+    "recordTitle": "MAFIA · game record",
+    "recordRoom": "Room {code} · host {host} · {date}",
+    "recordPlace": "Place: {place}",
+    "recordWinner": "Result: {winner}",
+    "recordOngoing": "Result: the game is still on",
+    "recordPlayers": "Players:",
+    "recordFlow": "How it went:",
+    "recordKilled": "killed by the mafia",
+    "recordVoted": "voted out",
+    "recordRemoved": "removed by the host",
+    "recordFouls": "fouls: {n}"
+  },
+  "locations": [
+    {
+      "id": "train",
+      "name": "Night train Kyiv to Odesa",
+      "text": "A four-berth compartment, tea in metal holders, dark steppe outside."
+    },
+    {
+      "id": "casino",
+      "name": "Casino in Monte Carlo",
+      "text": "Roulette, cigar smoke and a croupier who sees everything."
+    },
+    {
+      "id": "jazz",
+      "name": "Chicago jazz club, 1930s",
+      "text": "Prohibition, a saxophone and whiskey from under the counter."
+    },
+    {
+      "id": "wedding",
+      "name": "A Sicilian wedding",
+      "text": "The Don is receiving guests, and nobody refuses an invitation."
+    },
+    {
+      "id": "liner",
+      "name": "Ocean liner",
+      "text": "A ball in the first-class saloon, three days from shore."
+    },
+    {
+      "id": "chalet",
+      "name": "Mountain chalet",
+      "text": "Snowstorm, the pass is closed, a fireplace and mulled wine."
+    },
+    {
+      "id": "office",
+      "name": "The office before the party",
+      "text": "Someone stole the bonuses and the lift is stuck between floors."
+    },
+    {
+      "id": "village",
+      "name": "A village in Poltava region",
+      "text": "Dumplings, neighbours' gossip and a cow that has seen too much."
+    },
+    {
+      "id": "lviv",
+      "name": "A coffee house in Lviv",
+      "text": "Rain, cobblestones and coffee brewed here for a hundred years."
+    },
+    {
+      "id": "filmset",
+      "name": "Film set",
+      "text": "We're shooting a gangster film, but someone rewrote the script."
+    },
+    {
+      "id": "museum",
+      "name": "Museum at night",
+      "text": "The alarm is off and the painting is still there. But is it real?"
+    },
+    {
+      "id": "station",
+      "name": "Space station",
+      "text": "Half a year from Earth, enough air for all, not enough trust."
+    },
+    {
+      "id": "island",
+      "name": "Desert island",
+      "text": "The plane went down, the radio is silent, not enough coconuts for all."
+    },
+    {
+      "id": "hotel",
+      "name": "Old mountain hotel",
+      "text": "The porter has vanished, and the light is on in room 13."
+    },
+    {
+      "id": "dacha",
+      "name": "Birthday at the dacha",
+      "text": "Barbecue, a guitar, and a cake with one slice missing."
+    },
+    {
+      "id": "vegas",
+      "name": "Wedding in Vegas",
+      "text": "Someone got married, someone lost everything, nobody remembers a thing."
+    },
+    {
+      "id": "reunion",
+      "name": "School reunion",
+      "text": "Twenty years on. Everyone has changed except the old grudges."
+    },
+    {
+      "id": "submarine",
+      "name": "Submarine",
+      "text": "Two hundred metres down, periscope up, the captain says nothing."
+    },
+    {
+      "id": "circus",
+      "name": "Travelling circus",
+      "text": "The clowns aren't laughing and the tiger tamer is in a hurry."
+    },
+    {
+      "id": "privoz",
+      "name": "Odesa market",
+      "text": "They'll sell you anything here, even your alibi."
+    },
+    {
+      "id": "castle",
+      "name": "Castle in the Carpathians",
+      "text": "A thunderstorm, candles and ancestors' portraits whose eyes follow you."
+    },
+    {
+      "id": "auction",
+      "name": "Diamond auction",
+      "text": "A rare stone is up for sale, and someone has already forged the certificate."
+    },
+    {
+      "id": "festival",
+      "name": "Music festival",
+      "text": "Tents, mud, and the headliner is two hours late."
+    },
+    {
+      "id": "metro",
+      "name": "Last metro train",
+      "text": "The station is closed, the lights flicker, no phone signal."
+    },
+    {
+      "id": "bakery",
+      "name": "Bakery at 4 a.m.",
+      "text": "The dough is rising, and there are footprints in the flour."
+    },
+    {
+      "id": "embassy",
+      "name": "Embassy reception",
+      "text": "Champagne, diplomats and a coded message on a napkin."
+    },
+    {
+      "id": "prison",
+      "name": "Island prison",
+      "text": "The escape is set for tonight, but there's an informer among the inmates."
+    }
+  ]
+}
