@@ -1,0 +1,24 @@
+# The gateway: one address for the whole game, so it can go through one internet link.
+#   /socket.io/*, /rooms, /health  -> game server
+#   /rtc*                          -> LiveKit signalling (the video itself goes straight to LiveKit)
+#   everything else                -> the website
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	@game path /socket.io/* /rooms /health
+	handle @game {
+		reverse_proxy game-server:4000
+	}
+
+	@video path /rtc /rtc/*
+	handle @video {
+		reverse_proxy livekit:7880
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

@@ -1,9 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RulesBody } from "@/components/RulesBody";
+import { JoinByCode } from "@/components/JoinByCode";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
-import { PhaseShell, PhaseToggle } from "@/components/Phase";
-import { TableScene } from "@/components/TableScene";
+import { ModalButton } from "@/components/Modal";
+import { PhaseShell } from "@/components/Phase";
+import { CameraCheck } from "@/components/landing/CameraCheck";
+import { LampCord } from "@/components/landing/LampCord";
+import { OpenTables } from "@/components/landing/OpenTables";
+import { RoleDraw } from "@/components/landing/RoleDraw";
+import { Hand } from "@/components/landing/Hand";
 import { getDictionary, hasLocale } from "./dictionaries";
+
+const link =
+  "inline-flex min-h-11 items-center underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--accent)]";
+const chip =
+  "phase-transition inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--accent)] active:scale-[0.98]";
 
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -11,146 +23,83 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
   const dict = await getDictionary(lang);
   const other = lang === "uk" ? "en" : "uk";
 
+  const rules = <RulesBody rules={{ ...dict.rules, game: dict.game, host: dict.host }} />;
+
   return (
-    <PhaseShell>
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-8">
-        <Link
-          href={`/${lang}`}
-          className="font-display text-xl font-semibold tracking-wide"
-        >
+    <PhaseShell fit className="landing-bg">
+      <header className="mx-auto flex w-full max-w-7xl shrink-0 items-center justify-between gap-4 px-4 py-3 sm:px-8">
+        <Link href={`/${lang}`} className="hidden font-display text-xl font-semibold tracking-wide sm:inline">
           {dict.nav.home}
         </Link>
-        <LanguageSwitch
-          href={`/${other}`}
-          locale={other}
-          label={dict.nav.switchTo}
-          ariaLabel={dict.nav.switchToLabel}
-        />
-      </header>
-
-      <main className="flex-1">
-        {/* Hero: the table under the lamp */}
-        <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pt-6 pb-16 sm:px-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:pt-12 lg:pb-24">
-          <div className="max-w-xl">
-            <h1 className="font-display text-[clamp(3.25rem,9vw,6.5rem)] leading-[0.95] font-medium tracking-tight text-balance">
-              {dict.hero.title}
-            </h1>
-            <p className="mt-6 max-w-[34ch] text-xl leading-relaxed text-pretty text-[var(--text-muted)] phase-transition">
-              {dict.hero.lede}
-            </p>
-            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
-              <Link
-                href={`/${lang}/room`}
-                className="inline-flex min-h-12 items-center rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)] transition-transform duration-150 hover:brightness-105 active:scale-[0.98]"
-              >
-                {dict.hero.create}
-              </Link>
-              <a
-                href="#game"
-                className="inline-flex min-h-12 items-center underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--accent)]"
-              >
-                {dict.hero.how}
-              </a>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center gap-5">
-            <TableScene
-              hostLabel={dict.hero.host}
-              seatLabel={dict.hero.seatLabel}
-              tableLabel={dict.hero.tableLabel}
-            />
-            <PhaseToggle
-              toNight={dict.hero.toNight}
-              toDay={dict.hero.toDay}
-              dayLabel={dict.hero.phaseDay}
-              nightLabel={dict.hero.phaseNight}
-            />
-            <p className="max-w-[36ch] text-center text-base text-[var(--text-muted)] phase-transition">
-              {dict.hero.lineup}
-            </p>
-          </div>
-        </section>
-
-        {/* How a game goes: a real sequence, so it is numbered */}
-        <section
-          id="game"
-          aria-labelledby="game-title"
-          className="phase-transition scroll-mt-8 border-t border-[var(--line)]"
-        >
-          <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-8 lg:py-24">
-            <h2
-              id="game-title"
-              className="font-display text-4xl font-medium tracking-tight sm:text-5xl"
-            >
-              {dict.game.title}
-            </h2>
-            <p className="mt-4 max-w-[60ch] text-[var(--text-muted)] phase-transition">
-              {dict.game.lede}
-            </p>
-            <ol className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-              {dict.game.steps.map((step, i) => (
-                <li key={step.name} className="grid grid-cols-[3.5rem_1fr] gap-x-3">
-                  <span
-                    aria-hidden
-                    className="font-display text-5xl leading-none font-medium text-[var(--accent-strong)] tabular-nums phase-transition"
-                  >
-                    {i + 1}
-                  </span>
-                  <div>
-                    <h3 className="font-display text-2xl tracking-wide">{step.name}</h3>
-                    <p className="mt-2 max-w-[40ch] text-base text-[var(--text-muted)] phase-transition">
-                      {step.text}
-                    </p>
-                  </div>
+        <nav className="flex flex-1 items-center justify-between gap-3 whitespace-nowrap sm:flex-none sm:justify-end sm:gap-5">
+          <ModalButton label={dict.hero.howTo} title={dict.hero.howTo} closeLabel={dict.rules.close} className={link}>
+            <ol className="howto">
+              {dict.hero.howToSteps.map((step, i) => (
+                <li key={i} className="howto-step">
+                  <span aria-hidden className="howto-num">{i + 1}</span>
+                  <span className="text-lg leading-snug">{step}</span>
                 </li>
               ))}
             </ol>
-          </div>
-        </section>
+          </ModalButton>
+          <OpenTables lang={lang} t={{ ...dict.hero, close: dict.rules.close }} locations={dict.locations} className={link} />
+          <ModalButton label={dict.rules.open} title={dict.rules.open} closeLabel={dict.rules.close} className={link} wide>
+            {rules}
+          </ModalButton>
+          <LanguageSwitch href={`/${other}`} locale={other} label={dict.nav.switchTo} ariaLabel={dict.nav.switchToLabel} />
+        </nav>
+      </header>
 
-        {/* The host's controls */}
-        <section
-          aria-labelledby="host-title"
-          className="phase-transition border-t border-[var(--line)] bg-[var(--surface-raised)]"
-        >
-          <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:py-24">
-            <div>
-              <h2
-                id="host-title"
-                className="font-display text-4xl font-medium tracking-tight sm:text-5xl"
-              >
-                {dict.host.title}
-              </h2>
-              <p className="mt-4 max-w-[44ch] text-[var(--text-muted)] phase-transition">
-                {dict.host.lede}
-              </p>
-            </div>
-            <dl className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-              {dict.host.items.map((item) => (
-                <div
-                  key={item.name}
-                  className="grid gap-1 py-5 sm:grid-cols-[12rem_1fr] sm:gap-6"
-                >
-                  <dt className="font-display text-xl tracking-wide">{item.name}</dt>
-                  <dd className="text-base text-[var(--text-muted)] phase-transition">
-                    {item.text}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+      <main className="hero mx-auto grid min-h-0 w-full max-w-7xl flex-1 items-center gap-4 px-4 pb-4 sm:px-8 lg:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] lg:gap-10">
+        <div className="max-w-xl">
+          <h1 className="hero-title font-display leading-[0.95] font-medium tracking-tight text-balance">
+            {dict.hero.title}
+          </h1>
+          <p className="hero-tagline mt-3 font-display tracking-wide text-[var(--accent-strong)] phase-transition">
+            {dict.hero.tagline}
+          </p>
+          <div className="mt-8 flex flex-col items-start gap-4">
+            <Link
+              href={`/${lang}/room`}
+              className="inline-flex min-h-13 items-center rounded-md bg-[var(--accent)] px-7 font-display text-xl font-medium tracking-wide text-[var(--accent-text)] shadow-[0_10px_24px_-12px_rgba(0,0,0,0.8)] transition-transform duration-150 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98] phase-transition"
+            >
+              {dict.hero.create}
+            </Link>
+            <span className="hero-or phase-transition text-[var(--text-muted)]">{dict.hero.or}</span>
+            <JoinByCode
+              lang={lang}
+              label={dict.hero.codeLabel}
+              placeholder={dict.hero.codePlaceholder}
+              submit={dict.hero.join}
+              error={dict.hero.codeError}
+            />
           </div>
-        </section>
-      </main>
-
-      <footer className="phase-transition border-t border-[var(--line)]">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-base text-[var(--text-muted)] sm:px-8">
-          <span className="font-display text-lg tracking-wide text-[var(--text)]">
-            {dict.nav.home}
-          </span>
-          <span>{dict.footer.note}</span>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <RoleDraw
+              roles={dict.rules.roles}
+              label={`🂠 ${dict.hero.drawRole}`}
+              title={dict.hero.drawRole}
+              hint={dict.hero.drawHint}
+              pick={dict.hero.drawPick}
+              again={dict.hero.drawAgain}
+              closeLabel={dict.rules.close}
+              className={chip}
+            />
+            <CameraCheck label={`◉ ${dict.hero.camCheck}`} title={dict.hero.camCheck} labels={dict.ui} className={chip} />
+          </div>
         </div>
-      </footer>
+
+        <div className="hero-stage flex min-h-0 flex-col items-center gap-2">
+          <div className="hero-stage-box w-full">
+            <Hand
+              label={dict.hero.tableLabel}
+              roles={dict.rules.roles}
+              cord={<LampCord toNight={dict.hero.toNight} toDay={dict.hero.toDay} />}
+            />
+          </div>
+          <p className="lamp-cord-hint phase-transition text-[var(--text-muted)]">{dict.hero.cordHint}</p>
+        </div>
+      </main>
     </PhaseShell>
   );
 }

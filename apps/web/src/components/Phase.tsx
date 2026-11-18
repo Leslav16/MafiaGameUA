@@ -16,13 +16,21 @@ export function usePhase() {
 }
 
 /** Holds the day/night state and paints the whole page with it. */
-export function PhaseShell({ children }: { children: ReactNode }) {
+export function PhaseShell({
+  children,
+  fit = false,
+  className = "",
+}: {
+  children: ReactNode;
+  fit?: boolean;
+  className?: string;
+}) {
   const [phase, setPhase] = useState<Phase>("day");
   const toggle = () => setPhase((p) => (p === "day" ? "night" : "day"));
 
   return (
     <PhaseContext.Provider value={{ phase, toggle }}>
-      <div data-phase={phase} className="phase-surface flex min-h-dvh flex-col">
+      <div data-phase={phase} className={`phase-surface flex flex-col ${fit ? "h-dvh overflow-hidden" : "min-h-dvh"} ${className}`}>
         {children}
       </div>
     </PhaseContext.Provider>

@@ -1,29 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDictionary, hasLocale } from "../dictionaries";
+import { RoleDeck } from "@/components/lobby/RoleDeck";
+import { CreateRoom } from "./parts/CreateRoom";
 
-export default async function RoomPlaceholder({
-  params,
-}: PageProps<"/[lang]/room">) {
+export default async function CreateRoomPage({ params }: PageProps<"/[lang]/room">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
 
   return (
-    <main
-      data-phase="night"
-      className="phase-surface flex min-h-dvh flex-col items-start justify-center gap-6 px-4 sm:px-16"
-    >
-      <h1 className="font-display text-5xl font-medium tracking-tight sm:text-6xl">
-        {dict.room.title}
-      </h1>
-      <p className="max-w-[44ch] text-xl text-[var(--text-muted)]">{dict.room.text}</p>
-      <Link
-        href={`/${lang}`}
-        className="inline-flex min-h-12 items-center rounded-md bg-[var(--accent)] px-6 font-display text-lg font-medium tracking-wide text-[var(--accent-text)]"
-      >
-        {dict.room.back}
-      </Link>
+    <main data-phase="night" className="phase-surface min-h-dvh px-4 sm:px-16">
+      <div className="mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="flex flex-col items-start gap-8">
+          <CreateRoom lang={lang} t={dict.roomUi} />
+          <Link
+            href={`/${lang}`}
+            className="inline-flex min-h-11 items-center underline decoration-[var(--line)] underline-offset-4 hover:decoration-[var(--accent)]"
+          >
+            {dict.room.back}
+          </Link>
+        </div>
+        <div className="relative hidden justify-center lg:flex">
+          <RoleDeck roles={dict.rules.roles} label={dict.ui.create.deckLabel} />
+        </div>
+      </div>
     </main>
   );
 }
