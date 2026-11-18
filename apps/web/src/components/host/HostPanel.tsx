@@ -12,6 +12,7 @@ import { NowCard } from "./NowCard";
 import { RoomSettings } from "./RoomSettings";
 import { SelectedPlayer } from "./SelectedPlayer";
 import { btn, plain, type HostDict, type RoleNames } from "./ui";
+import { PanelIcon } from "../room/icons";
 
 export type { HostDict, RoleNames } from "./ui";
 
@@ -68,16 +69,21 @@ export function HostPanel({
       aria-label={t.title}
       className="flex w-full flex-col gap-3 lg:max-h-[calc(100dvh-2rem)] lg:w-[22rem] lg:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-display text-2xl font-medium tracking-wide">{t.title}</h2>
-        <div className="flex items-baseline gap-3">
-          <span className="text-sm text-[var(--text-muted)]">{fmt(t.players, { n: players })}</span>
-          {onHide && (
-            <button type="button" className="text-sm underline underline-offset-4" onClick={onHide}>
-              {t.hide}
-            </button>
-          )}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl leading-tight font-medium tracking-wide whitespace-nowrap">{t.title}</h2>
+          <p className="text-sm text-[var(--text-muted)] tabular-nums">{fmt(t.players, { n: players })}</p>
         </div>
+        {onHide && (
+          <button
+            type="button"
+            className="btn-feel inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-[var(--line)] px-3 text-sm hover:border-lamp"
+            onClick={onHide}
+          >
+            <PanelIcon className="size-4" />
+            {t.hide}
+          </button>
+        )}
       </div>
 
       <NowCard view={view} act={act} timerText={timerText} timerRunning={timerRunning} t={t} />

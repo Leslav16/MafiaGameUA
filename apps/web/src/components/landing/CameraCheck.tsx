@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { DeviceCheck } from "../lobby/DeviceCheck";
 import { Modal } from "../Modal";
 import { setPrefs } from "../prefs";
@@ -11,7 +11,7 @@ import type { RoomLabels } from "../room/types";
  * camera only opens while the popup is open, and the chosen devices are
  * remembered for the game.
  */
-export function CameraCheck({ label, title, labels, className }: { label: string; title: string; labels: RoomLabels; className?: string }) {
+export function CameraCheck({ label, title, labels, className }: { label: ReactNode; title: string; labels: RoomLabels; className?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>

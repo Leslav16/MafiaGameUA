@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { RoomSummary } from "@/lib/room/types";
 import { gameServerUrl } from "@/lib/room/endpoints";
 import { fmt } from "@/lib/room/format";
 import { Modal } from "../Modal";
 import { locationName, type Location } from "../locations";
+import { CheckIcon, LockIcon, MoonIcon, SunIcon } from "../room/icons";
 
 export type TablesDict = {
   tables: string;
@@ -23,6 +24,7 @@ export type TablesDict = {
   tableNight: string;
   tableEnded: string;
   tableHost: string;
+  create: string;
   close: string;
 };
 
@@ -79,7 +81,14 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
         {offline && !tables ? (
           <TablesEmpty text={t.tablesOffline} />
         ) : !tables || tables.length === 0 ? (
-          <TablesEmpty text={t.tablesNone} />
+          <TablesEmpty text={t.tablesNone}>
+            <Link
+              href={`/${lang}/room`}
+              className="btn-feel inline-flex min-h-12 items-center rounded-md bg-[var(--accent)] px-6 font-display text-lg tracking-wide text-[var(--accent-text)] hover:brightness-110"
+            >
+              {t.create}
+            </Link>
+          </TablesEmpty>
         ) : (
           <ul className="flex flex-col gap-2.5">
             {tables.map((r) => {
@@ -88,13 +97,18 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
               return (
                 <li key={r.code} className="tables-item grid grid-cols-[auto_1fr] items-center gap-x-3.5 gap-y-3 rounded-xl p-3 sm:grid-cols-[auto_1fr_auto]">
                   <span aria-hidden className="table-mark grid size-11 place-items-center rounded-full font-display text-lg" data-phase={r.phase}>
-                    {r.phase === "night" ? "☾" : r.phase === "lobby" ? "♠" : r.phase === "ended" ? "✓" : "☀"}
+                    {r.phase === "night" ? <MoonIcon className="size-5" /> : r.phase === "lobby" ? "♠" : r.phase === "ended" ? <CheckIcon className="size-5" /> : <SunIcon className="size-5" />}
                   </span>
                   <div className="min-w-0">
                     <p className="truncate font-display text-lg leading-tight tracking-wide">{fmt(t.tableHost, { name: r.hostName })}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[var(--text-muted)]">
                       <span className={`table-pill ${live ? "table-pill-live" : ""}`}>{state(r)}</span>
-                      {r.locked && <span className="table-pill table-pill-lock">🔒 {t.tableLocked}</span>}
+                      {r.locked && (
+                        <span className="table-pill table-pill-lock">
+                          <LockIcon className="size-3.5" />
+                          {t.tableLocked}
+                        </span>
+                      )}
                       <span className="table-pill">{fmt(t.tablePlayers, { n: r.players })}</span>
                       {r.spectators > 0 && <span className="table-pill">{fmt(t.tableSpectators, { n: r.spectators })}</span>}
                       {place && <span className="table-pill max-w-full truncate">{place}</span>}
@@ -104,14 +118,14 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
                     {r.phase === "lobby" && r.freeSeats > 0 && (
                       <Link
                         href={`/${lang}/room/${r.code}`}
-                        className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full bg-[var(--accent)] px-4 font-display tracking-wide text-[var(--accent-text)] sm:flex-none"
+                        className="btn-feel inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-[var(--accent)] px-4 font-display tracking-wide text-[var(--accent-text)] hover:brightness-110 sm:flex-none"
                       >
                         {t.tablePlay}
                       </Link>
                     )}
                     <Link
                       href={`/${lang}/room/${r.code}?watch`}
-                      className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full border border-[var(--line)] px-4 font-display tracking-wide hover:border-[var(--accent)] sm:flex-none"
+                      className="btn-feel inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-[var(--line)] px-4 font-display tracking-wide hover:border-[var(--accent)] sm:flex-none"
                     >
                       {t.tableWatch}
                     </Link>
@@ -126,13 +140,14 @@ export function OpenTables({ lang, t, locations, className }: { lang: string; t:
   );
 }
 
-function TablesEmpty({ text }: { text: string }) {
+function TablesEmpty({ text, children }: { text: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-4 py-4 text-center">
       <span aria-hidden className="relative block aspect-[5/7] w-16 rotate-[-6deg]">
         <span className="card-back" />
       </span>
       <p className="max-w-[36ch] text-[var(--text-muted)]">{text}</p>
+      {children}
     </div>
   );
 }

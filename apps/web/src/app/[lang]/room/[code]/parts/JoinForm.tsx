@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Dictionary } from "../../../dictionaries";
 import type { RoomApi } from "@/lib/room/useRoom";
 import { CardFan } from "@/components/cards/CardFan";
+import { LockIcon } from "@/components/room/icons";
 
 const input =
   "phase-transition min-h-12 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-lg text-[var(--text)] placeholder:text-[var(--text-muted)]/70 focus:border-[var(--color-lamp)] focus:outline-none";
@@ -99,7 +100,10 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
 
         {!asHost && room.locked && (
           <label className="flex flex-col gap-1.5">
-            <span className="font-display text-xl tracking-wide">🔒 {t.roomPasswordLabel}</span>
+            <span className="flex items-center gap-2 font-display text-xl tracking-wide">
+              <LockIcon className="size-5" />
+              {t.roomPasswordLabel}
+            </span>
             <input
               className={input}
               value={roomPassword}

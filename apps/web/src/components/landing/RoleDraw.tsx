@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Modal } from "../Modal";
 
 type Card = { id: string; name: string; text: string };
@@ -32,7 +32,7 @@ export function RoleDraw({
   className,
 }: {
   roles: Card[];
-  label: string;
+  label: ReactNode;
   title: string;
   hint: string;
   pick: string;

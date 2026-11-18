@@ -20,6 +20,7 @@ import { useCameraEffect, useEffectsSupported } from "@/components/room/useCamer
 import { getPrefs, setPrefs, usePrefs } from "@/components/prefs";
 import { RoomDock } from "@/components/room/RoomDock";
 import { RoomGrid } from "@/components/room/RoomGrid";
+import { CheckIcon, CopyIcon, PanelIcon, SpeakerIcon } from "@/components/room/icons";
 import { Timer } from "@/components/room/Timer";
 import type { SeatInfo } from "@/components/room/types";
 import { useTileOrder } from "@/lib/room/useTileOrder";
@@ -60,7 +61,7 @@ function InviteLink({ lang, code, t }: { lang: string; code: string; t: Dictiona
       <code className="min-w-0 truncate rounded bg-[var(--surface-raised)] px-2 py-1">{url}</code>
       <button
         type="button"
-        className="min-h-9 shrink-0 rounded border border-[var(--line)] px-3"
+        className="btn-feel inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-[var(--line)] px-4 hover:border-[var(--color-lamp)]"
         onClick={() => {
           void navigator.clipboard?.writeText(url).then(() => {
             setCopied(true);
@@ -68,6 +69,7 @@ function InviteLink({ lang, code, t }: { lang: string; code: string; t: Dictiona
           });
         }}
       >
+        {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
         {copied ? t.copied : t.copy}
       </button>
     </div>
@@ -233,9 +235,10 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
             <button
               type="button"
               onClick={() => void room.startAudio()}
-              className="self-start rounded-md bg-[var(--color-lamp)] px-4 py-2 font-medium text-[var(--color-ink)]"
+              className="btn-feel inline-flex min-h-11 items-center gap-2 self-start rounded-full bg-[var(--color-lamp)] px-4 font-medium text-[var(--color-ink)]"
             >
-              🔊 {t.sound}
+              <SpeakerIcon className="size-5" />
+              {t.sound}
             </button>
           )}
         </div>
@@ -360,9 +363,10 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                 <button
                   type="button"
                   onClick={() => setPanelHidden(false)}
-                  className="phase-transition inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--color-lamp)] px-4 font-display text-base tracking-wide text-[var(--color-ink)]"
+                  className="phase-transition btn-feel inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--color-lamp)] px-4 font-display text-base tracking-wide text-[var(--color-ink)]"
                 >
-                  ☰ {dict.hostPanel.show}
+                  <PanelIcon className="size-5" />
+                  {dict.hostPanel.show}
                 </button>
               )}
               <ModalButton

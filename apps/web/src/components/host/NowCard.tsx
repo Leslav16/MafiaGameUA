@@ -5,6 +5,14 @@ import { fmt } from "@/lib/room/format";
 import { ConfirmButton } from "./ConfirmButton";
 import { SeatPad } from "./SeatPad";
 import { big, btn, plain, primary, type HostDict } from "./ui";
+import { BotIcon, CheckIcon, PlayIcon } from "../room/icons";
+
+/** Night checklist marker: done, now, or still to come. */
+function StepMark({ state }: { state: "done" | "now" | "todo" }) {
+  if (state === "done") return <CheckIcon className="size-4 shrink-0 text-[var(--text-muted)]" />;
+  if (state === "now") return <PlayIcon className="size-4 shrink-0 text-lamp" />;
+  return <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-[var(--line)]" />;
+}
 
 const list = (seats: number[]) => seats.map((s) => `№${s}`).join(", ");
 
@@ -50,7 +58,8 @@ function Speaking({
         </button>
       </div>
       <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "next" })}>
-        {nextLabel} ▶
+        {nextLabel}
+            <PlayIcon className="size-4" />
       </button>
       {queue.length > 1 && (
         <div className="flex flex-wrap items-center gap-1 text-sm" aria-label={t.order}>
@@ -170,7 +179,8 @@ function Voting({ view, act, t }: { view: RoomView; act: (a: HostAction) => void
         </p>
       )}
       <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "next" })}>
-        {v.index + 1 < lastIndex ? t.nextCandidate : t.count} ▶
+        {v.index + 1 < lastIndex ? t.nextCandidate : t.count}
+            <PlayIcon className="size-4" />
       </button>
     </div>
   );
@@ -220,7 +230,7 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
     <div className="flex flex-col gap-3">
       <ol className="flex flex-col gap-1">
         <li className={`flex items-center gap-2 rounded px-2 py-1 ${asleep ? "bg-lamp/20 font-medium" : ""}`}>
-          {asleep ? "▶ " : "✓ "}
+          <StepMark state={asleep ? "now" : "done"} />
           {t.asleep}
         </li>
         {n.steps.map((s) => {
@@ -232,8 +242,8 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
               key={s}
               className={`flex items-center justify-between gap-2 rounded px-2 py-1 ${current ? "bg-lamp/20 font-medium" : ""} ${n.stepsOut.includes(s) ? "opacity-60" : ""}`}
             >
-              <span>
-                {done ? "✓ " : current ? "▶ " : "○ "}
+              <span className="flex items-center gap-2">
+                <StepMark state={done ? "done" : current ? "now" : "todo"} />
                 {t.steps[s]}
               </span>
               <span className="text-sm">
@@ -248,7 +258,8 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
         <>
           <p className="text-sm text-[var(--text-muted)]">{t.asleepHint}</p>
           <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "next" })}>
-            {t.wakeMafia} ▶
+            {t.wakeMafia}
+            <PlayIcon className="size-4" />
           </button>
         </>
       )}
@@ -256,7 +267,8 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
         <>
           <p className="text-sm text-[var(--text-muted)]">{fmt(t.roleOut, { role: t.roleNames[step] })}</p>
           <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "nightPick", seat: null })}>
-            {t.skip} ▶
+            {t.skip}
+            <PlayIcon className="size-4" />
           </button>
         </>
       )}
@@ -314,13 +326,15 @@ export function NowCard({
             className={`${btn} ${primary} ${big}`}
             onClick={() => act({ type: "startGame" })}
           >
-            {t.startGame} ▶
+            {t.startGame}
+            <PlayIcon className="size-4" />
           </button>
           <p className="text-sm text-[var(--text-muted)]">{t.startHint}</p>
           <div className="flex flex-col gap-1.5 border-t border-[var(--line)] pt-2">
             {players < 11 && (
               <button type="button" className={`${btn} ${plain} text-sm`} onClick={() => act({ type: "addBots" })}>
-                🤖 {t.addBots}
+                <BotIcon className="size-5" />
+                {t.addBots}
               </button>
             )}
             {view.seats.some((s) => s.bot) && (
@@ -371,7 +385,8 @@ export function NowCard({
         <div className="flex flex-col gap-3">
           <p className="text-lg">{killed !== null ? fmt(t.morningKilled, { n: killed }) : t.morningNobody}</p>
           <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "next" })}>
-            {t.announce} ▶
+            {t.announce}
+            <PlayIcon className="size-4" />
           </button>
         </div>
       );

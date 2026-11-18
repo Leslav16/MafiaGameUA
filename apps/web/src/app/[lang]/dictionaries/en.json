@@ -37,9 +37,9 @@
     ],
     "tables": "Tables",
     "tablesTitle": "Open tables",
-    "tablesNone": "No open tables right now. Create your own!",
+    "tablesNone": "No open tables right now. Open yours and it shows up here.",
     "tablesOffline": "The game server isn't answering.",
-    "tableWatch": "Watch",
+    "tableWatch": "Watch the game",
     "tablePlay": "Take a seat",
     "tableLocked": "password",
     "tablePlayers": "players: {n}/11",
@@ -55,7 +55,8 @@
     "drawPick": "Draw a card",
     "drawAgain": "Again",
     "camCheck": "Check your camera",
-    "cordHint": "Pull the lamp cord"
+    "cordHint": "Pull the lamp cord",
+    "fact": "Mafia on camera and mic: 11 players, a host, and roles dealt in one click."
   },
   "game": {
     "title": "How a game goes",
@@ -312,7 +313,7 @@
     "kicked": "The host removed you from this room.",
     "toStart": "Back to the start",
     "invite": "Invite link",
-    "copy": "Copy",
+    "copy": "Copy link",
     "copied": "Copied",
     "seat": "Seat {n}",
     "host": "Host",

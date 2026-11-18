@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { CloseIcon } from "./room/icons";
 
 /**
  * A popup window on top of the page (native <dialog>: focus is trapped,
@@ -49,9 +50,9 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label={closeLabel}
-            className="grid size-11 place-items-center rounded-full text-2xl leading-none hover:bg-[var(--surface-raised)]"
+            className="btn-feel grid size-11 shrink-0 place-items-center rounded-full border border-transparent hover:border-[var(--line)] hover:bg-[var(--surface-raised)]"
           >
-            ×
+            <CloseIcon className="size-5" />
           </button>
         </header>
         <div className="overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-6 sm:px-7">{children}</div>
