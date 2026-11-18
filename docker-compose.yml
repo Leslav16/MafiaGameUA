@@ -19,9 +19,12 @@ services:
       dockerfile: apps/game-server/Dockerfile
     environment:
       PORT: "4000"
-      WEB_ORIGIN: http://localhost:3000
+      LIVEKIT_KEYS: ${LIVEKIT_KEYS:?Copy .env.example to .env first}
+      LIVEKIT_URL: http://livekit:7880
     ports:
       - "4000:4000"
+    depends_on:
+      - livekit
     restart: unless-stopped
 
   livekit:
