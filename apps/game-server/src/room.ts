@@ -93,6 +93,8 @@ const NIGHT_ORDER: NightStep[] = ["mafia", "don", "sheriff", "doctor"];
 
 interface NightState {
   steps: NightStep[];
+  /** False while "the town falls asleep": everyone's camera is off and nobody is woken yet. */
+  awake: boolean;
   index: number;
   picks: Partial<Record<NightStep, number | null>>;
 }
@@ -268,9 +270,28 @@ export class Room {
 
   // ---- camera and mic rules ----------------------------------------------
 
+  /** The role woken right now at night ("asleep" before the host wakes the mafia), else null. */
+  private get nightStep(): NightStep | "asleep" | null {
+    const n = this.night;
+    if (this.stage !== "night" || !n) return null;
+    if (!n.awake) return "asleep";
+    return n.steps[n.index] ?? null;
+  }
+
+  /** Who is awake at this night step: the mafia step wakes the Don and the mafia together. */
+  private awakeAtNight(seat: number): boolean {
+    const role = this.seats.get(seat)?.role;
+    const step = this.nightStep;
+    if (!role || !this.seats.get(seat)?.alive || step === null || step === "asleep") return false;
+    return step === "mafia" ? isMafia(role) : role === step;
+  }
+
   /**
    * What each seated player may publish right now. The host may always publish.
-   * Night: everyone off. Speeches, defence and last words: only the speaker's mic.
+   * Night: everyone off, except the camera (never the mic) of whoever is woken: the
+   * mafia and the Don together, then the Don, the Sheriff, the Doctor. Who may watch
+   * those cameras is limited in the browser (only the host, and fellow mafia).
+   * Speeches, defence and last words: only the speaker's mic.
    * Voting: cameras on (hands up), mics off. Out players stay off, except for their last word.
    */
   mediaFor(seat: number): MediaPermission {
@@ -282,6 +303,7 @@ export class Room {
       case "ended":
         return host({ cam: true, mic: true });
       case "night":
+        return host({ cam: this.awakeAtNight(seat), mic: false });
       case "morning":
         return { cam: false, mic: false };
       case "lastWord":
@@ -500,6 +522,11 @@ export class Room {
         return this.startSpeeches("day", now);
       }
       case "night":
+        // "The town falls asleep" -> "the mafia wakes up". The rest of the night moves on with picks.
+        if (this.night && !this.night.awake) {
+          this.night.awake = true;
+          return;
+        }
         throw new GameError("night_not_done");
       case "morning": {
         this.day += 1;
@@ -509,7 +536,7 @@ export class Room {
         if (killed !== null && this.seats.get(killed)?.alive) {
           this.takeOut(killed, "killed");
           this.log.push({ day: this.day, kind: "killed", seat: killed });
-          return this.startLastWord(killed, "killed", "day", now);
+          // Only a player voted out by the town gets a last word.
         }
         this.log.push({ day: this.day, kind: "nobody_killed" });
         return this.startSpeeches("day", now);
@@ -553,19 +580,23 @@ export class Room {
     this.resetTimer();
     this.voting = null;
     this.nominees = [];
-    const alive = this.aliveSeats().map((s) => this.seats.get(s)!.role);
-    const steps = NIGHT_ORDER.filter((step) =>
-      step === "mafia" ? alive.some(isMafia) : alive.includes(step as Role),
-    );
-    this.night = { steps, index: 0, picks: {} };
-    if (steps.length === 0) this.finishNight();
+    // Every role is called each night, even one already out, so the table can't tell who is gone.
+    this.night = { steps: [...NIGHT_ORDER], awake: false, index: 0, picks: {} };
+  }
+
+  /** Whether the role acting at this night step is still in the game. */
+  private stepRoleAlive(step: NightStep): boolean {
+    for (const p of this.seats.values()) if (p.alive && (step === "mafia" ? isMafia(p.role) : p.role === step)) return true;
+    return false;
   }
 
   private nightPick(seatRaw: unknown) {
     const n = this.night;
     if (this.stage !== "night" || !n) throw new GameError("not_night");
+    if (!n.awake) throw new GameError("night_asleep");
     const step = n.steps[n.index];
     const seat = seatRaw === null ? null : assertSeat(seatRaw);
+    if (seat !== null && !this.stepRoleAlive(step)) throw new GameError("role_out");
     if (seat !== null && !this.seats.get(seat)?.alive) throw new GameError("player_dead");
     if (step === "doctor" && seat !== null && healBlocked(this.seatOfRole("doctor"), this.doctor).includes(seat)) {
       throw new GameError("heal_blocked");
@@ -585,7 +616,7 @@ export class Room {
     const picks = this.night?.picks ?? {};
     const shot = picks.mafia ?? null;
     const heal = picks.doctor ?? null;
-    if (this.night?.steps.includes("doctor")) {
+    if (this.stepRoleAlive("doctor")) {
       const doctorSeat = this.seatOfRole("doctor");
       if (heal !== null && heal === doctorSeat) this.doctor.selfHeals += 1;
       this.doctor.lastHeal = heal;
@@ -750,7 +781,8 @@ export class Room {
       isHost && n
         ? {
             steps: [...n.steps],
-            step: n.steps[n.index] ?? null,
+            step: n.awake ? (n.steps[n.index] ?? null) : null,
+            stepsOut: n.steps.filter((step) => !this.stepRoleAlive(step)),
             picks: { ...n.picks },
             donFoundSheriff: n.picks.don != null ? this.seats.get(n.picks.don)?.role === "sheriff" : null,
             sheriffFoundMafia: n.picks.sheriff != null ? isMafia(this.seats.get(n.picks.sheriff)?.role) : null,
@@ -772,6 +804,7 @@ export class Room {
           }
         : null,
       lastWord: this.lastWord ? { seat: this.lastWord.seat, reason: this.lastWord.reason } : null,
+      nightStep: this.nightStep,
       night,
       morning: isHost && this.stage === "morning" ? { killed: this.morningKilled } : null,
       suggestedWinner:
