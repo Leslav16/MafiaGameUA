@@ -191,7 +191,14 @@
     "removed": "Removed",
     "nominated": "Nominated",
     "nightFalls": "The town falls asleep",
-    "dayBreaks": "The town wakes up"
+    "dayBreaks": "The town wakes up",
+    "nightStep": {
+      "asleep": "The town sleeps",
+      "mafia": "The mafia wakes up",
+      "don": "The Don wakes up",
+      "sheriff": "The Sheriff wakes up",
+      "doctor": "The Doctor wakes up"
+    }
   },
   "rules": {
     "open": "Rules",

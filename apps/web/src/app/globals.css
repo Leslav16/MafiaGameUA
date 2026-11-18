@@ -812,3 +812,19 @@ body {
     animation-name: none;
   }
 }
+
+/* Night caption ("The mafia wakes up") slides in on each change. */
+.caption-in {
+  animation: caption-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes caption-in {
+  from {
+    opacity: 0;
+    translate: -8px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caption-in {
+    animation: none;
+  }
+}

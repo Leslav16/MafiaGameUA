@@ -13,6 +13,7 @@ export function PhaseBanner({
   round,
   floorSeat,
   title,
+  caption,
   children,
 }: {
   phase: RoomPhase;
@@ -21,6 +22,8 @@ export function PhaseBanner({
   floorSeat?: number | null;
   /** Replaces the phase name, e.g. "Game over: the town wins". */
   title?: string;
+  /** A short line for everyone, e.g. who is awake at night. */
+  caption?: string;
   /** Usually <Timer />. */
   children?: ReactNode;
 }) {
@@ -44,6 +47,16 @@ export function PhaseBanner({
           </span>
         )}
       </div>
+
+      {caption && (
+        <p
+          key={caption}
+          className="caption-in flex items-center gap-2 rounded-full border border-[var(--color-lamp)]/50 bg-black/30 px-3.5 py-1 font-display text-lg tracking-wide text-[var(--color-lamp)]"
+        >
+          <span aria-hidden className="size-2 rounded-full bg-[var(--color-lamp)] shadow-[0_0_10px_var(--color-lamp)]" />
+          {caption}
+        </p>
+      )}
 
       {floorSeat != null && (
         <p className="flex items-center gap-2 rounded-full bg-[var(--color-lamp)] py-1 pr-3.5 pl-1 text-base font-medium text-[var(--color-ink)]">

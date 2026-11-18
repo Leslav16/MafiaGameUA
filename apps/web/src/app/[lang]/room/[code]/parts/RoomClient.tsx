@@ -144,6 +144,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         <PhaseBanner
           phase={view.phase}
           labels={ui}
+          caption={view.phase === "night" && view.flow.nightStep ? ui.nightStep[view.flow.nightStep] : undefined}
           round={Math.max(1, view.day)}
           floorSeat={view.floorSeat}
           title={view.phase === "ended" && view.winner ? phaseTitle(view, t) : undefined}
