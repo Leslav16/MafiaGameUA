@@ -205,7 +205,11 @@ export function useRoom(code: string) {
     [code, handleJoinReply],
   );
 
-  const joinAsPlayer = useCallback((name: string, seat: number) => emitJoin({ name, seat }), [emitJoin]);
+  /** Joins as a player. No seat needed: the server gives the first free one ("4. Name" asks for seat 4). */
+  const joinAsPlayer = useCallback(
+    (name: string, seat?: number | null) => emitJoin(seat ? { name, seat } : { name }),
+    [emitJoin],
+  );
   const joinAsHost = useCallback((password: string) => emitJoin({ host: true, password }), [emitJoin]);
 
   const freeSeats = useCallback(
@@ -237,6 +241,19 @@ export function useRoom(code: string) {
         const socket = socketRef.current;
         if (!socket?.connected) return resolve("offline");
         socket.emit("me:rename", { name }, (r: { ok: boolean; error?: string }) =>
+          resolve(r.ok ? null : (r.error ?? "server_error")),
+        );
+      }),
+    [],
+  );
+
+  /** A player moves themselves to a free seat number. */
+  const chooseSeat = useCallback(
+    (seat: number) =>
+      new Promise<string | null>((resolve) => {
+        const socket = socketRef.current;
+        if (!socket?.connected) return resolve("offline");
+        socket.emit("me:seat", { seat }, (r: { ok: boolean; error?: string }) =>
           resolve(r.ok ? null : (r.error ?? "server_error")),
         );
       }),
@@ -300,6 +317,7 @@ export function useRoom(code: string) {
       freeSeats,
       hostAction,
       rename,
+      chooseSeat,
       media,
       wantCam,
       wantMic,
@@ -310,7 +328,7 @@ export function useRoom(code: string) {
       audioBlocked,
       startAudio,
     }),
-    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, freeSeats, hostAction, rename, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio],
+    [status, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio],
   );
 }
 

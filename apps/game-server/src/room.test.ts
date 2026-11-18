@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GameError, Room } from "./room.js";
+import { GameError, Room, splitSeatFromName } from "./room.js";
 
 function fullRoom(players = 11) {
   const room = new Room("abc123", "Host", "secret");
@@ -14,10 +14,12 @@ test("host password is checked", () => {
   assert.equal(room.checkHostPassword("wrong"), false);
 });
 
-test("a seat can only be taken once", () => {
+test("a taken seat is never given twice; the newcomer gets a free one", () => {
   const room = fullRoom(1);
-  assert.throws(() => room.takeSeat(1, "Other"), GameError);
-  assert.deepEqual(room.freeSeats(), [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  assert.equal(room.takeSeat(1, "Other").seat, 2);
+  assert.deepEqual(room.freeSeats(), [3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  for (let i = 0; i < 9; i++) room.takeSeat(undefined, `P${i}`);
+  assert.throws(() => room.takeSeat(undefined, "Late"), GameError);
 });
 
 test("starting the table deals Don, 2 Mafia, Sheriff, Doctor and 6 civilians, then opens with night", () => {
@@ -167,4 +169,42 @@ test("new game keeps the players and clears roles, deaths and fouls", () => {
   assert.equal(v.phase, "lobby");
   assert.equal(v.rolesDealt, false);
   assert.ok(v.seats.every((s) => s.alive && s.fouls === 0 && !s.role && s.name));
+});
+
+test("players join in any order and get the first free seat", () => {
+  const room = new Room("abc123", "Host", "secret");
+  assert.equal(room.takeSeat(undefined, "Ann").seat, 1);
+  assert.equal(room.takeSeat(undefined, "Bob").seat, 2);
+  assert.equal(room.takeSeat(undefined, "7. Cat").seat, 7);
+  assert.equal(room.view({ kind: "host" }).seats[6].name, "Cat");
+  // A number someone already has: they still get in, on the first free seat.
+  assert.equal(room.takeSeat(undefined, "7. Dan").seat, 3);
+});
+
+test("a player sets their seat number from the panel or by typing it in front of the name", () => {
+  const room = new Room("abc123", "Host", "secret");
+  const ann = room.takeSeat(undefined, "Ann");
+  room.takeSeat(undefined, "Bob");
+  assert.deepEqual(room.chooseSeat({ kind: "player", seat: 1 }, 5), { kind: "player", seat: 5 });
+  assert.deepEqual(room.resolveKey(ann.key), { kind: "player", seat: 5 });
+  assert.throws(() => room.chooseSeat({ kind: "player", seat: 5 }, 2), /seat_taken/);
+  room.rename({ kind: "player", seat: 5 }, "9. Annie");
+  assert.deepEqual(room.resolveKey(ann.key), { kind: "player", seat: 9 });
+  assert.equal(room.view({ kind: "host" }).seats[8].name, "Annie");
+  assert.throws(() => room.rename({ kind: "player", seat: 9 }, "2. Annie"), /seat_taken/);
+});
+
+test("seat numbers are read from the front of a name", () => {
+  for (const [input, seat, name] of [
+    ["4. Olena", 4, "Olena"],
+    ["4) Olena", 4, "Olena"],
+    ["4 - Olena", 4, "Olena"],
+    ["11 Olena", 11, "Olena"],
+    ["4.Olena", 4, "Olena"],
+    ["12. Olena", null, "12. Olena"],
+    ["Olena 4", null, "Olena 4"],
+    ["007", null, "007"],
+  ] as const) {
+    assert.deepEqual(splitSeatFromName(input), { seat, name }, input);
+  }
 });

@@ -289,7 +289,9 @@
       "media_missing": "No camera or mic found.",
       "media_failed": "The camera or mic couldn't start.",
       "server_error": "Something went wrong. Try again.",
-      "not_enough_players": "At least 3 players are needed to start."
+      "not_enough_players": "At least 3 players are needed to start.",
+      "room_full": "All 11 seats are taken.",
+      "not_joined": "Join the room first."
     },
     "sound": "Turn on sound",
     "rename": "Change name",

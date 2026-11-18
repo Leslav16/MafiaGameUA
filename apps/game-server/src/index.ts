@@ -13,11 +13,12 @@ import type { HostAction } from "./types.js";
  *   room:create { name, password }            -> { ok, code, key }
  *   room:peek   { code }                      -> { ok, freeSeats, phase }
  *   room:join   { code, key }                 (come back with a saved key)
- *             | { code, seat, name }          (take a seat as a player)
+ *             | { code, name, seat? }         (join as a player: first free seat, or "4. Name" / seat if free)
  *             | { code, host: true, password } (join as the host)
  *                                            -> { ok, key, as: "host" | "player", token, livekitUrl }
  *   host:action HostAction                    -> { ok }
- *   me:rename   { name }                      -> { ok }   (player or host changes their own name)
+ *   me:rename   { name }                      -> { ok }   (own name; "4. Name" also moves a player to seat 4)
+ *   me:seat     { seat }                      -> { ok }   (a player moves to a free seat number)
  * The server pushes "room:state" (RoomView) to each socket whenever anything changes.
  */
 
@@ -188,6 +189,18 @@ io.on("connection", (socket) => {
     if (!ctx) return ack?.({ ok: false, error: "not_joined" });
     try {
       ctx.room.rename(ctx.viewer, (payload as { name?: unknown })?.name);
+      ack?.({ ok: true });
+      await publish(ctx.room);
+    } catch (err) {
+      fail(ack, err);
+    }
+  });
+
+  socket.on("me:seat", async (payload: unknown, ack?: Ack) => {
+    const ctx = viewerOf(socket);
+    if (!ctx) return ack?.({ ok: false, error: "not_joined" });
+    try {
+      ctx.room.chooseSeat(ctx.viewer, (payload as { seat?: unknown })?.seat);
       ack?.({ ok: true });
       await publish(ctx.room);
     } catch (err) {
