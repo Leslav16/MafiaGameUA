@@ -110,3 +110,19 @@ export async function closeVideoRoom(room: string): Promise<void> {
     if (!isMissing(err)) console.warn("livekit: close room failed", err);
   }
 }
+
+export type VideoCheck = "ok" | "bad_keys" | "unreachable";
+
+/** Asks LiveKit for its room list: tells whether it answers and accepts our key and secret. */
+export async function checkVideoServer(): Promise<VideoCheck> {
+  try {
+    await service.listRooms();
+    return "ok";
+  } catch (err) {
+    const e = err as { status?: number; message?: string };
+    const text = `${e?.status ?? ""} ${e?.message ?? err}`;
+    if (e?.status === 401 || e?.status === 403 || /unauthori|invalid token|signature|permission/i.test(text)) return "bad_keys";
+    console.warn("livekit: check failed", text);
+    return "unreachable";
+  }
+}
