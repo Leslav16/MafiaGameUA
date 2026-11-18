@@ -21,7 +21,8 @@
     "host": "Host",
     "seatLabel": "Seat {n}",
     "tableLabel": "A table for 11 players and a host",
-    "lineup": "3 mafia, one of them the Don. 8 civilians, one of them the Sheriff."
+    "lineup": "3 mafia, one of them the Don. 8 civilians, one of them the Sheriff.",
+    "preview": "See the room"
   },
   "game": {
     "title": "How a game goes",
@@ -78,5 +79,88 @@
     "title": "Rooms are being built",
     "text": "The next update adds a room with cameras for 11 players and a host.",
     "back": "Back to the start"
+  },
+  "ui": {
+    "seat": "Seat {n}",
+    "host": "Host",
+    "you": "You",
+    "micOff": "Mic off",
+    "camOff": "Camera off",
+    "offline": "Disconnected",
+    "speaking": "Speaking",
+    "killed": "Killed",
+    "fouls": "Fouls: {n}",
+    "phase": {
+      "lobby": "Gathering players",
+      "day": "Day",
+      "night": "Night",
+      "ended": "Game over"
+    },
+    "round": "Round {n}",
+    "timerLabel": "Time left",
+    "paused": "Paused",
+    "floor": "Seat {n} has the floor",
+    "role": {
+      "title": "Your role",
+      "peek": "Tap to look",
+      "hide": "Tap to hide",
+      "civilian": "Civilian",
+      "sheriff": "Sheriff",
+      "mafia": "Mafia",
+      "don": "Don",
+      "civilianText": "Find the mafia and vote them out.",
+      "sheriffText": "Each night, check one player. The host tells you if they are mafia.",
+      "mafiaText": "Each night, choose with your team who to kill. Don't give yourself away by day.",
+      "donText": "You lead the mafia. Each night, hunt for the Sheriff."
+    },
+    "create": {
+      "title": "New room",
+      "lede": "You'll be the host. Send the link to the players and they'll take their seats.",
+      "name": "Room name",
+      "namePlaceholder": "For example: Friday at Lesia's",
+      "password": "Host password",
+      "passwordHint": "You need it to get back into the host seat.",
+      "submit": "Create the room",
+      "ready": "The room is ready",
+      "share": "Send this link to the players",
+      "copy": "Copy",
+      "copied": "Copied",
+      "enter": "Enter as host"
+    },
+    "join": {
+      "title": "Take a seat",
+      "nickname": "Your name in the game",
+      "nicknamePlaceholder": "For example: Olia",
+      "nicknameHint": "The other players will see it.",
+      "pickSeat": "Pick a free seat",
+      "taken": "Taken",
+      "free": "Free",
+      "selected": "Your seat",
+      "submit": "Sit in seat {n}",
+      "submitNoSeat": "Pick a seat",
+      "seatsFree": "Free seats: {n} of 11"
+    },
+    "lobby": {
+      "title": "Camera and mic check",
+      "lede": "This is how the others will see and hear you. Check it before the game starts.",
+      "camera": "Camera",
+      "microphone": "Microphone",
+      "level": "Mic level",
+      "levelHint": "Say something: the bar should move.",
+      "allow": "Allow camera and mic",
+      "allowHint": "Your browser will ask. Click “Allow”.",
+      "denied": "The browser blocked the camera or mic. Click the lock icon next to the site address, allow them, then reload the page.",
+      "noDevice": "No camera or microphone found.",
+      "ready": "I'm ready",
+      "notReady": "Not ready yet",
+      "waiting": "Waiting for players: {n} of 11 ready",
+      "mirror": "Your camera"
+    },
+    "preview": {
+      "title": "What the room will look like",
+      "lede": "A sample with made-up players. The real room arrives with the camera connection.",
+      "asPlayer": "As a player sees it",
+      "sample": "Sample"
+    }
   }
 }

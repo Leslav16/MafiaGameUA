@@ -1,13 +1,20 @@
 @import "tailwindcss";
 
-/* Base palette: "the table under one lamp" (docs/PLAN.md, section 3) */
+/* Palette: "the table under one lamp", in Godfather-film colors
+   (warm blacks, tobacco browns, beige, one deep red). */
 @theme {
-  --color-ink: #18203a;
-  --color-lamp: #e8a33d;
-  --color-card: #efe4cc;
-  --color-oxblood: #7a1f2b;
-  --color-haze: #d9dde3;
-  --color-smoke: #8a8f99;
+  --color-ink: #16110f;        /* night background: warm black */
+  --color-umber: #2c180d;      /* dark brown */
+  --color-wood: #4f2d12;       /* desk wood */
+  --color-ochre: #74491e;
+  --color-terracotta: #a56a40;
+  --color-olive: #2c2312;
+  --color-lamp: #c8893f;       /* lamplight: active speaker, primary actions */
+  --color-card: #d6c7a1;       /* card stock: role cards, seat tags */
+  --color-oxblood: #781210;    /* mafia, killed */
+  --color-blood-light: #d0544e;/* red text on dark tiles */
+  --color-haze: #c2b48f;       /* day background: aged paper */
+  --color-smoke: #857963;      /* grey-taupe: muted things */
 
   --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
   --font-sans: var(--font-golos), system-ui, sans-serif;
@@ -19,33 +26,35 @@
 :root,
 [data-phase="day"] {
   --surface: var(--color-haze);
-  --surface-raised: #e6e9ed;
-  --text: var(--color-ink);
-  --text-muted: #4a5163;
-  --line: #b9bec8;
-  --accent: var(--color-lamp);
-  --accent-text: var(--color-ink);
-  --accent-strong: #8f560c; /* lamplight dark enough for text on Day haze */
-  --table: #c9a46a;
-  --glow-opacity: 0.55;
+  --surface-raised: #b1a17f;
+  --text: #1c120c;
+  --text-muted: #4a3a28;
+  --line: #9a8a68;
+  --accent: var(--color-umber);
+  --accent-text: var(--color-card);
+  --accent-strong: #6a3f17; /* ochre dark enough for text on the day paper */
+  --table: var(--color-wood);
+  --glow-opacity: 0.6;
   --seat-fill: var(--color-card);
-  --seat-text: var(--color-ink);
+  --seat-text: var(--color-umber);
   --phase-duration: 1200ms;
+  --urgent: var(--color-oxblood);
 }
 
 [data-phase="night"] {
   --surface: var(--color-ink);
-  --surface-raised: #212a48;
+  --surface-raised: #1f1814;
   --text: var(--color-card);
-  --text-muted: #aab0bd;
-  --line: #35405f;
+  --text-muted: #a89c86;
+  --line: #3a2f22;
   --accent: var(--color-lamp);
   --accent-text: var(--color-ink);
   --accent-strong: var(--color-lamp);
-  --table: #3a2f2a;
-  --glow-opacity: 0.18;
-  --seat-fill: #262f4d;
-  --seat-text: #8a8f99;
+  --table: var(--color-umber);
+  --glow-opacity: 0.22;
+  --seat-fill: #241b15;
+  --seat-text: var(--color-smoke);
+  --urgent: var(--color-blood-light);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -85,4 +94,92 @@ body {
   outline: 3px solid var(--color-lamp);
   outline-offset: 3px;
   border-radius: 4px;
+}
+
+/* ---------- Room ---------- */
+
+/* Video tiles stay dark in both phases so faces read well. */
+:root,
+[data-phase="day"] {
+  --tile: #1a1411;
+  --tile-number: #5f5444;
+}
+[data-phase="night"] {
+  --tile: #0d0a09;
+  --tile-number: #3f362b;
+}
+
+.tile {
+  container-type: inline-size;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
+  transition: box-shadow 200ms ease-out;
+}
+
+/* The person who has the floor: a ring of lamplight, no bouncing. */
+.tile[data-speaking] {
+  box-shadow:
+    0 0 0 3px var(--color-lamp),
+    0 0 28px -4px rgb(200 137 63 / 0.75);
+}
+
+.tile:not([data-alive]) video {
+  filter: grayscale(1);
+}
+
+.stamp {
+  color: var(--color-blood-light);
+  border: 3px solid currentColor;
+  border-radius: 6px;
+  padding: 0.15em 0.6em;
+  transform: rotate(-8deg);
+  animation: stamp-in 260ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) scale(1.6);
+  }
+}
+
+/* Keep all twelve tiles on one screen: the grid is ~0.45× as tall as it is
+   wide on large screens, so cap its width by the height left over. */
+@media (min-width: 1024px) {
+  .room-grid {
+    max-width: calc((100dvh - 15rem) * 2.15);
+  }
+}
+
+/* Role card flip */
+.role-card-inner {
+  transform-style: preserve-3d;
+  transition: transform 500ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+.role-card-inner[data-open] {
+  transform: rotateY(180deg);
+}
+.role-face {
+  backface-visibility: hidden;
+}
+.role-front {
+  transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    animation: none;
+  }
+  .role-card-inner,
+  .role-card-inner[data-open] {
+    transform: none;
+    transition: none;
+  }
+  .role-front {
+    transform: none;
+    opacity: 0;
+    transition: opacity 150ms;
+  }
+  .role-card-inner[data-open] .role-front {
+    opacity: 1;
+  }
 }

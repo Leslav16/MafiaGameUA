@@ -41,9 +41,9 @@ export function TableScene({
     >
       <defs>
         <radialGradient id="lamp" cx="50%" cy="45%" r="55%">
-          <stop offset="0%" stopColor="#E8A33D" stopOpacity="0.9" />
-          <stop offset="60%" stopColor="#E8A33D" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#E8A33D" stopOpacity="0" />
+          <stop offset="0%" stopColor="#C8893F" stopOpacity="0.9" />
+          <stop offset="60%" stopColor="#C8893F" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#C8893F" stopOpacity="0" />
         </radialGradient>
       </defs>
 
@@ -95,7 +95,7 @@ export function TableScene({
           className="font-display"
           fontSize="22"
           letterSpacing="0.04em"
-          fill="#EFE4CC"
+          fill="#D6C7A1"
         >
           {hostLabel}
         </text>
@@ -130,7 +130,7 @@ export function TableScene({
               className="phase-transition font-display"
               fontSize="30"
               fontWeight="500"
-              style={{ fill: mafiaAwake ? "#C9545F" : "var(--seat-text)" }}
+              style={{ fill: mafiaAwake ? "#D0544E" : "var(--seat-text)" }}
             >
               {n}
             </text>
