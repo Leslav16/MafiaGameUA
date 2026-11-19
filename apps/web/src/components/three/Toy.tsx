@@ -27,7 +27,6 @@ const C = {
   oxblood: "#781210",
   smoke: "#857963",
   skin: "#e2bf9c",
-  blush: "#c98a72",
 } as const;
 
 type Look = { suit: string; lapel: string; legs: string; shoes: string; hair: string; stripes?: string };
@@ -43,9 +42,9 @@ const LOOK: Record<CardRole, Look> = {
 const HEAD_Y = 1.42;
 
 /**
- * One original vinyl-toy figure on a round wooden base: a big rounded-square
- * head, glossy black eyes, a small body with tailored details. About 2.4 units
- * tall from the base top (y = 0), facing +z. The base sits below y = 0.
+ * One original vinyl-toy figure, serious rather than cute: a big rounded-square
+ * head, glossy black eyes under stern brows, a small body with tailored
+ * details. About 2.4 units tall, standing on y = 0, facing +z.
  */
 export function Toy({
   role,
@@ -67,7 +66,7 @@ export function Toy({
     armL.current.rotation.z = -up;
     armR.current.rotation.z = up;
     body.current.scale.set(1 + p.squash * 0.5, 1 - p.squash, 1 + p.squash * 0.5);
-    eyes.current.scale.y = asleep ? 0.12 : 1;
+    eyes.current.scale.y = asleep ? 0.12 : 0.86; // a little narrowed: serious, not cute
   });
 
   const suit = matte(L.suit);
@@ -80,7 +79,6 @@ export function Toy({
 
   return (
     <group {...props}>
-      <Base />
       <group ref={body}>
         {/* Legs and shoes; suits get pinstripes down the trousers */}
         {[-0.12, 0.12].map((x) => (
@@ -141,10 +139,6 @@ export function Toy({
           {[-0.5, 0.5].map((x) => (
             <mesh key={x} geometry={sphere(0.1)} material={skin} position={[x, -0.02, 0]} scale={[0.6, 1, 0.8]} />
           ))}
-          {/* Cheeks */}
-          {[-0.3, 0.3].map((x) => (
-            <mesh key={x} geometry={sphere(0.07)} material={matte(C.blush, { rough: 0.8 })} position={[x, -0.2, 0.405]} scale={[1, 0.6, 0.2]} />
-          ))}
           {/* Eyes: big, glossy, black, with a catch-light */}
           <group ref={eyes} position={[0, -0.02, 0.4]}>
             {[-0.21, 0.21].map((x) => (
@@ -161,8 +155,9 @@ export function Toy({
                 key={x}
                 geometry={rbox(0.17, 0.035, 0.03, 0.015)}
                 material={hair}
-                position={[x, 0.17, 0.42]}
-                rotation={[0, 0, role === "don" ? (x < 0 ? 0.18 : -0.18) : x < 0 ? -0.08 : 0.08]}
+                position={[x, 0.14, 0.42]}
+                // Inner ends down: a stern, watchful look.
+                rotation={[0, 0, x < 0 ? -0.24 : 0.24]}
               />
             ))}
           <Hair role={role} />
@@ -170,17 +165,6 @@ export function Toy({
           <Hat role={role} />
         </group>
       </group>
-    </group>
-  );
-}
-
-/** A round wooden base with a brass rim. The role's name is an HTML plate in front of it. */
-function Base() {
-  return (
-    <group>
-      <mesh receiveShadow castShadow geometry={cyl(0.66, 0.7, 0.16)} material={matte(C.umber, { rough: 0.5, coat: 0.4 })} position={[0, -0.08, 0]} />
-      <mesh receiveShadow geometry={cyl(0.6, 0.6, 0.012)} material={matte(C.oxblood, { rough: 0.85 })} position={[0, 0.001, 0]} />
-      <mesh geometry={torus(0.66, 0.018)} material={brass()} position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]} />
     </group>
   );
 }

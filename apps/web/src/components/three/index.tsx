@@ -41,16 +41,30 @@ class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
 
 const Scene = dynamic(() => import("./FigureScene"), { ssr: false });
 
-/** The figure for a role, or nothing where 3D can't run (`children` show only with it). */
-export function RoleFigure({ className, children, ...scene }: FigureSceneProps & { className?: string; children?: ReactNode }) {
+/**
+ * The figure for a role, or nothing where 3D can't run. It fades in; with
+ * `leaving` it fades out and then calls onLeft.
+ */
+export function RoleFigure({
+  className,
+  leaving = false,
+  onLeft,
+  ...scene
+}: FigureSceneProps & { className?: string; leaving?: boolean; onLeft?: () => void }) {
   const gl = useWebGL();
   if (!gl) return null;
   return (
-    <div className={className} aria-hidden>
+    <div
+      className={`figure-fade ${className ?? ""}`}
+      data-leaving={leaving ? "" : undefined}
+      aria-hidden
+      onAnimationEnd={(e) => {
+        if (leaving && e.target === e.currentTarget) onLeft?.();
+      }}
+    >
       <Quiet>
         <Scene {...scene} />
       </Quiet>
-      {children}
     </div>
   );
 }
