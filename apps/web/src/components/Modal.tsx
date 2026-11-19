@@ -55,6 +55,16 @@ export function Modal({
     }
   }, [open]);
 
+  // Leaving the page (a link inside the popup, e.g. "Sit at the table") must close it at once.
+  // Next keeps the previous page alive but hidden, and a dialog left open there keeps the
+  // whole new page inert: its fields can't be typed into until a reload.
+  useEffect(() => {
+    const d = ref.current;
+    return () => {
+      if (d?.open) d.close();
+    };
+  }, []);
+
   // Esc goes through the same exit as the close button.
   useEffect(() => {
     const d = ref.current;

@@ -2,9 +2,11 @@ import type { Role, VoteResult, Winner } from "./types.js";
 
 /**
  * Game rules as plain functions, agreed with the owner (2026-11-18):
- * - Speaking order is a "snake": day d is opened by seat d (wrapping round the
- *   table); if that player is out, the next living player opens. Everyone after
- *   follows round the table, so the previous opener speaks last.
+ * - Speaking order is a "snake" (owner, 2026-11-19): the introduction round is opened
+ *   by seat 1 and has no nominations. Day d is opened by seat d + 1 (wrapping round
+ *   the table), so day 1 starts at seat 2 and seat 1 speaks last, day 2 starts at
+ *   seat 3 and so on. If that player is out, the next living player opens.
+ * - After every night comes the "balagan": one minute when every living player may talk.
  * - Voting: candidates are voted on in the order they were put up. Each living
  *   player votes once; whoever has not voted by the last candidate votes for them.
  *   A single top candidate is out. A tie sends only the tied candidates to a
@@ -15,11 +17,11 @@ import type { Role, VoteResult, Winner } from "./types.js";
 
 export const isMafia = (role: Role | null | undefined) => role === "don" || role === "mafia";
 
-/** Living seats in speaking order for day `day` (1-based; the intro round uses 1). */
+/** Living seats in speaking order for day `day` (0 = the introduction round, opened by seat 1). */
 export function speakingOrder(aliveSeats: number[], day: number, seatCount = 11): number[] {
   const seats = [...aliveSeats].sort((a, b) => a - b);
   if (seats.length === 0) return [];
-  const nominal = ((Math.max(1, day) - 1) % seatCount) + 1;
+  const nominal = (Math.max(0, day) % seatCount) + 1;
   let start = seats.findIndex((s) => s >= nominal);
   if (start === -1) start = 0;
   return [...seats.slice(start), ...seats.slice(0, start)];

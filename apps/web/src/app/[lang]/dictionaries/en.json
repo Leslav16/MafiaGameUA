@@ -5,7 +5,6 @@
   },
   "nav": {
     "home": "MafiaGameUA",
-    "language": "Language",
     "switchTo": "Українська",
     "switchToLabel": "Перейти на українську"
   },
@@ -13,15 +12,10 @@
     "title": "The city falls asleep.",
     "lede": "Mafia with cameras and microphones. Eleven players, one host, and a table where you can see every face.",
     "create": "Create a room",
-    "how": "How a game goes",
     "toNight": "Switch to night",
     "toDay": "Switch to day",
-    "phaseNight": "Night",
-    "phaseDay": "Day",
     "host": "Host",
-    "seatLabel": "Seat {n}",
     "tableLabel": "A table for 11 players and a host",
-    "lineup": "The Don, 2 mafia, the Sheriff, the Doctor and 6 civilians. Roles are dealt automatically when the host starts the table.",
     "preview": "See the room",
     "tagline": "The mafia wakes up.",
     "join": "Join",
@@ -50,7 +44,6 @@
     "tableEnded": "game over",
     "tableHost": "{name}'s table",
     "drawRole": "Draw a role",
-    "drawTitle": "Draw a role",
     "drawHint": "The real deck: Don, 2 Mafia, Sheriff, Doctor and 6 civilians. The card is truly random.",
     "drawPick": "Draw a card",
     "drawAgain": "Again",
@@ -64,11 +57,11 @@
     "steps": [
       {
         "name": "Introduction",
-        "text": "Roles are dealt automatically: everyone sees their own card, and the mafia also see each other. Then each player gets a minute to introduce themselves. If the host picked a place, introduce yourself as if you were there."
+        "text": "Roles are dealt automatically: everyone sees their own card, and the mafia also see each other. Then each player, starting with seat 1, gets a minute to introduce themselves. Nobody is put up for the vote. If the host picked a place, introduce yourself as if you were there."
       },
       {
         "name": "Speeches",
-        "text": "Day breaks. The floor goes in seat order, and everyone has one minute to convince the table. Only the speaker's mic is on."
+        "text": "After every night comes one free minute when everyone talks. Then one-minute speeches: seat 2 opens day 1 and seat 1 speaks last, seat 3 opens day 2, and so on. Players who are out are skipped."
       },
       {
         "name": "Nominations",
@@ -106,12 +99,7 @@
       }
     ]
   },
-  "footer": {
-    "note": "The first version runs on the host's own computer."
-  },
   "room": {
-    "title": "Rooms are being built",
-    "text": "The next update adds a room with cameras for 11 players and a host.",
     "back": "Back to the start"
   },
   "ui": {
@@ -196,7 +184,7 @@
     },
     "preview": {
       "title": "What the room will look like",
-      "lede": "A sample with made-up players. The real room arrives with the camera connection.",
+      "lede": "A sample with made-up players.",
       "asPlayer": "As a player sees it",
       "sample": "Sample"
     },
@@ -257,7 +245,11 @@
       "test": "Test",
       "voice": "Night voice",
       "voiceHint": "Briefly announces who wakes up, in different words each time."
-    }
+    },
+    "introTitle": "Introductions",
+    "dayN": "Day {n}",
+    "nightN": "Night {n}",
+    "balagan": "Free-for-all: everyone talks"
   },
   "rules": {
     "open": "Rules",
@@ -319,14 +311,11 @@
     "host": "Host",
     "empty": "Free seat",
     "you": "you",
-    "offlineBadge": "offline",
     "killed": "Killed",
     "fouls": "Fouls: {n}",
     "speaking": "Has the floor",
     "camera": "Camera",
     "mic": "Microphone",
-    "cameraOn": "Turn camera on",
-    "cameraOff": "Turn camera off",
     "micOn": "Turn mic on",
     "micOff": "Turn mic off",
     "lockedByHost": "Turned off by the host",
@@ -350,8 +339,6 @@
       "civilian": "Civilian",
       "doctor": "Doctor"
     },
-    "yourRole": "Your role",
-    "noRole": "Roles are not dealt yet",
     "teammates": "Your mafia: seats {seats}",
     "timer": "Time left",
     "errors": {
@@ -362,7 +349,6 @@
       "invalid_password": "The password needs 4 to 64 characters.",
       "invalid_seat": "Pick a seat.",
       "game_in_progress": "The game has started. You can watch as a spectator.",
-      "invalid_role_mix": "That role mix doesn't fit the number of players.",
       "player_dead": "That player is dead.",
       "seat_empty": "Nobody sits there.",
       "game_ended": "The game is over. Start a new game first.",
@@ -392,13 +378,11 @@
       "not_host": "Only the host can do this.",
       "already_joined": "You are already in the room. Reload the page.",
       "key_unknown": "Your place wasn't kept. Please join again.",
-      "invalid_action": "That can't be done right now."
+      "invalid_action": "That can't be done right now.",
+      "intro_no_votes": "Nobody is put up in the introduction round."
     },
     "sound": "Turn on sound",
     "rename": "Change name",
-    "renameSave": "Save",
-    "renameCancel": "Cancel",
-    "hostSeat": "12 · Host",
     "watch": "Watch as a spectator",
     "watchTitle": "Watch the game",
     "watchHint": "Spectators see and hear the table by day, but take no seat and never see roles or the night.",
@@ -459,8 +443,6 @@
     "confirmOut": "Confirm: seat {n} leaves",
     "startRevote": "Re-vote between {list}",
     "toNight": "Nobody leaves: go to night",
-    "voteFor": "{n}: {votes}",
-    "lastWordOf": "Seat {n}: last word",
     "reasonKilled": "killed by the mafia",
     "reasonVoted": "voted out by the town",
     "steps": {
@@ -545,7 +527,7 @@
     "removeBots": "Remove bots",
     "botsHint": "Test mode: bots have no camera, but you can run a whole game with them.",
     "asleep": "The town falls asleep",
-    "asleepHint": "Players' mics are off. Cameras keep running, but at night players and spectators see nobody. When everyone's eyes are closed, wake the mafia.",
+    "asleepHint": "Players' mics are off. You see every camera: check that all eyes are closed. Players and spectators see nobody at night. Then wake the mafia.",
     "wakeMafia": "The mafia wakes up",
     "awakeHint": {
       "mafia": "The mafia and Don cameras, no sound: they agree in silence. Only you and the mafia see them.",
@@ -594,7 +576,11 @@
     "roomPasswordHint": "New players and spectators must type this password. Anyone already in stays.",
     "closeRoom": "Close the room",
     "closeRoomQuestion": "Close the room for everyone?",
-    "closeRoomHint": "The game ends and everyone, you included, goes back to the home page."
+    "closeRoomHint": "The game ends and everyone, you included, goes back to the home page.",
+    "introHint": "Nobody is put up in the introduction round: everyone introduces themselves, then night falls.",
+    "balagan": "Free-for-all",
+    "balaganHint": "One minute when every living player may talk: all their mics are on.",
+    "endBalagan": "On to speeches"
   },
   "locations": [
     {

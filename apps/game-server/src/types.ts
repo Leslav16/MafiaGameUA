@@ -92,10 +92,11 @@ export interface RoomSummary {
 
 /**
  * Where the game is. The server walks through these; the host mostly presses "next".
- *   lobby -> speeches (intro round) -> night (asleep, mafia, don, sheriff, doctor) -> morning -> speeches (day)
- *   -> [defence -> voting -> [lastWord]] -> night -> ... -> ended
+ *   lobby -> speeches (intro round, no nominations) -> night (asleep, mafia, don, sheriff, doctor) -> morning
+ *   -> balagan (one free minute, every living mic on) -> speeches (day) -> [defence -> voting -> [lastWord]]
+ *   -> night -> ... -> ended
  */
-export type Stage = "lobby" | "speeches" | "defence" | "voting" | "lastWord" | "night" | "morning" | "ended";
+export type Stage = "lobby" | "speeches" | "defence" | "voting" | "lastWord" | "night" | "morning" | "balagan" | "ended";
 export type NightStep = "mafia" | "don" | "sheriff" | "doctor";
 
 export interface VoteResult {

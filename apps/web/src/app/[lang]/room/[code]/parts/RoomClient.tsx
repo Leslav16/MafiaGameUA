@@ -29,9 +29,14 @@ import { AudioOut, VideoView, formatClock, useNow } from "./media";
 
 type Dict = Pick<Dictionary, "roomUi" | "hostPanel" | "ui" | "rules" | "game" | "host" | "locations">;
 
-/** Host view at night: whose camera to show. Everyone's camera is on, but only the woken role is shown. */
+/**
+ * Host view at night: whose camera to show. Everyone's camera is on. While the town falls
+ * asleep the host sees every camera, to check that all eyes are closed; after that only
+ * the woken role is shown.
+ */
 function awakeNow(role: string | undefined, step: RoomView["flow"]["nightStep"]): boolean {
-  if (!role || !step || step === "asleep") return false;
+  if (step === "asleep") return true;
+  if (!role || !step) return false;
   return step === "mafia" ? role === "mafia" || role === "don" : role === step;
 }
 
@@ -46,10 +51,17 @@ function Notice({ text, lang, t }: { text: string; lang: string; t: Dictionary["
   );
 }
 
-function phaseTitle(view: RoomView, t: Dictionary["roomUi"]) {
-  if (view.phase === "ended" && view.winner) return `${t.phase.ended}: ${t.winner[view.winner]}`;
-  return fmt(t.phase[view.phase], { n: Math.max(1, view.day) });
+/** The big word at the top: the same names the host panel uses (Introduction, Night 1, Day 1...). */
+function phaseTitle(view: RoomView, t: Dictionary["roomUi"], ui: Dictionary["ui"]): string | undefined {
+  if (view.phase === "ended") return view.winner ? `${t.phase.ended}: ${t.winner[view.winner]}` : undefined;
+  if (view.flow.round === "intro") return ui.introTitle;
+  if (view.phase === "night") return fmt(ui.nightN, { n: view.day + 1 });
+  if (view.phase === "day") return fmt(ui.dayN, { n: Math.max(1, view.day) });
+  return undefined;
 }
+
+/** The timer only means something while someone has a minute: speeches, defence, last word, the balagan. */
+const TIMED_STAGES = new Set(["speeches", "defence", "lastWord", "balagan"]);
 
 function InviteLink({ lang, code, t }: { lang: string; code: string; t: Dictionary["roomUi"] }) {
   const [copied, setCopied] = useState(false);
@@ -207,20 +219,23 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
           caption={
             view.phase === "night" && view.flow.nightStep
               ? ui.nightStep[view.flow.nightStep]
-              : showPlace
+              : view.flow.stage === "balagan"
+                ? ui.balagan
+                : showPlace
                 ? fmt(t.introAt, { place: place! })
                 : undefined
           }
-          round={Math.max(1, view.day)}
           floorSeat={view.floorSeat}
-          title={view.phase === "ended" && view.winner ? phaseTitle(view, t) : undefined}
+          title={phaseTitle(view, t, ui)}
         >
-          <Timer
-            secondsLeft={timerMs / 1000}
-            totalSeconds={view.timer.durationMs / 1000}
-            running={timerRunning}
-            labels={ui}
-          />
+          {TIMED_STAGES.has(view.flow.stage) && (
+            <Timer
+              secondsLeft={timerMs / 1000}
+              totalSeconds={view.timer.durationMs / 1000}
+              running={timerRunning}
+              labels={ui}
+            />
+          )}
         </PhaseBanner>
 
         <div className="flex flex-col gap-3 px-1 pt-3 sm:px-0">
@@ -259,6 +274,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                     labels={ui}
                     isMe={s.seat === mySeat}
                     speaking={m.speaking && m.micOn}
+                    hasFloor={view.floorSeat === s.seat}
                     showRole={!!s.role && (isHost || view.phase === "ended" || s.seat !== mySeat)}
                     selected={isHost && selectedSeat === s.seat}
                     onSelect={

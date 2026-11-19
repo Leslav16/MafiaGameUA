@@ -29,6 +29,7 @@ export function PlayerTile({
   info,
   labels,
   speaking = false,
+  hasFloor = false,
   isMe = false,
   showRole = false,
   tag,
@@ -44,6 +45,8 @@ export function PlayerTile({
   info: SeatInfo;
   labels: RoomLabels;
   speaking?: boolean;
+  /** This player has the floor now: a steady lamp frame, so everyone sees whose minute it is. */
+  hasFloor?: boolean;
   isMe?: boolean;
   /** Show the small role mark (host view, or mafia seeing each other). */
   showRole?: boolean;
@@ -90,6 +93,7 @@ export function PlayerTile({
     <figure
       aria-label={status}
       data-speaking={speaking && alive ? "" : undefined}
+      data-floor={hasFloor && alive ? "" : undefined}
       data-alive={alive ? "" : undefined}
       data-host={isHost ? "" : undefined}
       data-selected={selected ? "" : undefined}
@@ -118,7 +122,7 @@ export function PlayerTile({
             {mark}
           </span>
           {info.bot && (
-            <span aria-hidden className="absolute bottom-9 font-display text-[clamp(0.7rem,2.4cqw,0.9rem)] tracking-[0.2em] text-[var(--tile-number)] uppercase">
+            <span aria-hidden className="absolute bottom-9 hidden font-display sm:inline text-[clamp(0.7rem,2.4cqw,0.9rem)] tracking-[0.2em] text-[var(--tile-number)] uppercase">
               ⚙ bot
             </span>
           )}
