@@ -12,6 +12,8 @@ gsap.defaults({ ease: "power3.out", duration: 0.5 });
 export const MOTION = {
   ok: "(prefers-reduced-motion: no-preference)",
   reduce: "(prefers-reduced-motion: reduce)",
+  /** A mouse or trackpad, and motion allowed: for effects that follow the pointer. */
+  pointer: "(prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine)",
 };
 
 export { gsap, useGSAP };

@@ -43,59 +43,54 @@
     "tableNight": "night",
     "tableEnded": "game over",
     "tableHost": "{name}'s table",
-    "drawRole": "Draw a role",
-    "drawHint": "The real deck: Don, 2 Mafia, Sheriff, Doctor and 6 civilians. The card is truly random.",
-    "drawPick": "Draw a card",
-    "drawAgain": "Again",
     "camCheck": "Check your camera",
-    "cordHint": "Pull the lamp cord",
     "fact": "Mafia on camera and mic: 11 players, a host, and roles dealt in one click."
   },
   "game": {
     "title": "How a game goes",
-    "lede": "The game runs in rounds: day, night, day again. It ends when the mafia are found out, or when there are as many mafia as civilians.",
+    "lede": "Rounds of day and night. The town wins when the mafia are found out. The mafia win when they equal the civilians.",
     "steps": [
       {
         "name": "Introduction",
-        "text": "Roles are dealt automatically: everyone sees their own card, and the mafia also see each other. Then each player, starting with seat 1, gets a minute to introduce themselves. Nobody is put up for the vote. If the host picked a place, introduce yourself as if you were there."
+        "text": "Each player, from seat 1, gets a minute to introduce themselves. No nominations."
       },
       {
         "name": "Speeches",
-        "text": "After every night comes one free minute when everyone talks. Then one-minute speeches: seat 2 opens day 1 and seat 1 speaks last, seat 3 opens day 2, and so on. Players who are out are skipped."
+        "text": "After each night, a free minute for everyone, then one-minute speeches. Seat 2 opens day 1, seat 3 opens day 2, and so on."
       },
       {
         "name": "Nominations",
-        "text": "During their minute, a player can put someone up for the vote by naming a seat number."
+        "text": "In your minute you can nominate a player by their seat number."
       },
       {
         "name": "Vote",
-        "text": "Everyone votes once. Whoever doesn't raise a hand votes for the last nominee. On a tie, only the tied players go to a re-vote, and on a second tie they all stay. The player voted out says a last word, then their camera and mic go off."
+        "text": "One vote each; silent votes go to the last nominee. On a tie the tied players face a re-vote; on a second tie everyone stays."
       },
       {
         "name": "Night",
-        "text": "The mafia shoot, the Don hunts for the Sheriff, the Sheriff checks a player, the Doctor saves one (not the same player two nights in a row, themselves at most twice). In the morning the host says who was killed."
+        "text": "The mafia shoot, the Don hunts the Sheriff, the Sheriff checks, the Doctor saves (not the same player two nights running, themselves at most twice). In the morning the host names the dead."
       }
     ]
   },
   "host": {
     "title": "The host runs the table",
-    "lede": "The host sees every role and controls each player's camera and mic. A player can't turn back on what the host turned off.",
+    "lede": "Sees every role and controls the players' cameras and mics.",
     "items": [
       {
         "name": "Camera and mic",
-        "text": "Turns them on or off for any of the eleven players."
+        "text": "Turns them on or off for anyone."
       },
       {
         "name": "Quiet table",
-        "text": "The mic turns on by itself only for whoever has the floor. The host can still turn anyone's on or off by hand."
+        "text": "The mic turns on by itself for whoever has the floor."
       },
       {
         "name": "Kill",
-        "text": "Marks a player as killed, and their camera and mic stay off for the rest of the game."
+        "text": "A killed player's camera and mic stay off for the rest of the game."
       },
       {
         "name": "Timer and fouls",
-        "text": "Gives the floor, pauses the minute, records warnings."
+        "text": "Gives the floor, pauses, records fouls."
       }
     ]
   },

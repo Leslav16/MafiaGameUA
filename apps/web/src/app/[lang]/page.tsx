@@ -8,10 +8,9 @@ import { PhaseShell } from "@/components/Phase";
 import { CameraCheck } from "@/components/landing/CameraCheck";
 import { LampCord } from "@/components/landing/LampCord";
 import { OpenTables } from "@/components/landing/OpenTables";
-import { RoleDraw } from "@/components/landing/RoleDraw";
 import { Hand } from "@/components/landing/Hand";
 import { HeroEntrance } from "@/components/landing/HeroEntrance";
-import { CamIcon, CardIcon } from "@/components/room/icons";
+import { CamIcon } from "@/components/room/icons";
 import { getDictionary, hasLocale } from "./dictionaries";
 
 const link =
@@ -85,21 +84,6 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
             />
           </div>
           <div data-enter-item className="hero-chips mt-6 flex flex-wrap gap-2">
-            <RoleDraw
-              roles={dict.rules.roles}
-              label={
-                <>
-                  <CardIcon className="size-5" />
-                  {dict.hero.drawRole}
-                </>
-              }
-              title={dict.hero.drawRole}
-              hint={dict.hero.drawHint}
-              pick={dict.hero.drawPick}
-              again={dict.hero.drawAgain}
-              closeLabel={dict.rules.close}
-              className={chip}
-            />
             <CameraCheck
               label={
                 <>
@@ -119,7 +103,6 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
               cord={<LampCord toNight={dict.hero.toNight} toDay={dict.hero.toDay} />}
             />
           </div>
-          <p className="lamp-cord-hint phase-transition text-[var(--text-muted)]">{dict.hero.cordHint}</p>
         </div>
       </HeroEntrance>
     </PhaseShell>

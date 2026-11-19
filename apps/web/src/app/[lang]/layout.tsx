@@ -13,7 +13,7 @@ const oswald = Oswald({
   weight: ["400", "500", "600"],
 });
 
-/** Main headings only (the landing title, the nightfall): a worn rubber-stamp face, chosen by the owner. */
+/** Headings (landing title, nightfall, popup titles, phase banner, create/join, role name): a worn rubber-stamp face, chosen by the owner. Never on buttons, seat numbers, the timer or body text. */
 const dirt = Rubik_Dirt({
   variable: "--font-dirt",
   subsets: ["latin", "cyrillic"],

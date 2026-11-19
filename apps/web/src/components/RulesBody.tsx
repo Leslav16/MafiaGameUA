@@ -1,25 +1,24 @@
 import type { Dictionary } from "@/app/[lang]/dictionaries";
-import { RoleCardFace } from "./cards/RoleCardFace";
-import type { CardRole } from "./cards/RoleArt";
+
+const MOB = new Set(["don", "mafia"]);
 
 export type RulesText = Dictionary["rules"] & { game: Dictionary["game"]; host: Dictionary["host"] };
 
-/** The rules popup: the five role cards, the game in five steps, and what the host does (folded away). */
+/** The rules popup: the five roles, the game in five steps, and what the host does (folded away). */
 export function RulesBody({ rules }: { rules: RulesText }) {
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <section aria-labelledby="rules-roles">
         <h3 id="rules-roles" className="font-display text-xl tracking-wide">{rules.rolesTitle}</h3>
-        <ul className="mt-3 grid grid-cols-1 gap-x-3 gap-y-3 min-[480px]:grid-cols-3 min-[480px]:gap-y-4 sm:grid-cols-5">
+        {/* The five roles by name, in the stamp face; no card pictures, so it stays short. */}
+        <dl className="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-5">
           {rules.roles.map((r) => (
-            <li key={r.id} className="flex items-center gap-3 min-[480px]:flex-col min-[480px]:items-stretch min-[480px]:gap-2">
-              <span className="relative block aspect-[5/7] w-[4.5rem] shrink-0 drop-shadow-[0_8px_10px_rgb(0_0_0/0.3)] min-[480px]:w-full">
-                <RoleCardFace role={r.id as CardRole} name={r.name} />
-              </span>
-              <span className="text-sm leading-snug text-[var(--text-muted)]">{r.text}</span>
-            </li>
+            <div key={r.id} className="grid grid-cols-[6rem_1fr] items-baseline gap-x-3 sm:grid-cols-1 sm:gap-y-1">
+              <dt className={`headline text-2xl leading-none ${MOB.has(r.id) ? "text-[var(--color-oxblood)]" : ""}`}>{r.name}</dt>
+              <dd className="text-[0.95rem] leading-snug text-[var(--text-muted)]">{r.text}</dd>
+            </div>
           ))}
-        </ul>
+        </dl>
       </section>
 
       <section aria-labelledby="rules-game">

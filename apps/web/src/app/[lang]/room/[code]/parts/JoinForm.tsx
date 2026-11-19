@@ -58,7 +58,7 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
   return (
     <div className="grid w-full items-center gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <form onSubmit={submit} className="flex w-full max-w-lg flex-col gap-6">
-        <h1 className="font-display text-5xl font-medium tracking-tight">
+        <h1 className="headline text-5xl tracking-tight">
           {asHost ? t.hostJoin : watching ? t.watchTitle : t.joinTitle}
         </h1>
         {watching && <p className="text-lg text-[var(--text-muted)]">{t.watchHint}</p>}
