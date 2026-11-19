@@ -12,7 +12,7 @@ const MOB = new Set<CardRole>(["don", "mafia"]);
 
 /**
  * The landing scene: the lamp over a leather desk and a hand of the five role
- * cards. Point at a card to lift it, click to read what the role does, and the
+ * cards. Point at a card to lift it, click it and the
  * role's 3D figure leaps out of the card onto the desk beside the fan (where
  * WebGL runs). Clicking the card again, outside, or Esc puts it back. At night
  * the town's cards turn face down; only the mafia's stay open.
@@ -157,7 +157,6 @@ export function Hand({
                 <span className="hand-card-inner">
                   <span className="hand-front">
                     <RoleCardFace role={role} name={r.name} />
-                    <span className="hand-note">{r.text}</span>
                   </span>
                   <CardBack className="hand-back" />
                 </span>

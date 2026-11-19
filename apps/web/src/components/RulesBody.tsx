@@ -1,31 +1,21 @@
 import type { Dictionary } from "@/app/[lang]/dictionaries";
-import { RoleCardFace } from "./cards/RoleCardFace";
-import type { CardRole } from "./cards/RoleArt";
+
+const MOB = new Set(["don", "mafia"]);
 
 export type RulesText = Dictionary["rules"] & { game: Dictionary["game"]; host: Dictionary["host"] };
 
-/** The rules popup: the five role cards, the game in five steps, and what the host does (folded away). */
+/** The rules popup: the five roles, the game in five steps, and what the host does (folded away). */
 export function RulesBody({ rules }: { rules: RulesText }) {
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <section aria-labelledby="rules-roles">
         <h3 id="rules-roles" className="font-display text-xl tracking-wide">{rules.rolesTitle}</h3>
-        {/* A small row of all five cards; on a phone the descriptions follow as a list, so nothing scrolls sideways. */}
-        <ul className="mt-3 grid grid-cols-5 gap-2 sm:gap-4">
+        {/* The five roles by name, in the stamp face; no card pictures, so it stays short. */}
+        <dl className="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-5">
           {rules.roles.map((r) => (
-            <li key={r.id} className="flex flex-col items-center gap-2">
-              <span className="relative block aspect-[5/7] w-full max-w-[6.5rem] drop-shadow-[0_6px_8px_rgb(0_0_0/0.3)]">
-                <RoleCardFace role={r.id as CardRole} name={r.name} />
-              </span>
-              <span className="hidden text-center text-sm leading-snug text-[var(--text-muted)] sm:block">{r.text}</span>
-            </li>
-          ))}
-        </ul>
-        <dl className="mt-3 grid gap-1.5 sm:hidden">
-          {rules.roles.map((r) => (
-            <div key={r.id} className="text-[0.95rem] leading-snug">
-              <dt className="inline font-display tracking-wide">{r.name}. </dt>
-              <dd className="inline text-[var(--text-muted)]">{r.text}</dd>
+            <div key={r.id} className="grid grid-cols-[6rem_1fr] items-baseline gap-x-3 sm:grid-cols-1 sm:gap-y-1">
+              <dt className={`headline text-2xl leading-none ${MOB.has(r.id) ? "text-[var(--color-oxblood)]" : ""}`}>{r.name}</dt>
+              <dd className="text-[0.95rem] leading-snug text-[var(--text-muted)]">{r.text}</dd>
             </div>
           ))}
         </dl>
