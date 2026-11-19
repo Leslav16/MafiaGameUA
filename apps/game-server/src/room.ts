@@ -216,6 +216,10 @@ export class Room {
   /** Someone who only watches: allowed at any time, takes no seat, never sees roles or the night. */
   addSpectator(nameRaw: unknown): { key: string; identity: string } {
     const name = cleanName(nameRaw);
+    // Spectators who left make room for new ones; only those still watching count towards the limit.
+    if (this.spectators.size >= MAX_SPECTATORS) {
+      for (const [key, w] of this.spectators) if (w.connected === 0) this.spectators.delete(key);
+    }
     if (this.spectators.size >= MAX_SPECTATORS) throw new GameError("too_many_spectators");
     const key = newId(18);
     const identity = `w-${newId(6)}`;
