@@ -44,7 +44,7 @@ export function RoleCard({ role, labels, note }: { role: Role; labels: RoomLabel
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex items-baseline justify-between">
-            <span className={`font-display text-3xl leading-none font-semibold tracking-wide ${face.tone}`}>
+            <span className={`headline text-3xl leading-none tracking-wide ${face.tone}`}>
               {labels.role[role]}
             </span>
             <span aria-hidden className={`text-2xl leading-none ${face.tone}`}>

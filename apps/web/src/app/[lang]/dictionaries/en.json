@@ -43,12 +43,7 @@
     "tableNight": "night",
     "tableEnded": "game over",
     "tableHost": "{name}'s table",
-    "drawRole": "Draw a role",
-    "drawHint": "The real deck: Don, 2 Mafia, Sheriff, Doctor and 6 civilians. The card is truly random.",
-    "drawPick": "Draw a card",
-    "drawAgain": "Again",
     "camCheck": "Check your camera",
-    "cordHint": "Pull the lamp cord",
     "fact": "Mafia on camera and mic: 11 players, a host, and roles dealt in one click."
   },
   "game": {

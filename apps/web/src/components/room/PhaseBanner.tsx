@@ -38,7 +38,7 @@ export function PhaseBanner({
         <Icon
           className={`size-7 ${phase === "night" ? "text-[var(--color-smoke)]" : "text-[var(--accent-strong)]"}`}
         />
-        <h1 className="font-display text-2xl leading-none font-medium tracking-wide sm:text-3xl">
+        <h1 className="headline text-2xl leading-none tracking-wide sm:text-3xl">
           {title ?? labels.phase[phase]}
         </h1>
         {round != null && phase !== "lobby" && (

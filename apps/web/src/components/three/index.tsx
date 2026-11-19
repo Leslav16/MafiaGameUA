@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Component, useSyncExternalStore, type ReactNode } from "react";
-import type { CardRole } from "../cards/RoleArt";
+import type { FigureSceneProps } from "./FigureScene";
 
 /**
  * 3D is an extra, never a requirement: three.js loads only in the browser and
@@ -41,15 +41,16 @@ class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
 
 const Scene = dynamic(() => import("./FigureScene"), { ssr: false });
 
-/** The figure for a role, or nothing where 3D can't run. */
-export function RoleFigure({ role, delay, className }: { role: CardRole; delay?: number; className?: string }) {
+/** The figure for a role, or nothing where 3D can't run (`children` show only with it). */
+export function RoleFigure({ className, children, ...scene }: FigureSceneProps & { className?: string; children?: ReactNode }) {
   const gl = useWebGL();
   if (!gl) return null;
   return (
     <div className={className} aria-hidden>
       <Quiet>
-        <Scene role={role} delay={delay} />
+        <Scene {...scene} />
       </Quiet>
+      {children}
     </div>
   );
 }

@@ -39,7 +39,7 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
 
   return (
     <form onSubmit={submit} className="flex w-full max-w-lg flex-col gap-5">
-      <h1 className="font-display text-5xl font-medium tracking-tight">{t.createTitle}</h1>
+      <h1 className="headline text-5xl tracking-tight">{t.createTitle}</h1>
       <p className="text-lg text-[var(--text-muted)]">{t.createLede}</p>
       <label className="flex flex-col gap-1.5">
         <span className="font-display text-xl tracking-wide">{t.hostName}</span>

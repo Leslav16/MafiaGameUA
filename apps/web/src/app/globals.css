@@ -37,7 +37,7 @@
   --glow-opacity: 0.6;
   --seat-fill: var(--color-card);
   --seat-text: var(--color-umber);
-  --phase-duration: 1200ms;
+  --phase-duration: 1600ms; /* big moment: the lamp goes out slowly */
   --urgent: var(--color-oxblood);
 }
 
@@ -231,7 +231,8 @@ body {
 /* Role card flip */
 .role-card-inner {
   transform-style: preserve-3d;
-  transition: transform 500ms cubic-bezier(0.65, 0, 0.35, 1);
+  /* Seeing your role is a big moment: a slow, weighty turn. */
+  transition: transform 1100ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 .role-card-inner[data-open] {
   transform: rotateY(180deg);
@@ -993,83 +994,6 @@ html[data-motion="calm"] *::after {
 .lamp-cord:focus-visible {
   outline: none;
 }
-.lamp-cord-hint {
-  font-size: 0.95rem;
-}
-
-/* ---------- Landing: draw a role (the create screen's deck, face down) ---------- */
-.draw-deck {
-  position: relative;
-  width: 9.5rem;
-  aspect-ratio: 5 / 7;
-  margin-top: 1rem;
-  perspective: 900px;
-  cursor: pointer;
-  background: none;
-  border: 0;
-}
-.draw-back,
-.draw-face-back {
-  border-radius: 0.75rem;
-  background:
-    repeating-linear-gradient(45deg, rgb(214 199 161 / 0.16) 0 2px, transparent 2px 9px),
-    repeating-linear-gradient(-45deg, rgb(214 199 161 / 0.16) 0 2px, transparent 2px 9px),
-    var(--color-oxblood);
-  box-shadow:
-    inset 0 0 0 4px var(--color-card),
-    inset 0 0 0 5px rgb(22 17 15 / 0.4),
-    0 18px 28px -14px rgb(0 0 0 / 0.85);
-}
-.draw-back {
-  position: absolute;
-  inset: 0;
-  transform-origin: 50% 170%;
-  transform: rotate(calc(var(--i) * 9deg)) translateY(calc(var(--i) * var(--i) * 3px));
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.draw-deck:hover .draw-back {
-  transform: rotate(calc(var(--i) * 13deg)) translateY(calc(var(--i) * var(--i) * 3px));
-}
-.draw-card {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-}
-.draw-face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-}
-.draw-face-front {
-  transform: rotateY(180deg);
-  /* the create screen's card, without its fan transform and float */
-  animation: none;
-  --i: 0;
-}
-.draw-card[data-role] {
-  animation: draw-pull 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-@keyframes draw-pull {
-  0% { transform: translateY(0) rotateY(0); }
-  40% { transform: translateY(-38%) rotateY(0) scale(1.04); }
-  100% { transform: translateY(-6%) rotateY(180deg) scale(1.08); }
-}
-/* The 3D figure (components/three) leaps out of the drawn card and lands in front of
-   the fan, at its right. Clicks pass through to the deck. */
-.draw-figure {
-  position: absolute;
-  z-index: 5;
-  left: calc(50% + 1.5rem);
-  bottom: -1.75rem;
-  width: 10rem;
-  aspect-ratio: 5 / 7;
-  pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .draw-card[data-role] {
-    animation-duration: 0.01s;
-  }
-}
 
 /* ---------- Role cards (illustrated, shared) ---------- */
 .card-face {
@@ -1175,6 +1099,79 @@ html[data-motion="calm"] *::after {
 .hand-scene[data-night] .hand-pool {
   background: radial-gradient(closest-side, rgb(116 73 30 / 0.5), rgb(44 24 13 / 0.4) 60%, transparent);
 }
+/* The role's 3D figure (components/three) on the desk beside the fan; clicks pass through. */
+.hand-figure {
+  position: absolute;
+  z-index: 15;
+  left: 71%;
+  bottom: 2%;
+  width: 26%;
+  height: 66%;
+  pointer-events: none;
+}
+.hand-figure-left {
+  left: 3%;
+}
+.hand-tilt {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+/* While a figure is out, the fan slides aside to make room for it on the desk. */
+.hand {
+  transition: translate 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.hand-scene[data-figure="right"] .hand {
+  translate: calc(-50% - 62%) 0;
+}
+.hand-scene[data-figure="left"] .hand {
+  translate: calc(-50% + 62%) 0;
+}
+@media (max-width: 640px) {
+  .hand-scene[data-figure="right"] .hand {
+    translate: calc(-50% - 42%) 0;
+  }
+  .hand-scene[data-figure="left"] .hand {
+    translate: calc(-50% + 42%) 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hand {
+    transition: none;
+  }
+}
+/* The brass name plate on the front of the base. */
+.hand-figure-plate {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  translate: -50% 0;
+  padding: 0.1rem 0.6rem 0.15rem;
+  border-radius: 0.2rem;
+  font-size: clamp(0.7rem, 1.3vw, 1rem);
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #2c180d;
+  background: linear-gradient(#e2b56c, #b07a32 55%, #8a5a22);
+  box-shadow: inset 0 1px 0 rgb(255 240 200 / 0.6), 0 2px 4px rgb(0 0 0 / 0.5);
+  animation: plate-in 0.5s 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hand-figure-plate[data-leaving] {
+  animation: plate-out 0.2s ease-in both;
+}
+@keyframes plate-in {
+  from { opacity: 0; translate: -50% 6px; }
+  to { opacity: 1; translate: -50% 0; }
+}
+@keyframes plate-out {
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hand-figure-plate,
+  .hand-figure-plate[data-leaving] {
+    animation: none;
+  }
+}
 /* Room for the fan's pointer tilt (Hand.tsx) to read as 3D. */
 .hand-scene {
   perspective: 1400px;
@@ -1233,7 +1230,8 @@ html[data-motion="calm"] *::after {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  transition: transform 700ms cubic-bezier(0.65, 0, 0.35, 1);
+  /* At nightfall the town's cards turn over one after another, left to right. */
+  transition: transform 1000ms cubic-bezier(0.65, 0, 0.35, 1) calc((var(--i) + 2) * 110ms);
 }
 .hand-card[data-down] .hand-card-inner {
   transform: rotateY(180deg);

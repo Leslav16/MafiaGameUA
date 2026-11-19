@@ -100,7 +100,7 @@ export function Modal({
     >
       <div className="flex max-h-[inherit] flex-col">
         <header className="phase-transition flex items-center justify-between gap-4 border-b border-[var(--line)] px-5 py-3 sm:px-7">
-          <h2 id="modal-title" className="font-display text-2xl font-medium tracking-wide sm:text-3xl">
+          <h2 id="modal-title" className="headline text-2xl tracking-wide sm:text-3xl">
             {title}
           </h2>
           <button

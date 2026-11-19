@@ -51,7 +51,7 @@ export function Lights({ night = false, keyAt = [0.5, 6, 3] as [number, number, 
         shadow-bias={-0.0004}
         shadow-radius={6}
       />
-      <directionalLight position={[-4, 3, 5]} intensity={0.6} color="#cfd8ff" />
+      <directionalLight position={[-4, 3, 5]} intensity={0.5} color="#e6cfa8" />
     </>
   );
 }

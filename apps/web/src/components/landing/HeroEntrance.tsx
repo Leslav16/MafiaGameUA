@@ -25,16 +25,17 @@ export function HeroEntrance({ className, children }: { className?: string; chil
         // Phase colours fade with CSS transitions; keep those off opacity while GSAP drives it.
         el.classList.replace("enter-pending", "entering");
         const tl = gsap.timeline({
-          defaults: { duration: 0.7, ease: "power3.out" },
+          defaults: { duration: 1.1, ease: "power3.out" },
           onComplete: () => el.classList.remove("entering"),
         });
-        tl.fromTo(items, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, stagger: 0.08, clearProps: "transform" }, 0.05);
+        // A slow, cinematic entrance: the lines rise one by one while the lamp scene fades up out of the dark.
+        tl.fromTo(items, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, stagger: 0.15, clearProps: "transform" }, 0.1);
         if (stage) {
           tl.fromTo(
             stage,
             { autoAlpha: 0, y: 22, scale: 0.97 },
-            { autoAlpha: 1, y: 0, scale: 1, duration: 1, clearProps: "transform" },
-            0.2,
+            { autoAlpha: 1, y: 0, scale: 1, duration: 1.8, ease: "power2.out", clearProps: "transform" },
+            0.25,
           );
         }
       });

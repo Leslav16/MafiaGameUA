@@ -1,18 +1,21 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { MOTION, gsap, useGSAP } from "@/lib/motion";
 import { CardBack, RoleCardFace } from "../cards/RoleCardFace";
 import type { CardRole } from "../cards/RoleArt";
 import { usePhase } from "../Phase";
+import { RoleFigure } from "../three";
 
 const ORDER: CardRole[] = ["civilian", "sheriff", "don", "mafia", "doctor"];
 const MOB = new Set<CardRole>(["don", "mafia"]);
 
 /**
  * The landing scene: the lamp over a leather desk and a hand of the five role
- * cards. Point at a card to lift it, click to read what the role does. At
- * night the town's cards turn face down; only the mafia's stay open.
+ * cards. Point at a card to lift it, click to read what the role does, and the
+ * role's 3D figure leaps out of the card onto the desk beside the fan (where
+ * WebGL runs). Clicking the card again, outside, or Esc puts it back. At night
+ * the town's cards turn face down; only the mafia's stay open.
  */
 export function Hand({
   label,
@@ -29,13 +32,56 @@ export function Hand({
   const byId = Object.fromEntries(roles.map((r) => [r.id, r]));
   const scene = useRef<HTMLDivElement>(null);
 
+  // The card being read, unless night has turned it face down.
+  const active = open && !(night && !MOB.has(open)) ? open : null;
+
+  // The figure on the desk. A new card first sends the old figure back into its card.
+  const [fig, setFig] = useState<Figure | null>(null);
+  const [seen, setSeen] = useState<CardRole | null>(null);
+  if (active !== seen) {
+    setSeen(active);
+    if (fig && !fig.leaving) setFig({ ...fig, leaving: true });
+    else if (!fig && active) setFig(figureFor(active));
+  }
+  const seenRef = useRef(seen);
+  const onLeft = useCallback(() => setFig(seenRef.current ? figureFor(seenRef.current) : null), []);
+  useEffect(() => {
+    seenRef.current = seen;
+  }, [seen]);
+  // If the 3D part never ran (no WebGL, failed to load) nothing reports back: don't wait forever.
+  useEffect(() => {
+    if (!fig?.leaving) return;
+    const t = setTimeout(onLeft, 2000);
+    return () => clearTimeout(t);
+  }, [fig, onLeft]);
+
+  // Click outside the hand or Esc closes the card.
+  useEffect(() => {
+    if (!open) return;
+    const el = scene.current;
+    const down = (e: PointerEvent) => {
+      if (el && !el.contains(e.target as Node)) setOpen(null);
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+    };
+    document.addEventListener("pointerdown", down);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", down);
+      document.removeEventListener("keydown", key);
+    };
+  }, [open]);
+
   // The fan tilts in 3D towards the mouse, as if the hand were held up to the lamp.
-  // GSAP owns only the fan's rotation (the cards' own lift and flip stay in CSS),
-  // and only with a real mouse and motion allowed.
+  // GSAP owns only the transform of a wrapper (.hand-tilt); the fan's own `translate`
+  // (sliding aside for a figure) and the cards' lift and flip stay in CSS. GSAP folds
+  // CSS `translate` into its transform, so the two must never share an element.
+  // Only with a real mouse and motion allowed.
   useGSAP(
     () => {
       const el = scene.current;
-      const fan = el?.querySelector<HTMLElement>(".hand");
+      const fan = el?.querySelector<HTMLElement>(".hand-tilt");
       if (!el || !fan) return;
       const mm = gsap.matchMedia();
       mm.add(MOTION.pointer, () => {
@@ -66,7 +112,7 @@ export function Hand({
   );
 
   return (
-    <div ref={scene} role="group" aria-label={label} className="stage hand-scene relative w-full select-none" data-night={night ? "" : undefined}>
+    <div ref={scene} role="group" aria-label={label} className="stage hand-scene relative w-full select-none" data-night={night ? "" : undefined} data-figure={fig && !fig.leaving ? (fig.side < 0 ? "left" : "right") : undefined}>
       <div className="hand-pool" aria-hidden />
 
       {/* Lamp, as on the table: shade, bulb, cone, and the pull cord */}
@@ -90,7 +136,8 @@ export function Hand({
       </div>
 
       {/* The hand */}
-      <ul className="hand" onMouseLeave={() => setOpen(null)}>
+      <div className="hand-tilt">
+      <ul className="hand">
         {ORDER.map((role, i) => {
           const r = byId[role];
           if (!r) return null;
@@ -119,6 +166,30 @@ export function Hand({
           );
         })}
       </ul>
+      </div>
+
+      {fig && (
+        <RoleFigure
+          key={fig.n}
+          role={fig.role}
+          side={fig.side}
+          leaving={fig.leaving}
+          onLeft={onLeft}
+          className={`hand-figure ${fig.side < 0 ? "hand-figure-left" : ""}`}
+        >
+          <span className="hand-figure-plate headline" data-leaving={fig.leaving ? "" : undefined}>
+            {byId[fig.role]?.name}
+          </span>
+        </RoleFigure>
+      )}
     </div>
   );
+}
+
+type Figure = { role: CardRole; side: -1 | 1; n: number; leaving: boolean };
+let figures = 0;
+/** Cards left of the middle send their figure to the left of the fan, the rest to the right. */
+function figureFor(role: CardRole): Figure {
+  figures += 1;
+  return { role, side: ORDER.indexOf(role) < 2 ? -1 : 1, n: figures, leaving: false };
 }

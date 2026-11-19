@@ -71,7 +71,7 @@ export function HostPanel({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-display text-2xl leading-tight font-medium tracking-wide whitespace-nowrap">{t.title}</h2>
+          <h2 className="headline text-2xl leading-tight tracking-wide whitespace-nowrap">{t.title}</h2>
           <p className="text-sm text-[var(--text-muted)] tabular-nums">{fmt(t.players, { n: players })}</p>
         </div>
         {onHide && (

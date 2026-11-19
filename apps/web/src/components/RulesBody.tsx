@@ -10,16 +10,25 @@ export function RulesBody({ rules }: { rules: RulesText }) {
     <div className="grid gap-8">
       <section aria-labelledby="rules-roles">
         <h3 id="rules-roles" className="font-display text-xl tracking-wide">{rules.rolesTitle}</h3>
-        <ul className="mt-3 grid grid-cols-1 gap-x-3 gap-y-3 min-[480px]:grid-cols-3 min-[480px]:gap-y-4 sm:grid-cols-5">
+        {/* A small row of all five cards; on a phone the descriptions follow as a list, so nothing scrolls sideways. */}
+        <ul className="mt-3 grid grid-cols-5 gap-2 sm:gap-4">
           {rules.roles.map((r) => (
-            <li key={r.id} className="flex items-center gap-3 min-[480px]:flex-col min-[480px]:items-stretch min-[480px]:gap-2">
-              <span className="relative block aspect-[5/7] w-[4.5rem] shrink-0 drop-shadow-[0_8px_10px_rgb(0_0_0/0.3)] min-[480px]:w-full">
+            <li key={r.id} className="flex flex-col items-center gap-2">
+              <span className="relative block aspect-[5/7] w-full max-w-[6.5rem] drop-shadow-[0_6px_8px_rgb(0_0_0/0.3)]">
                 <RoleCardFace role={r.id as CardRole} name={r.name} />
               </span>
-              <span className="text-sm leading-snug text-[var(--text-muted)]">{r.text}</span>
+              <span className="hidden text-center text-sm leading-snug text-[var(--text-muted)] sm:block">{r.text}</span>
             </li>
           ))}
         </ul>
+        <dl className="mt-3 grid gap-1.5 sm:hidden">
+          {rules.roles.map((r) => (
+            <div key={r.id} className="text-[0.95rem] leading-snug">
+              <dt className="inline font-display tracking-wide">{r.name}. </dt>
+              <dd className="inline text-[var(--text-muted)]">{r.text}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       <section aria-labelledby="rules-game">
