@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { MOTION, gsap, useGSAP } from "@/lib/motion";
 import { CardBack, RoleCardFace } from "../cards/RoleCardFace";
 import type { CardRole } from "../cards/RoleArt";
 import { usePhase } from "../Phase";
@@ -26,9 +27,46 @@ export function Hand({
   const night = phase === "night";
   const [open, setOpen] = useState<CardRole | null>(null);
   const byId = Object.fromEntries(roles.map((r) => [r.id, r]));
+  const scene = useRef<HTMLDivElement>(null);
+
+  // The fan tilts in 3D towards the mouse, as if the hand were held up to the lamp.
+  // GSAP owns only the fan's rotation (the cards' own lift and flip stay in CSS),
+  // and only with a real mouse and motion allowed.
+  useGSAP(
+    () => {
+      const el = scene.current;
+      const fan = el?.querySelector<HTMLElement>(".hand");
+      if (!el || !fan) return;
+      const mm = gsap.matchMedia();
+      mm.add(MOTION.pointer, () => {
+        const ry = gsap.quickTo(fan, "rotationY", { duration: 0.6, ease: "power3.out" });
+        const rx = gsap.quickTo(fan, "rotationX", { duration: 0.6, ease: "power3.out" });
+        const move = (e: PointerEvent) => {
+          const b = el.getBoundingClientRect();
+          const x = (e.clientX - b.left) / b.width - 0.5;
+          const y = (e.clientY - b.top) / b.height - 0.5;
+          ry(x * 18);
+          rx(-y * 10);
+        };
+        const leave = () => {
+          ry(0);
+          rx(0);
+        };
+        el.addEventListener("pointermove", move);
+        el.addEventListener("pointerleave", leave);
+        return () => {
+          el.removeEventListener("pointermove", move);
+          el.removeEventListener("pointerleave", leave);
+          gsap.set(fan, { clearProps: "transform" });
+        };
+      });
+      return () => mm.revert();
+    },
+    { scope: scene },
+  );
 
   return (
-    <div role="group" aria-label={label} className="stage hand-scene relative w-full select-none" data-night={night ? "" : undefined}>
+    <div ref={scene} role="group" aria-label={label} className="stage hand-scene relative w-full select-none" data-night={night ? "" : undefined}>
       <div className="hand-pool" aria-hidden />
 
       {/* Lamp, as on the table: shade, bulb, cone, and the pull cord */}

@@ -30,13 +30,24 @@ export function Modal({
     const d = ref.current;
     if (!d) return;
     const animate = window.matchMedia(MOTION.ok).matches;
-    if (open && !d.open) {
-      d.showModal();
-      if (animate) {
-        gsap.fromTo(d, { opacity: 0, y: 14, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.32, clearProps: "all" });
+    // One tween owns the dialog at a time: a fast open-then-close (or the reverse)
+    // must not leave two tweens fighting over opacity and transform.
+    gsap.killTweensOf(d);
+    if (open) {
+      if (!d.open) {
+        d.showModal();
+        if (!animate) return;
+        gsap.set(d, { opacity: 0, y: 14, scale: 0.97 });
+      } else if (!animate) {
+        return;
       }
+      // Also covers reopening while the close was still running: it rises back from where it is.
+      const tween = gsap.to(d, { opacity: 1, y: 0, scale: 1, duration: 0.32, clearProps: "all" });
+      return () => {
+        tween.kill();
+      };
     }
-    if (!open && d.open) {
+    if (d.open) {
       if (!animate) return d.close();
       const tween = gsap.to(d, {
         opacity: 0,
