@@ -51,7 +51,11 @@ export function PhaseBanner({
       {caption && (
         <p
           key={caption}
-          className="caption-in flex items-center gap-2 rounded-full border border-[var(--color-lamp)]/50 bg-black/30 px-3.5 py-1 font-display text-lg tracking-wide text-[var(--color-lamp)]"
+          className={`caption-in flex items-center gap-2 rounded-full border px-3.5 py-1 font-display text-lg tracking-wide ${
+            phase === "night"
+              ? "border-[var(--color-lamp)]/50 bg-black/30 text-[var(--color-lamp)]"
+              : "border-[var(--color-lamp)]/70 bg-[var(--color-lamp)]/25 text-[var(--text)]"
+          }`}
         >
           <span aria-hidden className="size-2 rounded-full bg-[var(--color-lamp)] shadow-[0_0_10px_var(--color-lamp)]" />
           {caption}

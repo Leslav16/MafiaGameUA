@@ -436,6 +436,7 @@ export class Room {
         break;
       case "nominate": {
         if (this.stage !== "speeches") throw new GameError("not_speeches");
+        if (this.round === "intro") throw new GameError("intro_no_votes");
         const seat = assertSeat(action.seat);
         const p = player(seat);
         const i = this.nominees.findIndex((n) => n.seat === seat);
@@ -565,7 +566,7 @@ export class Room {
   private startSpeeches(round: "intro" | "day", now: number) {
     this.stage = "speeches";
     this.round = round;
-    this.speakers = speakingOrder(this.aliveSeats(), round === "intro" ? 1 : this.day, SEAT_COUNT);
+    this.speakers = speakingOrder(this.aliveSeats(), round === "intro" ? 0 : this.day, SEAT_COUNT);
     this.speakerIndex = 0;
     this.nominees = [];
     this.voting = null;
@@ -639,8 +640,13 @@ export class Room {
           this.log.push({ day: this.day, kind: "killed", seat: killed });
           // Only a player voted out by the town gets a last word.
         } else this.log.push({ day: this.day, kind: "nobody_killed" });
-        return this.startSpeeches("day", now);
+        // The balagan: one minute when everyone still at the table may talk.
+        this.stage = "balagan";
+        this.restartTimer(now, true);
+        return;
       }
+      case "balagan":
+        return this.startSpeeches("day", now);
     }
   }
 
@@ -734,6 +740,23 @@ export class Room {
 
   /** A player removed mid-day leaves today's queue, nominations and vote. */
   private dropFromToday(seat: number, now: number) {
+    const v = this.voting;
+    if (this.stage === "voting" && v && v.candidates.includes(seat)) {
+      const at = v.candidates.indexOf(seat);
+      v.candidates.splice(at, 1);
+      delete v.votes[seat];
+      if (at < v.index) v.index -= 1;
+      if (v.candidates.length === 0) {
+        this.log.push({ day: this.day, kind: "nobody_out" });
+        this.startNight();
+        return;
+      }
+      // The last candidate takes every vote not cast, so their count is never typed in.
+      if (v.result || v.index >= v.candidates.length - 1) {
+        v.index = v.candidates.length - 1;
+        v.result = countVotes(v.candidates, v.votes, this.aliveSeats());
+      }
+    }
     const speaking = this.floorSeat === seat;
     if (this.stage === "speeches" || this.stage === "defence") {
       const i = this.speakers.indexOf(seat);

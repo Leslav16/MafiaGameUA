@@ -373,11 +373,42 @@ export function NowCard({
       body = (
         <>
           <Speaking {...speaking} nextLabel={last ? t.endRound : t.next} />
-          <Nominations view={view} act={act} t={t} />
+          {flow.round === "intro" ? (
+            <p className="text-sm text-[var(--text-muted)]">{t.introHint}</p>
+          ) : (
+            <Nominations view={view} act={act} t={t} />
+          )}
         </>
       );
       break;
     }
+    case "balagan":
+      title = t.balagan;
+      body = (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-end justify-between gap-2">
+            <p className="text-sm text-[var(--text-muted)]">{t.balaganHint}</p>
+            <span className="font-display text-4xl font-medium tabular-nums">{timerText}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={`${btn} ${plain}`}
+              onClick={() => act({ type: "timer", op: timerRunning ? "pause" : "start" })}
+            >
+              {timerRunning ? t.pause : t.resume}
+            </button>
+            <button type="button" className={`${btn} ${plain}`} onClick={() => act({ type: "timer", op: "restart" })}>
+              {t.restart}
+            </button>
+          </div>
+          <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "next" })}>
+            {t.endBalagan}
+            <PlayIcon className="size-4" />
+          </button>
+        </div>
+      );
+      break;
     case "defence": {
       title = t.defence;
       const last = flow.speakerIndex >= flow.speakers.length - 1;

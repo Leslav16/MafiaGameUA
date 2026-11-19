@@ -59,7 +59,7 @@ export function Hand({
           const down = night && !MOB.has(role);
           const reading = open === role && !down;
           return (
-            <li key={role} className="hand-slot" style={{ "--i": i - 2, zIndex: 3 - Math.abs(i - 2) } as React.CSSProperties}>
+            <li key={role} className="hand-slot" data-center={i === 2 ? "" : undefined} style={{ "--i": i - 2, zIndex: 3 - Math.abs(i - 2) } as React.CSSProperties}>
               <button
                 type="button"
                 className="hand-card"

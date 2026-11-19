@@ -76,7 +76,7 @@ export function NightFall({
           <path className="nf-filament" d="M72 160 q 4 -6 8 0 t 8 0" stroke="#ff9a3c" strokeWidth="1.6" fill="none" />
         </svg>
       </div>
-      <p className="nightfall-text relative font-display text-[clamp(2.5rem,7vw,6rem)] tracking-wide">
+      <p className="nightfall-text headline relative text-[clamp(2.2rem,6vw,5.4rem)]">
         {show.to === "night" ? nightText : dayText}
       </p>
     </div>

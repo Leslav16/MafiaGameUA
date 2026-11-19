@@ -149,12 +149,38 @@ test("only the speaker's mic is on; next passes the floor and restarts the minut
   assert.equal(room.view(host, 20_000).timer.endsAt, 80_000);
 });
 
-test("snake order: day d is opened by seat d, or the next living player; the previous opener speaks last", () => {
-  assert.deepEqual(speakingOrder([1, 2, 3, 4, 5], 1), [1, 2, 3, 4, 5]);
-  assert.deepEqual(speakingOrder([1, 2, 3, 4, 5], 2), [2, 3, 4, 5, 1]);
-  // Seat 3 is out on day 3: seat 4 opens and seat 2 closes.
-  assert.deepEqual(speakingOrder([1, 2, 4, 5, 6, 7, 8, 9, 10, 11], 3), [4, 5, 6, 7, 8, 9, 10, 11, 1, 2]);
-  assert.deepEqual(speakingOrder([1, 2, 3], 12), [1, 2, 3]);
+test("snake order: seat 1 opens the intro, day d is opened by seat d + 1 (or the next living player)", () => {
+  assert.deepEqual(speakingOrder([1, 2, 3, 4, 5], 0), [1, 2, 3, 4, 5], "intro");
+  assert.deepEqual(speakingOrder([1, 2, 3, 4, 5], 1), [2, 3, 4, 5, 1], "day 1: seat 1 speaks last");
+  assert.deepEqual(speakingOrder([1, 2, 3, 4, 5], 2), [3, 4, 5, 1, 2], "day 2: seats 1 and 2 speak last");
+  // Seat 3 is out on day 2: seat 4 opens and seat 2 closes.
+  assert.deepEqual(speakingOrder([1, 2, 4, 5, 6, 7, 8, 9, 10, 11], 2), [4, 5, 6, 7, 8, 9, 10, 11, 1, 2]);
+  assert.deepEqual(speakingOrder([1, 2, 3], 11), [1, 2, 3], "wraps round the 11 seats");
+});
+
+test("the intro round has no nominations: everyone introduces themselves, then the night", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  assert.throws(() => room.apply({ type: "nominate", seat: 4 }), /intro_no_votes/);
+});
+
+test("after the night comes the balagan: one minute when every living player may talk", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  toNight(room);
+  room.apply({ type: "nightPick", seat: 5 });
+  quietNight(room);
+  room.apply({ type: "next" }, 1_000);
+  const v = room.view(host, 1_000);
+  assert.equal(v.flow.stage, "balagan");
+  assert.equal(v.phase, "day");
+  assert.equal(v.floorSeat, null);
+  assert.equal(v.timer.endsAt, 61_000, "the minute runs");
+  assert.equal(room.mediaFor(1).mic, true);
+  assert.equal(room.mediaFor(5).mic, false, "the killed player stays quiet");
+  room.apply({ type: "next" });
+  assert.equal(flow(room).stage, "speeches");
+  assert.equal(flow(room).speakers[0], 2, "day 1 is opened by seat 2");
 });
 
 test("after the intro round with no nominations comes the night", () => {
@@ -170,8 +196,13 @@ test("after the intro round with no nominations comes the night", () => {
 
 // ---- nominations and voting ---------------------------------------------------------
 
+/** Plays the intro and a quiet first night, then day 1 speeches with these nominations. */
 function toVoting(room: Room, nominees: number[]) {
   room.apply({ type: "startGame" });
+  toNight(room);
+  quietNight(room);
+  room.apply({ type: "next" }); // morning -> balagan
+  room.apply({ type: "next" }); // balagan -> speeches
   for (const n of nominees) room.apply({ type: "nominate", seat: n });
   nextUntil(room, "defence");
   assert.deepEqual(flow(room).speakers, nominees);
@@ -185,7 +216,7 @@ test("nominations are kept in order and the nominees defend in that order", () =
   assert.deepEqual(v.flow.nominees, [7, 5, 4]);
   assert.ok(v.seats[6].nominated);
   assert.deepEqual(v.flow.voting!.candidates, [7, 5, 4]);
-  assert.deepEqual(v.flow.log[0], { day: 0, kind: "nominated", seat: 7, by: 1 });
+  assert.deepEqual(v.flow.log.find((e) => e.kind === "nominated"), { day: 1, kind: "nominated", seat: 7, by: 2 });
 });
 
 test("each player votes once, and votes not cast go to the last candidate", () => {
@@ -230,6 +261,19 @@ test("a tie sends only the tied candidates to a re-vote; a second tie keeps them
   assert.ok(room.view(host).seats.every((s) => s.alive));
 });
 
+test("a candidate removed during the vote leaves it; the last one left takes the votes", () => {
+  const room = fullRoom();
+  toVoting(room, [7, 5, 10]);
+  room.apply({ type: "vote", voter: 1 });
+  room.apply({ type: "kill", seat: 10 }); // e.g. a fourth foul
+  assert.deepEqual(flow(room).voting!.candidates, [7, 5]);
+  room.apply({ type: "next" }); // 5 is now the last candidate: counted at once
+  const result = flow(room).voting!.result!;
+  assert.equal(result.out, 5);
+  room.apply({ type: "kill", seat: 5 });
+  assert.equal(flow(room).voting!.result!.out, 7, "recounted without the removed player");
+});
+
 test("countVotes on its own", () => {
   assert.deepEqual(countVotes([7, 5], { 7: [1, 2] }, [1, 2, 3, 4, 5]), { tally: { 7: 2, 5: 3 }, out: 5, tied: [] });
   assert.deepEqual(countVotes([1, 7], { 1: [1, 2] }, [1, 2, 3, 4]), { tally: { 1: 2, 7: 2 }, out: null, tied: [1, 7] });
@@ -253,6 +297,8 @@ test("night: mafia shot, Don and Sheriff checks, Doctor heal; a healed player su
   assert.equal(flow(room).stage, "morning");
   assert.deepEqual(flow(room).morning, { killed: null });
   room.apply({ type: "next" });
+  assert.equal(flow(room).stage, "balagan");
+  room.apply({ type: "next" });
   const v = room.view({ kind: "player", seat: 1 });
   assert.equal(v.flow.stage, "speeches");
   assert.equal(v.day, 1);
@@ -264,14 +310,16 @@ test("a player shot and not healed is killed by the mafia with no last word, and
   const room = fullRoom();
   room.apply({ type: "startGame" });
   toNight(room);
-  room.apply({ type: "nightPick", seat: 1 });
+  room.apply({ type: "nightPick", seat: 2 });
   quietNight(room);
+  room.apply({ type: "next" });
   room.apply({ type: "next" });
   const v = room.view(host);
   assert.equal(v.flow.stage, "speeches");
   assert.equal(v.flow.lastWord, null);
-  assert.equal(v.seats[0].out, "killed");
-  assert.deepEqual(v.flow.speakers.slice(0, 2), [2, 3], "seat 1 is out, so seat 2 opens day 1");
+  assert.equal(v.seats[1].out, "killed");
+  assert.deepEqual(v.flow.speakers.slice(0, 2), [3, 4], "seat 2 is out, so seat 3 opens day 1");
+  assert.equal(v.flow.speakers.at(-1), 1, "seat 1 speaks last");
 });
 
 test("doctor rules: not the same player two nights running; himself at most twice", () => {

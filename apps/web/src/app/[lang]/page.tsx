@@ -30,9 +30,13 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
   return (
     <PhaseShell fit className="landing-bg">
       <header className="mx-auto flex w-full max-w-7xl shrink-0 items-center justify-between gap-4 px-4 py-3 sm:px-8">
-        <Link href={`/${lang}`} className="brand hidden items-center gap-2.5 font-display text-xl font-semibold tracking-wide sm:inline-flex">
+        <Link
+          href={`/${lang}`}
+          aria-label={dict.nav.home}
+          className="brand inline-flex shrink-0 items-center gap-2.5 font-display text-xl font-semibold tracking-wide"
+        >
           <span aria-hidden className="brand-mark">♠</span>
-          {dict.nav.home}
+          <span className="hidden sm:inline">{dict.nav.home}</span>
         </Link>
         <nav className="flex flex-1 items-center justify-between gap-3 whitespace-nowrap sm:flex-none sm:justify-end sm:gap-5">
           <ModalButton label={dict.hero.howTo} title={dict.hero.howTo} closeLabel={dict.rules.close} className={link}>
