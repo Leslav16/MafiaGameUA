@@ -64,7 +64,15 @@ export interface OwnNightMarks {
 
 export type MeView =
   | { kind: "host" }
-  | { kind: "player"; seat: number; role: Role | null; teammates: number[]; marks: OwnNightMarks | null }
+  | {
+      kind: "player";
+      seat: number;
+      role: Role | null;
+      teammates: number[];
+      marks: OwnNightMarks | null;
+      /** Only while this player's role is awake at night: their own pick. */
+      night: MyNightTurn | null;
+    }
   /** Watches the table without a seat: sees and hears the day, never roles or the night. */
   | { kind: "spectator"; name: string; wantsSeat: number | null };
 
@@ -153,6 +161,29 @@ export interface NightView {
   sheriffFoundMafia: boolean | null;
   /** Seats the Doctor may not heal tonight (healed last night; himself after two self-heals). */
   healBlocked: number[];
+  /** What the woken players picked themselves at the current step: player seat -> target seat. */
+  choices: Record<number, number>;
+  /**
+   * The pick that stands for the current step, ready for the host to confirm: the Don's pick for the
+   * mafia (or, with the Don out, the one number every living mafia agreed on); else the role's own pick.
+   */
+  suggested: number | null;
+}
+
+/**
+ * The night step on the screen of the player it belongs to (a living role holder whose role is awake):
+ * they pick whom to shoot, check or heal themselves. The host confirms.
+ */
+export interface MyNightTurn {
+  step: NightStep;
+  /** player seat -> target seat. Mafia see every mafia's pick; the others only their own. */
+  choices: Record<number, number>;
+  /** Mafia: the pick that stands now (the Don's, or the one all agreed on); null while undecided. */
+  agreed: number | null;
+  /** Don / Sheriff: the answer to their check, once they picked (Don: is it the Sheriff? Sheriff: is it mafia?). */
+  result: boolean | null;
+  /** Seats that can't be picked now (the Doctor's blocked heals; yourself for checks). */
+  blocked: number[];
 }
 
 export type LogKind =

@@ -1699,3 +1699,8 @@ dialog.modal {
     animation: none;
   }
 }
+
+/* A check's answer on the Don's or Sheriff's own screen (NightPanel.tsx): it turns over like a card. */
+.nt-answer {
+  transform-origin: 0 50%;
+}

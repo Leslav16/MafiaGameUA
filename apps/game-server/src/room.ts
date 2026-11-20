@@ -5,6 +5,7 @@ import {
   type HostAction,
   type LogEntry,
   type MeView,
+  type MyNightTurn,
   type MusicView,
   type NightStep,
   type OwnNightMarks,
@@ -128,6 +129,8 @@ interface NightState {
   awake: boolean;
   index: number;
   picks: Partial<Record<NightStep, number | null>>;
+  /** What the woken players picked themselves, per step: player seat -> target seat. */
+  choices: Partial<Record<NightStep, Record<number, number>>>;
 }
 
 export class Room {
@@ -841,13 +844,88 @@ export class Room {
     this.voting = null;
     this.nominees = [];
     // Every role is called each night, even one already out, so the table can't tell who is gone.
-    this.night = { steps: [...NIGHT_ORDER], awake: false, index: 0, picks: {} };
+    this.night = { steps: [...NIGHT_ORDER], awake: false, index: 0, picks: {}, choices: {} };
   }
 
   /** Whether the role acting at this night step is still in the game. */
   private stepRoleAlive(step: NightStep): boolean {
     for (const p of this.seats.values()) if (p.alive && (step === "mafia" ? isMafia(p.role) : p.role === step)) return true;
     return false;
+  }
+
+  /** Whether this player acts at this night step (the mafia step wakes the Don and the mafia together). */
+  private actsAt(seat: number, step: NightStep): boolean {
+    const p = this.seats.get(seat);
+    if (!p?.alive) return false;
+    return step === "mafia" ? isMafia(p.role) : p.role === step;
+  }
+
+  /** The current night step, if a role is awake. */
+  private get awakeStep(): NightStep | null {
+    const n = this.night;
+    if (this.stage !== "night" || !n || !n.awake) return null;
+    return n.steps[n.index] ?? null;
+  }
+
+  /** Seats this player can't pick at this step. */
+  private blockedFor(seat: number, step: NightStep): number[] {
+    if (step === "doctor") return healBlocked(this.seatOfRole("doctor"), this.doctor);
+    if (step === "don" || step === "sheriff") return [seat];
+    return [];
+  }
+
+  /**
+   * A woken player picks their own target: whom to shoot (mafia), check (Don, Sheriff) or heal (Doctor).
+   * Checks can't be changed once made (the answer shows at once); the others can until the host confirms.
+   */
+  nightChoose(viewer: Viewer, targetRaw: unknown): void {
+    if (viewer.kind !== "player") throw new GameError("not_a_player");
+    const step = this.awakeStep;
+    if (!step || !this.actsAt(viewer.seat, step)) throw new GameError("not_your_turn");
+    const target = assertSeat(targetRaw);
+    if (!this.seats.get(target)?.alive) throw new GameError("player_dead");
+    if (this.blockedFor(viewer.seat, step).includes(target)) throw new GameError(step === "doctor" ? "heal_blocked" : "invalid_seat");
+    const choices = (this.night!.choices[step] ??= {});
+    if ((step === "don" || step === "sheriff") && choices[viewer.seat] !== undefined) throw new GameError("already_checked");
+    choices[viewer.seat] = target;
+    this.lastActive = Date.now();
+  }
+
+  /**
+   * The pick that stands for this step. Mafia: the Don's pick comes first; with the Don out of the game,
+   * every living mafia must pick the same number. Others: the role holder's own pick.
+   */
+  private suggestedPick(step: NightStep): number | null {
+    const choices = this.night?.choices[step] ?? {};
+    if (step !== "mafia") {
+      const seat = this.seatOfRole(step);
+      return seat !== null ? (choices[seat] ?? null) : null;
+    }
+    const don = this.seatOfRole("don");
+    if (don !== null) return choices[don] ?? null;
+    const mafia = [...this.seats].filter(([, p]) => p.alive && isMafia(p.role)).map(([s]) => s);
+    const picks = mafia.map((s) => choices[s]);
+    if (picks.length === 0 || picks.some((x) => x === undefined)) return null;
+    return picks.every((x) => x === picks[0]) ? picks[0]! : null;
+  }
+
+  /** The player's own night turn, while their role is awake. */
+  private myNightTurn(seat: number): MyNightTurn | null {
+    const step = this.awakeStep;
+    if (!step || !this.actsAt(seat, step)) return null;
+    const all = this.night!.choices[step] ?? {};
+    const choices: Record<number, number> = {};
+    for (const [k, v] of Object.entries(all)) if (step === "mafia" || Number(k) === seat) choices[Number(k)] = v;
+    const mine = all[seat];
+    const target = mine !== undefined ? this.seats.get(mine)?.role : undefined;
+    return {
+      step,
+      choices,
+      agreed: step === "mafia" ? this.suggestedPick("mafia") : null,
+      result:
+        mine === undefined ? null : step === "don" ? target === "sheriff" : step === "sheriff" ? isMafia(target) : null,
+      blocked: this.blockedFor(seat, step),
+    };
   }
 
   private nightPick(seatRaw: unknown) {
@@ -1074,7 +1152,14 @@ export class Room {
       me = { kind: "spectator", name: w?.name ?? "", wantsSeat: w?.wantsSeat ?? null };
     }
     if (viewer.kind === "player") {
-      me = { kind: "player", seat: viewer.seat, role: own?.role ?? null, teammates, marks: this.ownMarks(viewer.seat) };
+      me = {
+        kind: "player",
+        seat: viewer.seat,
+        role: own?.role ?? null,
+        teammates,
+        marks: this.ownMarks(viewer.seat),
+        night: this.myNightTurn(viewer.seat),
+      };
     }
 
     const n = this.night;
@@ -1088,6 +1173,8 @@ export class Room {
             donFoundSheriff: n.picks.don != null ? this.seats.get(n.picks.don)?.role === "sheriff" : null,
             sheriffFoundMafia: n.picks.sheriff != null ? isMafia(this.seats.get(n.picks.sheriff)?.role) : null,
             healBlocked: healBlocked(this.seatOfRole("doctor"), this.doctor),
+            choices: { ...(n.awake && n.steps[n.index] ? (n.choices[n.steps[n.index]] ?? {}) : {}) },
+            suggested: n.awake && n.steps[n.index] ? this.suggestedPick(n.steps[n.index]) : null,
           }
         : null;
 

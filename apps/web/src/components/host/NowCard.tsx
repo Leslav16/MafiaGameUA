@@ -311,6 +311,23 @@ function Night({ view, act, t }: { view: RoomView; act: (a: HostAction) => void;
             {t.pickHint[step]} {t.awakeHint[step]}
           </p>
           {summary && <p className="text-sm">{summary}</p>}
+          {Object.keys(n.choices).length > 0 && (
+            <p className="text-sm">
+              {fmt(t.choicesSoFar, {
+                list: Object.entries(n.choices)
+                  .map(([by, target]) => `${by} → ${target}`)
+                  .join(", "),
+              })}
+            </p>
+          )}
+          {n.suggested !== null ? (
+            <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "nightPick", seat: n.suggested })}>
+              {fmt(t.confirmPick, { n: n.suggested })}
+              <PlayIcon className="size-4" />
+            </button>
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">{t.noChoiceYet}</p>
+          )}
           <SeatPad
             seats={view.seats}
             label={t.steps[step]}

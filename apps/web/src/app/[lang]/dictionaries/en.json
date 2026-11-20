@@ -273,6 +273,38 @@
         "title": "The town stands",
         "line": "Case closed. The Family is finished."
       }
+    },
+    "night": {
+      "title": {
+        "mafia": "The mafia's target",
+        "don": "The Don looks for the Sheriff",
+        "sheriff": "The Sheriff's check",
+        "doctor": "Whom the Doctor saves"
+      },
+      "rule": {
+        "mafia": "Pick whom to kill. The Don's pick stands; with the Don out, every mafia must pick the same number.",
+        "don": "Pick whom to check. Only you see the answer, and the pick cannot be changed.",
+        "sheriff": "Pick whom to check. Only you see the answer, and the pick cannot be changed.",
+        "doctor": "Pick whom to heal tonight. Not the same player two nights running; yourself at most twice a game."
+      },
+      "hint": {
+        "mafia": "Pick a target.",
+        "don": "Pick whom to check.",
+        "sheriff": "Pick whom to check.",
+        "doctor": "Pick whom to heal."
+      },
+      "agreed": "The mafia picked №{n}. The host will confirm.",
+      "waitDon": "Waiting for the Don's pick: it stands.",
+      "notAgreed": "The mafia have not agreed yet: one number is needed.",
+      "yours": "Your pick: №{n}.",
+      "waitHost": "The host will confirm.",
+      "from": "picked by: {list}",
+      "don": "Don",
+      "isSheriff": "Sheriff!",
+      "notSheriff": "Not the Sheriff",
+      "isMafia": "Mafia!",
+      "notMafia": "Civilian",
+      "blocked": "Not tonight"
     }
   },
   "rules": {
@@ -408,7 +440,9 @@
       "not_a_player": "Only players at the table vote.",
       "spectator_gone": "That spectator has left.",
       "music_too_big": "The file is too big (25 MB at most).",
-      "music_not_audio": "That is not an audio file."
+      "music_not_audio": "That is not an audio file.",
+      "not_your_turn": "It is not your turn.",
+      "already_checked": "You already checked someone tonight."
     },
     "sound": "Turn on sound",
     "rename": "Change name",
@@ -428,7 +462,9 @@
     "returnTitle": "Coming back after your connection dropped?",
     "returnHint": "Pick your seat. You come in as a spectator, and the host returns you to the table, with your role, in one press.",
     "returnAskButton": "Ask to return",
-    "returnWaiting": "The host sees your request. Please wait: they will return you to seat {n}."
+    "returnWaiting": "The host sees your request. Please wait: they will return you to seat {n}.",
+    "roomPasswordOptional": "Room password for players (optional)",
+    "roomPasswordOptionalHint": "If set, players and spectators type it to come in. You can change it later in the host panel."
   },
   "hostPanel": {
     "title": "Host controls",
@@ -648,7 +684,11 @@
     "seatSpectatorQuestion": "Seat {name} in seat {n}?",
     "seatHere": "Seat",
     "seatSpectatorHint": "For a player who can't come back by themselves. The seat keeps its role and state.",
-    "seatSpectatorOnline": "The player in this seat is connected now: they will be let go."
+    "seatSpectatorOnline": "The player in this seat is connected now: they will be let go.",
+    "playersChose": "Players picked: №{n}",
+    "confirmPick": "Confirm №{n}",
+    "choicesSoFar": "Picks: {list}",
+    "noChoiceYet": "The players are still picking. You can also pick yourself."
   },
   "locations": [
     {

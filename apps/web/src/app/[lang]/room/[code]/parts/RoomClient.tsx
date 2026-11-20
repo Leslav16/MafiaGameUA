@@ -25,6 +25,7 @@ import { RoomGrid } from "@/components/room/RoomGrid";
 import { CheckIcon, CopyIcon, PanelIcon, SpeakerIcon } from "@/components/room/icons";
 import { Timer } from "@/components/room/Timer";
 import { VotePanel } from "@/components/room/VotePanel";
+import { NightPanel } from "@/components/room/NightPanel";
 import type { SeatInfo } from "@/components/room/types";
 import { useTileOrder } from "@/lib/room/useTileOrder";
 import { JoinForm } from "./JoinForm";
@@ -227,6 +228,9 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
     // The vote on everyone's own screen (the host keeps the count in the panel).
     const voting = view.flow.stage === "voting" ? view.flow.voting : null;
     const showVote = !!voting && !isHost;
+    // At night, the woken player picks their own target (the host confirms).
+    const myTurn = view.me.kind === "player" ? view.me.night : null;
+    const showSide = showVote || !!myTurn;
     const alive = view.seats.filter((s) => s.name && s.alive);
     const votePanel = (compact: boolean) =>
       voting && (
@@ -243,6 +247,24 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
           labels={ui}
           compact={compact}
         />
+      );
+    const sidePanel = (compact: boolean) =>
+      myTurn && mySeat !== null ? (
+        <NightPanel
+          turn={myTurn}
+          mySeat={mySeat}
+          donSeat={view.seats.find((s) => s.role === "don" && s.alive)?.seat ?? null}
+          aliveSeats={alive.map((s) => s.seat)}
+          names={Object.fromEntries(view.seats.map((s) => [s.seat, s.name ?? ""]))}
+          onPick={async (seat) => {
+            const err = await room.nightChoose(seat);
+            return err ? errorText(err) : null;
+          }}
+          labels={ui}
+          compact={compact}
+        />
+      ) : (
+        votePanel(compact)
       );
 
     body = (
@@ -300,7 +322,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         </div>
 
         <div
-          className={`grid items-start gap-3 py-2 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : showVote ? "lg:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}
+          className={`grid items-start gap-3 py-2 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : showSide ? "lg:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}
         >
           <div className="room-video">
           {/* 11 players, then the host on tile 12, set apart */}
@@ -322,7 +344,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                       isHost && s.name ? () => setSelectedSeat(selectedSeat === s.seat ? null : s.seat) : undefined
                     }
                     video={
-                      s.alive && (!isHost || view.phase !== "night" || awakeNow(s.role, view.flow.nightStep)) ? (
+                      (s.alive || view.flow.lastWord?.seat === s.seat) && (!isHost || view.phase !== "night" || awakeNow(s.role, view.flow.nightStep)) ? (
                         <VideoView track={m.video} mirror={m.isLocal && prefs.mirror} label={s.name ?? ""} />
                       ) : undefined
                     }
@@ -359,7 +381,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
 
           </div>
 
-          {showVote && <div className="hidden lg:block lg:h-full lg:min-h-0">{votePanel(false)}</div>}
+          {showSide && <div className="hidden lg:block lg:h-full lg:min-h-0">{sidePanel(false)}</div>}
 
           {isHost && !panelHidden && (
             <div className="room-panel lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
@@ -383,7 +405,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         </div>
 
         <div className="sticky bottom-0 bg-[var(--surface)] phase-transition">
-          {showVote && <div className="px-1 pt-2 lg:hidden">{votePanel(true)}</div>}
+          {showSide && <div className="px-1 pt-2 lg:hidden">{sidePanel(true)}</div>}
           <RoomDock
             effectsSupported={effectsOk}
             initialDevices={{ cameraId: prefs.cameraId, micId: prefs.micId }}

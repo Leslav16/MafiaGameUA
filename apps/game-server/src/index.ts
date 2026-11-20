@@ -10,7 +10,7 @@ import type { HostAction } from "./types.js";
  * and tells LiveKit which cameras and mics are allowed.
  *
  * Socket events (all take an ack callback):
- *   room:create { name, password, isPublic? } -> { ok, code, key }
+ *   room:create { name, password, isPublic?, roomPassword? } -> { ok, code, key }
  *   room:peek   { code }                      -> { ok, freeSeats, phase, locked, returnable: {seat, name}[] }
  *   room:join   { code, key }                 (come back with a saved key)
  *             | { code, name, seat?, roomPassword? } (join as a player: first free seat, or "4. Name" / seat if free;
@@ -23,6 +23,7 @@ import type { HostAction } from "./types.js";
  *   host:action HostAction                    -> { ok }
  *   me:rename   { name }                      -> { ok }   (own name; "4. Name" also moves a player to seat 4)
  *   me:seat     { seat }                      -> { ok }   (a player moves to a free seat number)
+ *   me:night    { seat }                      -> { ok }   (a woken player picks whom to shoot, check or heal)
  *   me:token    {}                            -> { ok, as, token, livekitUrl } (a fresh video pass: after the video
  *                                               connection dropped, or after the host seated this spectator)
  * HTTP PUT /music/<code> (header x-room-key: the host's key, x-file-name) uploads the night music;
@@ -251,11 +252,13 @@ io.on("connection", (socket) => {
 
   socket.on("room:create", (payload: unknown, ack?: Ack) => {
     try {
-      const { name, password, isPublic } = (payload ?? {}) as Record<string, unknown>;
+      const { name, password, isPublic, roomPassword } = (payload ?? {}) as Record<string, unknown>;
       if (typeof password !== "string" || password.length < 4 || password.length > 64) {
         throw new GameError("invalid_password");
       }
       const room = new Room(newCode(), cleanName(name), password, isPublic === true);
+      // Optional: lock the room for players and spectators from the start.
+      if (typeof roomPassword === "string" && roomPassword.trim()) room.apply({ type: "setRoomPassword", password: roomPassword });
       rooms.set(room.code, room);
       ack?.({ ok: true, code: room.code, key: room.hostKey });
     } catch (err) {
@@ -382,6 +385,19 @@ io.on("connection", (socket) => {
     if (!ctx) return ack?.({ ok: false, error: "not_joined" });
     try {
       ctx.room.castVote(ctx.viewer, (payload as { candidate?: unknown })?.candidate ?? null);
+      ack?.({ ok: true });
+      await publish(ctx.room);
+    } catch (err) {
+      fail(ack, err);
+    }
+  });
+
+  // A woken player picks their night target themselves (the host confirms).
+  socket.on("me:night", async (payload: unknown, ack?: Ack) => {
+    const ctx = viewerOf(socket);
+    if (!ctx) return ack?.({ ok: false, error: "not_joined" });
+    try {
+      ctx.room.nightChoose(ctx.viewer, (payload as { seat?: unknown })?.seat);
       ack?.({ ok: true });
       await publish(ctx.room);
     } catch (err) {

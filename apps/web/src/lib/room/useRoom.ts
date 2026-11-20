@@ -399,6 +399,19 @@ export function useRoom(code: string) {
     [],
   );
 
+  /** A woken player's own night pick: whom to shoot, check or heal. Resolves to an error code or null. */
+  const nightChoose = useCallback(
+    (seat: number) =>
+      new Promise<string | null>((resolve) => {
+        const socket = socketRef.current;
+        if (!socket?.connected) return resolve("offline");
+        socket.emit("me:night", { seat }, (r: { ok: boolean; error?: string }) =>
+          resolve(r.ok ? null : (r.error ?? "server_error")),
+        );
+      }),
+    [],
+  );
+
   // What this browser may publish right now.
   const isHost = view?.me.kind === "host";
   const mySeat = view?.me.kind === "player" ? view.seats[view.me.seat - 1] : undefined;
@@ -504,6 +517,7 @@ export function useRoom(code: string) {
       rename,
       chooseSeat,
       vote,
+      nightChoose,
       media,
       wantCam,
       wantMic,
@@ -515,7 +529,7 @@ export function useRoom(code: string) {
       startAudio,
       switchDevice,
     }),
-    [status, locked, gameOn, returnable, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, uploadMusic, freeSeats, hostAction, rename, chooseSeat, vote, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
+    [status, locked, gameOn, returnable, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, uploadMusic, freeSeats, hostAction, rename, chooseSeat, vote, nightChoose, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
   );
 }
 
