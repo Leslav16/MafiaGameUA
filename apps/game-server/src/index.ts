@@ -71,6 +71,21 @@ function clientAddress(socket: Socket): string {
   return first || socket.handshake.address;
 }
 
+/** At most this many rooms at once on the whole server (MAX_ROOMS in .env changes it). */
+const MAX_ROOMS = Math.max(1, Number(process.env.MAX_ROOMS) || 30);
+/** One address can open at most this many rooms in 10 minutes. */
+const ROOMS_PER_ADDRESS = 5;
+const roomsOpened = new Map<string, number[]>();
+
+/** Counts a new room for this address; false when the address or the server is over its limit. */
+function mayOpenRoom(address: string, now = Date.now()): boolean {
+  if (rooms.size >= MAX_ROOMS) return false;
+  const recent = (roomsOpened.get(address) ?? []).filter((t) => t > now - PASSWORD_WINDOW_MS);
+  if (recent.length >= ROOMS_PER_ADDRESS) return false;
+  roomsOpened.set(address, [...recent, now]);
+  return true;
+}
+
 function passwordFailed(id: string, now = Date.now()) {
   passwordFails.set(id, [...(passwordFails.get(id) ?? []), now]);
 }
@@ -256,6 +271,7 @@ io.on("connection", (socket) => {
       if (typeof password !== "string" || password.length < 4 || password.length > 64) {
         throw new GameError("invalid_password");
       }
+      if (!mayOpenRoom(clientAddress(socket))) throw new GameError("too_many_rooms");
       const room = new Room(newCode(), cleanName(name), password, isPublic === true);
       // Optional: lock the room for players and spectators from the start.
       if (typeof roomPassword === "string" && roomPassword.trim()) room.apply({ type: "setRoomPassword", password: roomPassword });
@@ -461,6 +477,13 @@ setInterval(() => {
     const hostGone = room.hostLeftAt !== null && now - room.hostLeftAt > HOST_GONE_MS;
     const idle = room.lastActive < now - ROOM_IDLE_MS && room.hostConnected === 0;
     if (hostGone || idle) void closeRoom(room);
+  }
+  // Old entries of the wrong-password and new-room counters, so they never grow without end.
+  for (const id of [...passwordFails.keys()]) passwordBlocked(id, now);
+  for (const [address, times] of roomsOpened) {
+    const recent = times.filter((t) => t > now - PASSWORD_WINDOW_MS);
+    if (recent.length) roomsOpened.set(address, recent);
+    else roomsOpened.delete(address);
   }
 }, 60 * 1000).unref();
 

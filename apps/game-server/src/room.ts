@@ -189,7 +189,11 @@ export class Room {
   /** The room password players and spectators type; always true while the room is open. */
   checkJoinPassword(password: unknown): boolean {
     if (this.joinPassword === null) return true;
-    return typeof password === "string" && password.trim() === this.joinPassword;
+    if (typeof password !== "string") return false;
+    // Compared in constant time, so the answer's speed gives nothing away.
+    const a = Buffer.from(password.trim());
+    const b = Buffer.from(this.joinPassword);
+    return a.length === b.length && timingSafeEqual(a, b);
   }
 
   /** Shown in the home page list: public, and the host is here or left less than `graceMs` ago (a reload). */

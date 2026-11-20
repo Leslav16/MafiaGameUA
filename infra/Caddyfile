@@ -8,6 +8,16 @@
 }
 
 :8080 {
+	# Basic browser protections for every page: no sniffing file types, no framing the site
+	# inside other sites, camera and mic only for this site itself.
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=()"
+		-Server
+	}
+
 	@game path /socket.io/* /rooms /health /music/*
 	handle @game {
 		reverse_proxy game-server:4000

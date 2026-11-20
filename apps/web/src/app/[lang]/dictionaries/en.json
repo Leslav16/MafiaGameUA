@@ -442,6 +442,7 @@
       "night_not_done": "Finish the night steps first.",
       "heal_blocked": "The Doctor can't heal this player tonight.",
       "too_many_tries": "Too many wrong tries. Wait 10 minutes.",
+      "too_many_rooms": "Too many rooms are open right now. Try again a little later.",
       "too_many_spectators": "Too many spectators, no room left.",
       "room_locked": "This room is locked. Ask the host for the password.",
       "wrong_room_password": "Wrong room password.",
