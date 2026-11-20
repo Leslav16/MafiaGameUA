@@ -32,6 +32,13 @@ export interface ParticipantMedia {
   isLocal: boolean;
 }
 
+interface PeekReply {
+  ok: boolean;
+  locked?: boolean;
+  phase?: string;
+  returnable?: { seat: number; name: string }[];
+}
+
 interface JoinReply {
   ok: boolean;
   error?: string;
@@ -97,6 +104,9 @@ export function useRoom(code: string) {
   const [status, setStatus] = useState<RoomStatus>("connecting");
   /** The host locked the room: joining needs the room password. */
   const [locked, setLocked] = useState(false);
+  /** Before joining, while a game is on: seats whose player is away, so a player who dropped can ask to return. */
+  const [returnable, setReturnable] = useState<{ seat: number; name: string }[]>([]);
+  const [gameOn, setGameOn] = useState(false);
   const [view, setView] = useState<RoomView | null>(null);
   const [clockOffset, setClockOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -109,11 +119,27 @@ export function useRoom(code: string) {
 
   const socketRef = useRef<Socket | null>(null);
   const videoRef = useRef<VideoRoom | null>(null);
+  /** Who the video pass was made for: when the host seats this spectator, the pass must change. */
+  const videoAs = useRef<JoinReply["as"]>(undefined);
+  /** Video rooms this page closed on purpose (no reconnecting after those). */
+  const leaving = useRef(new WeakSet<VideoRoom>());
+  const retry = useRef<{ timer: ReturnType<typeof setTimeout> | null; tries: number; busy: boolean }>({ timer: null, tries: 0, busy: false });
+  const reconnectRef = useRef<() => void>(() => {});
+
+  const dropVideo = useCallback(() => {
+    const room = videoRef.current;
+    videoRef.current = null;
+    if (room) {
+      leaving.current.add(room);
+      void room.disconnect();
+    }
+  }, []);
 
   const connectVideo = useCallback(async (reply: JoinReply, isHost: boolean) => {
     if (!reply.token || videoRef.current) return;
     const room = createVideoRoom(isHost);
     videoRef.current = room;
+    videoAs.current = reply.as;
     const bump = () => setMediaVersion((v) => v + 1);
     room
       .on(RoomEvent.ConnectionStateChanged, (s) => {
@@ -135,17 +161,51 @@ export function useRoom(code: string) {
       .on(RoomEvent.Disconnected, () => {
         if (videoRef.current === room) videoRef.current = null;
         bump();
+        // The internet blinked (or the host gave this browser a seat): get a fresh pass and come back.
+        if (!leaving.current.has(room)) reconnectRef.current();
       });
     try {
       await room.connect(livekitUrl(reply.livekitUrl), reply.token);
       setAudioBlocked(!room.canPlaybackAudio);
+      setError(null);
+      retry.current.tries = 0;
       socketRef.current?.emit("video:connected");
     } catch (err) {
       console.error("video connect failed", err);
       if (videoRef.current === room) videoRef.current = null;
       setError("video_failed");
+      if (!leaving.current.has(room)) reconnectRef.current();
     }
   }, []);
+
+  /**
+   * Asks the game server for a new video pass and reconnects with it. Retries with growing pauses
+   * (2, 4, 8 ... up to 15 seconds) for as long as the page stays in the room.
+   */
+  const reconnectVideo = useCallback(
+    (now = false) => {
+      const r = retry.current;
+      if (r.timer) clearTimeout(r.timer);
+      const wait = now ? 0 : Math.min(15000, 2000 * 2 ** r.tries);
+      r.timer = setTimeout(() => {
+        r.timer = null;
+        const socket = socketRef.current;
+        if (!socket?.connected || r.busy) return; // the socket's own reconnect joins again with the saved key
+        r.busy = true;
+        r.tries += 1;
+        socket.emit("me:token", {}, (reply: JoinReply) => {
+          r.busy = false;
+          if (!reply.ok || !reply.token) return;
+          dropVideo();
+          void connectVideo(reply, reply.as === "host");
+        });
+      }, wait);
+    },
+    [connectVideo, dropVideo],
+  );
+  useEffect(() => {
+    reconnectRef.current = () => reconnectVideo();
+  }, [reconnectVideo]);
 
   const handleJoinReply = useCallback(
     (reply: JoinReply) => {
@@ -167,13 +227,17 @@ export function useRoom(code: string) {
     socket.on("connect", () => {
       const key = loadKey(code);
       if (!key) {
-        socket.emit("room:peek", { code }, (r: { ok: boolean; locked?: boolean }) => {
+        socket.emit("room:peek", { code }, (r: PeekReply) => {
           setLocked(!!r.locked);
+          setGameOn(!!r.phase && r.phase !== "lobby" && r.phase !== "ended");
+          setReturnable(r.returnable ?? []);
           setStatus(r.ok ? "join" : "not_found");
         });
         return;
       }
       socket.emit("room:join", { code, key }, (reply: JoinReply) => {
+        // Coming back after the internet dropped: the old video pass may be stale, so start fresh.
+        if (reply.ok && videoRef.current && videoRef.current.state !== ConnectionState.Connected) dropVideo();
         if (handleJoinReply(reply)) return;
         if (reply.error === "room_not_found") return setStatus("not_found");
         saveKey(code, null); // the seat is gone (removed by the host): join again
@@ -188,21 +252,35 @@ export function useRoom(code: string) {
     socket.on("room:closed", () => {
       saveKey(code, null);
       setStatus("closed");
-      void videoRef.current?.disconnect();
+      dropVideo();
     });
     socket.on("room:kicked", () => {
       saveKey(code, null);
       setStatus("kicked");
-      void videoRef.current?.disconnect();
+      dropVideo();
     });
 
+    const r = retry.current;
     return () => {
+      if (r.timer) clearTimeout(r.timer);
+      r.timer = null;
       socket.disconnect();
       socketRef.current = null;
-      void videoRef.current?.disconnect();
-      videoRef.current = null;
+      dropVideo();
     };
-  }, [code, handleJoinReply]);
+  }, [code, handleJoinReply, dropVideo]);
+
+  // The host seated this spectator (or the seat got a new video identity): reconnect with a player's pass.
+  const meKind = view?.me.kind;
+  const myId = view?.me.kind === "player" ? view.seats[view.me.seat - 1]?.identity : null;
+  useEffect(() => {
+    const room = videoRef.current;
+    if (!meKind || status !== "joined" || !videoAs.current) return;
+    const stale =
+      meKind !== videoAs.current ||
+      (!!myId && !!room && videoState === ConnectionState.Connected && room.localParticipant.identity !== myId);
+    if (stale) reconnectVideo(true);
+  }, [meKind, myId, status, videoState, reconnectVideo]);
 
   const emitJoin = useCallback(
     (payload: Record<string, unknown>) =>
@@ -224,10 +302,40 @@ export function useRoom(code: string) {
     [emitJoin],
   );
   const joinAsHost = useCallback((password: string) => emitJoin({ host: true, password }), [emitJoin]);
-  /** Watches the table without a seat (allowed at any time). */
+  /**
+   * Watches the table without a seat (allowed at any time). `returnTo`: the seat this person sat in
+   * before their connection dropped; the host sees the request and can return them to it.
+   */
   const joinAsSpectator = useCallback(
-    (name: string, roomPassword?: string) => emitJoin({ name, watch: true, ...(roomPassword ? { roomPassword } : {}) }),
+    (name: string, roomPassword?: string, returnTo?: number) =>
+      emitJoin({ name, watch: true, ...(roomPassword ? { roomPassword } : {}), ...(returnTo ? { returnTo } : {}) }),
     [emitJoin],
+  );
+
+  /** Host: uploads the night music. Resolves to an error code or null. */
+  const uploadMusic = useCallback(
+    async (file: File) => {
+      const key = loadKey(code);
+      if (!key) return "not_host";
+      try {
+        const res = await fetch(`${gameServerUrl()}/music/${code}`, {
+          method: "PUT",
+          body: file,
+          headers: {
+            "content-type": file.type || "audio/mpeg",
+            "x-room-key": key,
+            "x-file-name": encodeURIComponent(file.name),
+          },
+        });
+        if (res.ok) return null;
+        if (res.status === 413) return "music_too_big";
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        return body.error ?? "server_error";
+      } catch {
+        return "offline";
+      }
+    },
+    [code],
   );
 
   const freeSeats = useCallback(
@@ -285,6 +393,19 @@ export function useRoom(code: string) {
         const socket = socketRef.current;
         if (!socket?.connected) return resolve("offline");
         socket.emit("me:vote", { candidate }, (r: { ok: boolean; error?: string }) =>
+          resolve(r.ok ? null : (r.error ?? "server_error")),
+        );
+      }),
+    [],
+  );
+
+  /** A woken player's own night pick: whom to shoot, check or heal. Resolves to an error code or null. */
+  const nightChoose = useCallback(
+    (seat: number) =>
+      new Promise<string | null>((resolve) => {
+        const socket = socketRef.current;
+        if (!socket?.connected) return resolve("offline");
+        socket.emit("me:night", { seat }, (r: { ok: boolean; error?: string }) =>
           resolve(r.ok ? null : (r.error ?? "server_error")),
         );
       }),
@@ -380,6 +501,8 @@ export function useRoom(code: string) {
     () => ({
       status,
       locked,
+      gameOn,
+      returnable,
       view,
       error,
       mediaError,
@@ -388,11 +511,13 @@ export function useRoom(code: string) {
       joinAsPlayer,
       joinAsHost,
       joinAsSpectator,
+      uploadMusic,
       freeSeats,
       hostAction,
       rename,
       chooseSeat,
       vote,
+      nightChoose,
       media,
       wantCam,
       wantMic,
@@ -404,7 +529,7 @@ export function useRoom(code: string) {
       startAudio,
       switchDevice,
     }),
-    [status, locked, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, freeSeats, hostAction, rename, chooseSeat, vote, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
+    [status, locked, gameOn, returnable, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, uploadMusic, freeSeats, hostAction, rename, chooseSeat, vote, nightChoose, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
   );
 }
 

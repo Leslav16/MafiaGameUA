@@ -15,6 +15,8 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  /** Optional password players and spectators type to come in (the host can change it later in the panel). */
+  const [roomPassword, setRoomPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
       if (err) setError((t.errors as Record<string, string>)[err] ?? t.errors.server_error);
     };
     socket.on("connect_error", () => done("offline"));
-    socket.emit("room:create", { name, password, isPublic }, (r: { ok: boolean; code?: string; key?: string; error?: string }) => {
+    socket.emit("room:create", { name, password, isPublic, roomPassword: roomPassword.trim() || undefined }, (r: { ok: boolean; code?: string; key?: string; error?: string }) => {
       if (!r.ok || !r.code || !r.key) return done(r.error ?? "server_error");
       saveKey(r.code, r.key);
       done(null);
@@ -58,6 +60,17 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
           required
         />
         <span className="text-base text-[var(--text-muted)]">{t.passwordHint}</span>
+      </label>
+      <label className="flex flex-col gap-1.5">
+        <span className="font-display text-xl tracking-wide">{t.roomPasswordOptional}</span>
+        <input
+          className={input}
+          value={roomPassword}
+          maxLength={32}
+          autoComplete="off"
+          onChange={(e) => setRoomPassword(e.target.value)}
+        />
+        <span className="text-base text-[var(--text-muted)]">{t.roomPasswordOptionalHint}</span>
       </label>
       <label className="flex cursor-pointer items-start gap-3">
         <input

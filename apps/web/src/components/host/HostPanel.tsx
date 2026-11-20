@@ -8,7 +8,9 @@ import { GameLog } from "./GameLog";
 import { downloadGameRecord, gameRecordText } from "./gameRecord";
 import { LocationPicker } from "./LocationPicker";
 import { locationName, type Location } from "../locations";
+import { NightMusic } from "./NightMusic";
 import { NowCard } from "./NowCard";
+import { ReturnRequests } from "./ReturnRequests";
 import { RoomSettings } from "./RoomSettings";
 import { SelectedPlayer } from "./SelectedPlayer";
 import { btn, plain, type HostDict, type RoleNames } from "./ui";
@@ -44,6 +46,9 @@ export function HostPanel({
   t,
   roles,
   locations,
+  uploadMusic,
+  musicPreview,
+  onMusicPreview,
 }: {
   view: RoomView;
   act: (a: HostAction) => void;
@@ -57,6 +62,10 @@ export function HostPanel({
   roles: RoleNames;
   /** Ready places for the introduction round. */
   locations: Location[];
+  /** Uploads the night music file; resolves to an error code or null. */
+  uploadMusic: (file: File) => Promise<string | null>;
+  musicPreview: boolean;
+  onMusicPreview: (on: boolean) => void;
 }) {
   const players = view.seats.filter((s) => s.name).length;
   const selected = selectedSeat ? view.seats[selectedSeat - 1] : null;
@@ -86,13 +95,23 @@ export function HostPanel({
         )}
       </div>
 
+      <ReturnRequests view={view} act={act} t={t} />
+
       <NowCard view={view} act={act} timerText={timerText} timerRunning={timerRunning} t={t} />
 
       {view.flow.stage === "lobby" && <LocationPicker value={view.location} locations={locations} act={act} t={t} />}
 
       <Fold title={t.player} open={!!selected?.name}>
         {selected?.name ? (
-          <SelectedPlayer seat={selected} inGame={inGame} act={act} onClose={onDeselect} t={t} roles={roles} />
+          <SelectedPlayer
+            seat={selected}
+            inGame={inGame}
+            act={act}
+            onClose={onDeselect}
+            t={t}
+            roles={roles}
+            spectators={view.spectators.list ?? []}
+          />
         ) : (
           <p className="text-sm text-[var(--text-muted)]">{t.pickPlayer}</p>
         )}
@@ -133,6 +152,16 @@ export function HostPanel({
           </div>
         </Fold>
       )}
+      <Fold title={t.music}>
+        <NightMusic
+          music={view.music}
+          act={act}
+          upload={uploadMusic}
+          preview={musicPreview}
+          onPreview={onMusicPreview}
+          t={t}
+        />
+      </Fold>
       <Fold title={t.roomSettings}>
         <RoomSettings view={view} act={act} t={t} />
       </Fold>

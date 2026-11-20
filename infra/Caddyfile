@@ -1,5 +1,5 @@
 # The gateway: one address for the whole game, so it can go through one internet link.
-#   /socket.io/*, /rooms, /health  -> game server
+#   /socket.io/*, /rooms, /health, /music/*  -> game server (/music: the host's night music)
 #   /rtc*                          -> LiveKit signalling (the video itself goes straight to LiveKit)
 #   everything else                -> the website
 {
@@ -8,7 +8,7 @@
 }
 
 :8080 {
-	@game path /socket.io/* /rooms /health
+	@game path /socket.io/* /rooms /health /music/*
 	handle @game {
 		reverse_proxy game-server:4000
 	}

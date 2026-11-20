@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { randomInt } from "node:crypto";
 import { Server, type Socket } from "socket.io";
 import { applyMedia, checkVideoServer, closeVideoRoom, joinToken, LIVEKIT_PUBLIC_URL, removeFromVideo } from "./livekit.js";
-import { GameError, Room, cleanName, type MediaPermission, type Viewer } from "./room.js";
+import { GameError, MAX_MUSIC_BYTES, Room, cleanName, type MediaPermission, type Viewer } from "./room.js";
 import type { HostAction } from "./types.js";
 
 /**
@@ -10,18 +10,24 @@ import type { HostAction } from "./types.js";
  * and tells LiveKit which cameras and mics are allowed.
  *
  * Socket events (all take an ack callback):
- *   room:create { name, password, isPublic? } -> { ok, code, key }
- *   room:peek   { code }                      -> { ok, freeSeats, phase, locked }
+ *   room:create { name, password, isPublic?, roomPassword? } -> { ok, code, key }
+ *   room:peek   { code }                      -> { ok, freeSeats, phase, locked, returnable: {seat, name}[] }
  *   room:join   { code, key }                 (come back with a saved key)
  *             | { code, name, seat?, roomPassword? } (join as a player: first free seat, or "4. Name" / seat if free;
  *                                               roomPassword when the host locked the room, also for watching)
  *             | { code, host: true, password } (join as the host)
- *             | { code, name, watch: true }   (watch without a seat, at any time)
+ *             | { code, name, watch: true, returnTo? } (watch without a seat, at any time; returnTo = seat
+ *                                               number of a player who lost their connection, asking the host to return them)
  *                                            -> { ok, key, as: "host" | "player" | "spectator", token, livekitUrl }
  * HTTP GET /rooms -> RoomSummary[] of the tables their hosts made public (for the home page).
  *   host:action HostAction                    -> { ok }
  *   me:rename   { name }                      -> { ok }   (own name; "4. Name" also moves a player to seat 4)
  *   me:seat     { seat }                      -> { ok }   (a player moves to a free seat number)
+ *   me:night    { seat }                      -> { ok }   (a woken player picks whom to shoot, check or heal)
+ *   me:token    {}                            -> { ok, as, token, livekitUrl } (a fresh video pass: after the video
+ *                                               connection dropped, or after the host seated this spectator)
+ * HTTP PUT /music/<code> (header x-room-key: the host's key, x-file-name) uploads the night music;
+ *      GET /music/<code>?v=<version> plays it (with byte ranges, for Safari).
  * The server pushes "room:closed" when the host closes the room (or it is dropped): go back home.
  * The server pushes "room:state" (RoomView) to each socket whenever anything changes.
  */
@@ -69,7 +75,85 @@ function passwordFailed(id: string, now = Date.now()) {
   passwordFails.set(id, [...(passwordFails.get(id) ?? []), now]);
 }
 
+/** Reads a request body up to `limit` bytes; null if it is bigger. */
+function readBody(req: import("node:http").IncomingMessage, limit: number): Promise<Buffer | null> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let over = false;
+    req.on("data", (c: Buffer) => {
+      size += c.length;
+      if (size > limit) over = true;
+      else chunks.push(c);
+    });
+    req.on("end", () => resolve(over ? null : Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
+const MUSIC_CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, PUT, OPTIONS",
+  "access-control-allow-headers": "content-type, x-room-key, x-file-name, range",
+  "access-control-expose-headers": "content-length, content-range, accept-ranges",
+};
+
+/** The host's night music: the host uploads one file per room; every browser in the room plays it. */
+async function handleMusic(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, code: string) {
+  const room = rooms.get(code);
+  if (req.method === "OPTIONS") return res.writeHead(204, MUSIC_CORS).end();
+  if (!room) return res.writeHead(404, MUSIC_CORS).end();
+
+  if (req.method === "PUT") {
+    if (room.resolveKey(req.headers["x-room-key"]).kind !== "host") return res.writeHead(403, MUSIC_CORS).end();
+    const body = await readBody(req, MAX_MUSIC_BYTES);
+    const reply = (status: number, payload: Record<string, unknown>) =>
+      res.writeHead(status, { ...MUSIC_CORS, "content-type": "application/json" }).end(JSON.stringify(payload));
+    if (!body) return reply(413, { ok: false, error: "music_too_big" });
+    let name = "music";
+    try {
+      name = decodeURIComponent(String(req.headers["x-file-name"] ?? "music"));
+    } catch {}
+    try {
+      room.setMusic(name, String(req.headers["content-type"] ?? "").split(";")[0].trim().toLowerCase(), body);
+    } catch (err) {
+      return reply(400, { ok: false, error: err instanceof GameError ? err.message : "server_error" });
+    }
+    reply(200, { ok: true });
+    return void publish(room);
+  }
+
+  if (req.method === "GET" || req.method === "HEAD") {
+    const music = room.getMusic();
+    if (!music) return res.writeHead(404, MUSIC_CORS).end();
+    const total = music.data.length;
+    const head = { ...MUSIC_CORS, "content-type": music.type, "accept-ranges": "bytes", "cache-control": "private, max-age=86400" };
+    const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ""));
+    if (range && (range[1] || range[2])) {
+      let start = range[1] ? Number(range[1]) : total - Number(range[2]);
+      let end = range[1] && range[2] ? Number(range[2]) : total - 1;
+      start = Math.max(0, start);
+      end = Math.min(total - 1, end);
+      if (start > end) return res.writeHead(416, { ...head, "content-range": `bytes */${total}` }).end();
+      res.writeHead(206, { ...head, "content-length": end - start + 1, "content-range": `bytes ${start}-${end}/${total}` });
+      return res.end(req.method === "HEAD" ? undefined : music.data.subarray(start, end + 1));
+    }
+    res.writeHead(200, { ...head, "content-length": total });
+    return res.end(req.method === "HEAD" ? undefined : music.data);
+  }
+  res.writeHead(405, MUSIC_CORS).end();
+}
+
 const http = createServer((req, res) => {
+  const music = /^\/music\/([a-z0-9]{1,16})(?:\?.*)?$/.exec(req.url ?? "");
+  if (music) {
+    handleMusic(req, res, music[1]).catch((err) => {
+      console.error(err);
+      if (!res.headersSent) res.writeHead(500, MUSIC_CORS);
+      res.end();
+    });
+    return;
+  }
   if (req.url === "/rooms" && req.method === "GET") {
     const list = [...rooms.values()]
       .filter((r) => r.listed(Date.now(), HOST_GRACE_MS))
@@ -168,11 +252,13 @@ io.on("connection", (socket) => {
 
   socket.on("room:create", (payload: unknown, ack?: Ack) => {
     try {
-      const { name, password, isPublic } = (payload ?? {}) as Record<string, unknown>;
+      const { name, password, isPublic, roomPassword } = (payload ?? {}) as Record<string, unknown>;
       if (typeof password !== "string" || password.length < 4 || password.length > 64) {
         throw new GameError("invalid_password");
       }
       const room = new Room(newCode(), cleanName(name), password, isPublic === true);
+      // Optional: lock the room for players and spectators from the start.
+      if (typeof roomPassword === "string" && roomPassword.trim()) room.apply({ type: "setRoomPassword", password: roomPassword });
       rooms.set(room.code, room);
       ack?.({ ok: true, code: room.code, key: room.hostKey });
     } catch (err) {
@@ -185,7 +271,14 @@ io.on("connection", (socket) => {
     const room = typeof code === "string" ? rooms.get(code) : undefined;
     if (!room) return ack?.({ ok: false, error: "room_not_found" });
     const view = room.view({ kind: "nobody" });
-    ack?.({ ok: true, freeSeats: room.freeSeats(), phase: view.phase, hostName: room.hostName, locked: room.locked });
+    ack?.({
+      ok: true,
+      freeSeats: room.freeSeats(),
+      phase: view.phase,
+      hostName: room.hostName,
+      locked: room.locked,
+      returnable: room.returnableSeats(),
+    });
   });
 
   socket.on("room:join", async (payload: unknown, ack?: Ack) => {
@@ -215,7 +308,7 @@ io.on("connection", (socket) => {
         if (typeof p.roomPassword === "string" && p.roomPassword) passwordFailed(tries);
         throw new GameError(p.roomPassword ? "wrong_room_password" : "room_locked");
       } else if (p.watch === true) {
-        key = room.addSpectator(p.name).key;
+        key = room.addSpectator(p.name, p.returnTo).key;
       } else {
         key = room.takeSeat(p.seat, p.name).key;
       }
@@ -299,6 +392,19 @@ io.on("connection", (socket) => {
     }
   });
 
+  // A woken player picks their night target themselves (the host confirms).
+  socket.on("me:night", async (payload: unknown, ack?: Ack) => {
+    const ctx = viewerOf(socket);
+    if (!ctx) return ack?.({ ok: false, error: "not_joined" });
+    try {
+      ctx.room.nightChoose(ctx.viewer, (payload as { seat?: unknown })?.seat);
+      ack?.({ ok: true });
+      await publish(ctx.room);
+    } catch (err) {
+      fail(ack, err);
+    }
+  });
+
   socket.on("me:seat", async (payload: unknown, ack?: Ack) => {
     const ctx = viewerOf(socket);
     if (!ctx) return ack?.({ ok: false, error: "not_joined" });
@@ -306,6 +412,26 @@ io.on("connection", (socket) => {
       ctx.room.chooseSeat(ctx.viewer, (payload as { seat?: unknown })?.seat);
       ack?.({ ok: true });
       await publish(ctx.room);
+    } catch (err) {
+      fail(ack, err);
+    }
+  });
+
+  // A fresh video pass for whoever this browser is now (the video dropped, or the host seated this spectator).
+  socket.on("me:token", async (_payload: unknown, ack?: Ack) => {
+    const ctx = viewerOf(socket);
+    if (!ctx || ctx.viewer.kind === "nobody") return ack?.({ ok: false, error: "not_joined" });
+    try {
+      const who = ctx.room.identityOf(ctx.viewer);
+      if (!who) throw new GameError("not_joined");
+      const v = ctx.viewer;
+      const token = await joinToken(
+        ctx.room.code,
+        who.identity,
+        who.name,
+        v.kind === "host" ? "host" : v.kind === "spectator" ? "spectator" : ctx.room.mediaFor(v.seat),
+      );
+      ack?.({ ok: true, as: v.kind, token, livekitUrl: LIVEKIT_PUBLIC_URL });
     } catch (err) {
       fail(ack, err);
     }

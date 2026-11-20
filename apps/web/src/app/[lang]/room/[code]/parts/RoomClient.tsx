@@ -13,7 +13,9 @@ import { RulesBody } from "@/components/RulesBody";
 import { PhaseBanner } from "@/components/room/PhaseBanner";
 import { PlayerTile } from "@/components/room/PlayerTile";
 import { NightFall } from "@/components/room/NightFall";
-import { useNarrator, useShotSound } from "@/components/room/useTableEffects";
+import { useShotSound } from "@/components/room/useTableEffects";
+import { useNightMusic } from "@/components/room/useNightMusic";
+import { Verdict } from "@/components/room/Verdict";
 import { SpectatorsButton } from "@/components/room/SpectatorsButton";
 import { locationName } from "@/components/locations";
 import { useCameraEffect, useEffectsSupported } from "@/components/room/useCameraEffect";
@@ -23,6 +25,7 @@ import { RoomGrid } from "@/components/room/RoomGrid";
 import { CheckIcon, CopyIcon, PanelIcon, SpeakerIcon } from "@/components/room/icons";
 import { Timer } from "@/components/room/Timer";
 import { VotePanel } from "@/components/room/VotePanel";
+import { NightPanel } from "@/components/room/NightPanel";
 import type { SeatInfo } from "@/components/room/types";
 import { useTileOrder } from "@/lib/room/useTileOrder";
 import { JoinForm } from "./JoinForm";
@@ -127,7 +130,6 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
   const room = useRoom(code);
   const [panelHidden, setPanelHidden] = useState(false);
   useShotSound(room.view?.flow.log);
-  useNarrator(room.view?.flow.stage, room.view?.flow.nightStep, lang);
   const isHostView = room.view?.me.kind === "host";
   const mySeatView = room.view?.me.kind === "player" ? room.view.me.seat : null;
   const tiles = useTileOrder(code, {
@@ -136,6 +138,18 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
     locked: room.view?.phase !== "lobby",
   });
   const prefs = usePrefs();
+  const [musicPreview, setMusicPreview] = useState(false);
+  const hostId = room.view?.host.identity;
+  const hostNow = room.media(hostId);
+  const stageNow = room.view?.flow.stage;
+  useNightMusic({
+    code,
+    music: room.view?.music,
+    mode: stageNow === "night" ? "night" : stageNow === "morning" ? "morning" : "off",
+    ownVolume: prefs.music,
+    hostSpeaking: hostNow.speaking && hostNow.micOn,
+    preview: musicPreview && room.view?.me.kind === "host",
+  });
   const effectsOk = useEffectsSupported();
   const myIdentity =
     room.view?.me.kind === "host"
@@ -214,6 +228,9 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
     // The vote on everyone's own screen (the host keeps the count in the panel).
     const voting = view.flow.stage === "voting" ? view.flow.voting : null;
     const showVote = !!voting && !isHost;
+    // At night, the woken player picks their own target (the host confirms).
+    const myTurn = view.me.kind === "player" ? view.me.night : null;
+    const showSide = showVote || !!myTurn;
     const alive = view.seats.filter((s) => s.name && s.alive);
     const votePanel = (compact: boolean) =>
       voting && (
@@ -231,10 +248,29 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
           compact={compact}
         />
       );
+    const sidePanel = (compact: boolean) =>
+      myTurn && mySeat !== null ? (
+        <NightPanel
+          turn={myTurn}
+          mySeat={mySeat}
+          donSeat={view.seats.find((s) => s.role === "don" && s.alive)?.seat ?? null}
+          aliveSeats={alive.map((s) => s.seat)}
+          names={Object.fromEntries(view.seats.map((s) => [s.seat, s.name ?? ""]))}
+          onPick={async (seat) => {
+            const err = await room.nightChoose(seat);
+            return err ? errorText(err) : null;
+          }}
+          labels={ui}
+          compact={compact}
+        />
+      ) : (
+        votePanel(compact)
+      );
 
     body = (
       <div className="flex w-full flex-col lg:h-dvh">
         <NightFall phase={view.phase} nightText={ui.nightFalls} dayText={ui.dayBreaks} />
+        <Verdict phase={view.phase} winner={view.winner} words={ui.verdict} closeLabel={ui.close} />
         <PhaseBanner
           phase={view.phase}
           labels={ui}
@@ -268,6 +304,11 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
               {[...problems.map(errorText), actionError].filter(Boolean).join(" ")}
             </div>
           )}
+          {view.me.kind === "spectator" && view.me.wantsSeat !== null && (
+            <p role="status" className="rounded-md border border-[var(--color-lamp)] bg-[var(--color-lamp)]/10 px-3 py-2">
+              {fmt(t.returnWaiting, { n: view.me.wantsSeat })}
+            </p>
+          )}
           {room.audioBlocked && (
             <button
               type="button"
@@ -281,7 +322,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         </div>
 
         <div
-          className={`grid items-start gap-3 py-2 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : showVote ? "lg:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}
+          className={`grid items-start gap-3 py-2 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : showSide ? "lg:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}
         >
           <div className="room-video">
           {/* 11 players, then the host on tile 12, set apart */}
@@ -303,7 +344,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                       isHost && s.name ? () => setSelectedSeat(selectedSeat === s.seat ? null : s.seat) : undefined
                     }
                     video={
-                      s.alive && (!isHost || view.phase !== "night" || awakeNow(s.role, view.flow.nightStep)) ? (
+                      (s.alive || view.flow.lastWord?.seat === s.seat) && (!isHost || view.phase !== "night" || awakeNow(s.role, view.flow.nightStep)) ? (
                         <VideoView track={m.video} mirror={m.isLocal && prefs.mirror} label={s.name ?? ""} />
                       ) : undefined
                     }
@@ -340,7 +381,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
 
           </div>
 
-          {showVote && <div className="hidden lg:block lg:h-full lg:min-h-0">{votePanel(false)}</div>}
+          {showSide && <div className="hidden lg:block lg:h-full lg:min-h-0">{sidePanel(false)}</div>}
 
           {isHost && !panelHidden && (
             <div className="room-panel lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
@@ -355,13 +396,16 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                 t={dict.hostPanel}
                 roles={t.roles}
                 locations={dict.locations}
+                uploadMusic={room.uploadMusic}
+                musicPreview={musicPreview}
+                onMusicPreview={setMusicPreview}
               />
             </div>
           )}
         </div>
 
         <div className="sticky bottom-0 bg-[var(--surface)] phase-transition">
-          {showVote && <div className="px-1 pt-2 lg:hidden">{votePanel(true)}</div>}
+          {showSide && <div className="px-1 pt-2 lg:hidden">{sidePanel(true)}</div>}
           <RoomDock
             effectsSupported={effectsOk}
             initialDevices={{ cameraId: prefs.cameraId, micId: prefs.micId }}

@@ -64,15 +64,38 @@ export interface OwnNightMarks {
 
 export type MeView =
   | { kind: "host" }
-  | { kind: "player"; seat: number; role: Role | null; teammates: number[]; marks: OwnNightMarks | null }
+  | {
+      kind: "player";
+      seat: number;
+      role: Role | null;
+      teammates: number[];
+      marks: OwnNightMarks | null;
+      /** Only while this player's role is awake at night: their own pick. */
+      night: MyNightTurn | null;
+    }
   /** Watches the table without a seat: sees and hears the day, never roles or the night. */
-  | { kind: "spectator"; name: string };
+  | { kind: "spectator"; name: string; wantsSeat: number | null };
 
 /** People watching without a seat. They take no tile; the room shows a small count and a popup of names. */
 export interface SpectatorsView {
   count: number;
   /** Names of those online now. */
   names: string[];
+  /**
+   * Host only: who is watching now, so the host can seat them. `wantsSeat` is set when the spectator
+   * says they were sitting there and lost their connection (they ask to come back to their own seat).
+   */
+  list?: { id: string; name: string; wantsSeat: number | null }[];
+}
+
+/** The host's night music: fades in when the night falls and out towards the morning. */
+export interface MusicView {
+  /** Changes with every new upload; the file is at GET /music/<code>?v=<version>. */
+  version: number;
+  /** The file's name, as the host's computer called it. */
+  name: string;
+  /** Table volume the host set, 0..1. Each browser multiplies it by its own setting. */
+  volume: number;
 }
 
 /** One open table, for the list on the home page (only tables the host made public). */
@@ -138,6 +161,29 @@ export interface NightView {
   sheriffFoundMafia: boolean | null;
   /** Seats the Doctor may not heal tonight (healed last night; himself after two self-heals). */
   healBlocked: number[];
+  /** What the woken players picked themselves at the current step: player seat -> target seat. */
+  choices: Record<number, number>;
+  /**
+   * The pick that stands for the current step, ready for the host to confirm: the Don's pick for the
+   * mafia (or, with the Don out, the one number every living mafia agreed on); else the role's own pick.
+   */
+  suggested: number | null;
+}
+
+/**
+ * The night step on the screen of the player it belongs to (a living role holder whose role is awake):
+ * they pick whom to shoot, check or heal themselves. The host confirms.
+ */
+export interface MyNightTurn {
+  step: NightStep;
+  /** player seat -> target seat. Mafia see every mafia's pick; the others only their own. */
+  choices: Record<number, number>;
+  /** Mafia: the pick that stands now (the Don's, or the one all agreed on); null while undecided. */
+  agreed: number | null;
+  /** Don / Sheriff: the answer to their check, once they picked (Don: is it the Sheriff? Sheriff: is it mafia?). */
+  result: boolean | null;
+  /** Seats that can't be picked now (the Doctor's blocked heals; yourself for checks). */
+  blocked: number[];
 }
 
 export type LogKind =
@@ -218,6 +264,8 @@ export interface RoomView {
   isPublic: boolean;
   /** Joining needs the room password. */
   locked: boolean;
+  /** The host's night music, or null when there is none. */
+  music: MusicView | null;
   /** Host only: the room password, to share with the players. */
   roomPassword?: string;
   /** Server clock when this view was sent, to correct for clock differences. */
@@ -257,5 +305,16 @@ export type HostAction =
   | { type: "setRoomPassword"; password: string | null }
   /** Close the room for good: everyone is sent back to the home page. Handled by the server, not Room.apply. */
   | { type: "closeRoom" }
+  /**
+   * Seat someone who is watching: a player who lost their connection and can't come back by
+   * themselves, or a stand-in. Mid-game the seat keeps its role and state; the old device is let go.
+   * Before the game, only a free seat.
+   */
+  | { type: "seatSpectator"; spectator: string; seat: number }
+  /** Turn down a spectator's request to come back to a seat. */
+  | { type: "dismissReturn"; spectator: string }
+  /** Table volume of the night music, 0..1. (The file itself is uploaded over HTTP: PUT /music/<code>.) */
+  | { type: "musicVolume"; volume: number }
+  | { type: "clearMusic" }
   | { type: "endGame"; winner: Winner }
   | { type: "newGame" };

@@ -5,6 +5,8 @@ import {
   type HostAction,
   type LogEntry,
   type MeView,
+  type MyNightTurn,
+  type MusicView,
   type NightStep,
   type OwnNightMarks,
   type OutReason,
@@ -59,7 +61,22 @@ interface Spectator {
   identity: string;
   name: string;
   connected: number;
+  /** The seat they say they sat in before their connection dropped (asking the host to return them). */
+  wantsSeat: number | null;
 }
+
+/** The host's night music file, kept in memory only (gone when the game server restarts). */
+export interface MusicFile {
+  version: number;
+  name: string;
+  type: string;
+  data: Buffer;
+}
+
+/** Big enough for a long track in good quality, small enough for every player to download quickly. */
+export const MAX_MUSIC_BYTES = 25 * 1024 * 1024;
+/** Starting table volume: quiet enough to talk over. */
+export const DEFAULT_MUSIC_VOLUME = 0.4;
 
 /** Enough for a full table of friends watching; keeps the video server's load sane. */
 export const MAX_SPECTATORS = 40;
@@ -112,6 +129,8 @@ interface NightState {
   awake: boolean;
   index: number;
   picks: Partial<Record<NightStep, number | null>>;
+  /** What the woken players picked themselves, per step: player seat -> target seat. */
+  choices: Partial<Record<NightStep, Record<number, number>>>;
 }
 
 export class Room {
@@ -133,6 +152,9 @@ export class Room {
   /** Where the introduction round is set: "loc:<id>" or the host's own words. */
   private location: string | null = null;
   private readonly banned = new Set<string>();
+  private music: MusicFile | null = null;
+  private musicVolume = DEFAULT_MUSIC_VOLUME;
+  private musicVersion = 0;
   private winner: Winner | null = null;
   private rolesDealt = false;
   private timer = { durationMs: SPEECH_SECONDS * 1000, remainingMs: SPEECH_SECONDS * 1000, endsAt: null as number | null };
@@ -214,8 +236,9 @@ export class Room {
   }
 
   /** Someone who only watches: allowed at any time, takes no seat, never sees roles or the night. */
-  addSpectator(nameRaw: unknown): { key: string; identity: string } {
+  addSpectator(nameRaw: unknown, wantsSeatRaw?: unknown): { key: string; identity: string } {
     const name = cleanName(nameRaw);
+    const wantsSeat = wantsSeatRaw === undefined || wantsSeatRaw === null ? null : this.returnableSeat(wantsSeatRaw);
     // Spectators who left make room for new ones; only those still watching count towards the limit.
     if (this.spectators.size >= MAX_SPECTATORS) {
       for (const [key, w] of this.spectators) if (w.connected === 0) this.spectators.delete(key);
@@ -223,9 +246,46 @@ export class Room {
     if (this.spectators.size >= MAX_SPECTATORS) throw new GameError("too_many_spectators");
     const key = newId(18);
     const identity = `w-${newId(6)}`;
-    this.spectators.set(key, { identity, name, connected: 0 });
+    this.spectators.set(key, { identity, name, connected: 0, wantsSeat });
     this.lastActive = Date.now();
     return { key, identity };
+  }
+
+  /** A seat someone may ask to come back to: the game is on and a (non-bot) player sits there. */
+  private returnableSeat(seatRaw: unknown): number {
+    const seat = assertSeat(seatRaw);
+    if (this.stage === "lobby") throw new GameError("not_started");
+    const p = this.seats.get(seat);
+    if (!p || p.bot) throw new GameError("seat_empty");
+    return seat;
+  }
+
+  /** Seats whose player is away right now: shown on the join form, so a player who dropped can ask to return. */
+  returnableSeats(): { seat: number; name: string }[] {
+    if (this.stage === "lobby") return [];
+    return [...this.seats]
+      .filter(([, p]) => !p.bot && p.connected === 0)
+      .map(([seat, p]) => ({ seat, name: p.name }))
+      .sort((a, b) => a.seat - b.seat);
+  }
+
+  // ---- night music --------------------------------------------------------
+
+  /** The host uploads a new track (replaces the old one). */
+  setMusic(name: string, type: string, data: Buffer): void {
+    if (data.length === 0 || data.length > MAX_MUSIC_BYTES) throw new GameError("music_too_big");
+    if (!/^(audio\/[\w.+-]+|application\/ogg)$/.test(type)) throw new GameError("music_not_audio");
+    this.musicVersion += 1;
+    this.music = { version: this.musicVersion, name: name.replace(/\s+/g, " ").trim().slice(0, 80) || "music", type, data };
+    this.lastActive = Date.now();
+  }
+
+  getMusic(): MusicFile | null {
+    return this.music;
+  }
+
+  private get musicView(): MusicView | null {
+    return this.music ? { version: this.music.version, name: this.music.name, volume: this.musicVolume } : null;
   }
 
   /** Who a saved key belongs to, for coming back after a page reload. */
@@ -577,6 +637,23 @@ export class Room {
         else throw new GameError("invalid_password");
         break;
       }
+      case "seatSpectator":
+        removed.push(...this.seatSpectator(action.spectator, action.seat));
+        break;
+      case "dismissReturn": {
+        const found = this.spectatorById(action.spectator);
+        if (found) found[1].wantsSeat = null;
+        break;
+      }
+      case "musicVolume": {
+        const v = action.volume;
+        if (typeof v !== "number" || !Number.isFinite(v)) throw new GameError("invalid_action");
+        this.musicVolume = Math.min(1, Math.max(0, v));
+        break;
+      }
+      case "clearMusic":
+        this.music = null;
+        break;
       case "endGame":
         if (action.winner !== "town" && action.winner !== "mafia") throw new GameError("invalid_action");
         this.stage = "ended";
@@ -590,6 +667,55 @@ export class Room {
         throw new GameError("invalid_action");
     }
     return { removed };
+  }
+
+  private spectatorById(id: unknown): [string, Spectator] | null {
+    for (const entry of this.spectators) if (entry[1].identity === id) return entry;
+    return null;
+  }
+
+  /**
+   * Puts a spectator in a seat. Mid-game the seat keeps everything (role, alive, fouls); only the
+   * person behind it changes: the spectator's key now opens the seat, the old key stops working,
+   * and the seat gets a fresh video identity. Returns the video identities to drop (the old seat's
+   * and the spectator's), so both browsers reconnect with what they are now.
+   */
+  private seatSpectator(spectatorId: unknown, seatRaw: unknown): string[] {
+    const found = this.spectatorById(spectatorId);
+    if (!found) throw new GameError("spectator_gone");
+    const [key, w] = found;
+    const seat = assertSeat(seatRaw);
+    const old = this.seats.get(seat);
+    const removed = [w.identity];
+    if (this.stage === "lobby") {
+      if (old) throw new GameError("seat_taken");
+      this.seats.set(seat, {
+        identity: `p-${newId(6)}`,
+        key,
+        name: w.name,
+        connected: w.connected,
+        bot: false,
+        alive: true,
+        out: null,
+        fouls: 0,
+        role: null,
+        hostCamOff: false,
+        hostMicOff: false,
+      });
+    } else {
+      if (!old) throw new GameError("seat_empty");
+      this.banned.add(old.key);
+      removed.push(old.identity);
+      old.key = key;
+      old.identity = `p-${newId(6)}`;
+      old.name = w.name;
+      old.connected = w.connected;
+      old.bot = false;
+    }
+    this.spectators.delete(key);
+    // Nobody else waits for this seat any more.
+    for (const other of this.spectators.values()) if (other.wantsSeat === seat) other.wantsSeat = null;
+    return removed;
   }
 
   // ---- the flow ----------------------------------------------------------
@@ -718,13 +844,88 @@ export class Room {
     this.voting = null;
     this.nominees = [];
     // Every role is called each night, even one already out, so the table can't tell who is gone.
-    this.night = { steps: [...NIGHT_ORDER], awake: false, index: 0, picks: {} };
+    this.night = { steps: [...NIGHT_ORDER], awake: false, index: 0, picks: {}, choices: {} };
   }
 
   /** Whether the role acting at this night step is still in the game. */
   private stepRoleAlive(step: NightStep): boolean {
     for (const p of this.seats.values()) if (p.alive && (step === "mafia" ? isMafia(p.role) : p.role === step)) return true;
     return false;
+  }
+
+  /** Whether this player acts at this night step (the mafia step wakes the Don and the mafia together). */
+  private actsAt(seat: number, step: NightStep): boolean {
+    const p = this.seats.get(seat);
+    if (!p?.alive) return false;
+    return step === "mafia" ? isMafia(p.role) : p.role === step;
+  }
+
+  /** The current night step, if a role is awake. */
+  private get awakeStep(): NightStep | null {
+    const n = this.night;
+    if (this.stage !== "night" || !n || !n.awake) return null;
+    return n.steps[n.index] ?? null;
+  }
+
+  /** Seats this player can't pick at this step. */
+  private blockedFor(seat: number, step: NightStep): number[] {
+    if (step === "doctor") return healBlocked(this.seatOfRole("doctor"), this.doctor);
+    if (step === "don" || step === "sheriff") return [seat];
+    return [];
+  }
+
+  /**
+   * A woken player picks their own target: whom to shoot (mafia), check (Don, Sheriff) or heal (Doctor).
+   * Checks can't be changed once made (the answer shows at once); the others can until the host confirms.
+   */
+  nightChoose(viewer: Viewer, targetRaw: unknown): void {
+    if (viewer.kind !== "player") throw new GameError("not_a_player");
+    const step = this.awakeStep;
+    if (!step || !this.actsAt(viewer.seat, step)) throw new GameError("not_your_turn");
+    const target = assertSeat(targetRaw);
+    if (!this.seats.get(target)?.alive) throw new GameError("player_dead");
+    if (this.blockedFor(viewer.seat, step).includes(target)) throw new GameError(step === "doctor" ? "heal_blocked" : "invalid_seat");
+    const choices = (this.night!.choices[step] ??= {});
+    if ((step === "don" || step === "sheriff") && choices[viewer.seat] !== undefined) throw new GameError("already_checked");
+    choices[viewer.seat] = target;
+    this.lastActive = Date.now();
+  }
+
+  /**
+   * The pick that stands for this step. Mafia: the Don's pick comes first; with the Don out of the game,
+   * every living mafia must pick the same number. Others: the role holder's own pick.
+   */
+  private suggestedPick(step: NightStep): number | null {
+    const choices = this.night?.choices[step] ?? {};
+    if (step !== "mafia") {
+      const seat = this.seatOfRole(step);
+      return seat !== null ? (choices[seat] ?? null) : null;
+    }
+    const don = this.seatOfRole("don");
+    if (don !== null) return choices[don] ?? null;
+    const mafia = [...this.seats].filter(([, p]) => p.alive && isMafia(p.role)).map(([s]) => s);
+    const picks = mafia.map((s) => choices[s]);
+    if (picks.length === 0 || picks.some((x) => x === undefined)) return null;
+    return picks.every((x) => x === picks[0]) ? picks[0]! : null;
+  }
+
+  /** The player's own night turn, while their role is awake. */
+  private myNightTurn(seat: number): MyNightTurn | null {
+    const step = this.awakeStep;
+    if (!step || !this.actsAt(seat, step)) return null;
+    const all = this.night!.choices[step] ?? {};
+    const choices: Record<number, number> = {};
+    for (const [k, v] of Object.entries(all)) if (step === "mafia" || Number(k) === seat) choices[Number(k)] = v;
+    const mine = all[seat];
+    const target = mine !== undefined ? this.seats.get(mine)?.role : undefined;
+    return {
+      step,
+      choices,
+      agreed: step === "mafia" ? this.suggestedPick("mafia") : null,
+      result:
+        mine === undefined ? null : step === "don" ? target === "sheriff" : step === "sheriff" ? isMafia(target) : null,
+      blocked: this.blockedFor(seat, step),
+    };
   }
 
   private nightPick(seatRaw: unknown) {
@@ -946,9 +1147,19 @@ export class Room {
     }
 
     let me: MeView = { kind: "host" };
-    if (viewer.kind === "spectator") me = { kind: "spectator", name: this.spectators.get(viewer.key)?.name ?? "" };
+    if (viewer.kind === "spectator") {
+      const w = this.spectators.get(viewer.key);
+      me = { kind: "spectator", name: w?.name ?? "", wantsSeat: w?.wantsSeat ?? null };
+    }
     if (viewer.kind === "player") {
-      me = { kind: "player", seat: viewer.seat, role: own?.role ?? null, teammates, marks: this.ownMarks(viewer.seat) };
+      me = {
+        kind: "player",
+        seat: viewer.seat,
+        role: own?.role ?? null,
+        teammates,
+        marks: this.ownMarks(viewer.seat),
+        night: this.myNightTurn(viewer.seat),
+      };
     }
 
     const n = this.night;
@@ -962,6 +1173,8 @@ export class Room {
             donFoundSheriff: n.picks.don != null ? this.seats.get(n.picks.don)?.role === "sheriff" : null,
             sheriffFoundMafia: n.picks.sheriff != null ? isMafia(this.seats.get(n.picks.sheriff)?.role) : null,
             healBlocked: healBlocked(this.seatOfRole("doctor"), this.doctor),
+            choices: { ...(n.awake && n.steps[n.index] ? (n.choices[n.steps[n.index]] ?? {}) : {}) },
+            suggested: n.awake && n.steps[n.index] ? this.suggestedPick(n.steps[n.index]) : null,
           }
         : null;
 
@@ -1002,7 +1215,15 @@ export class Room {
       spectators: {
         count: [...this.spectators.values()].filter((w) => w.connected > 0).length,
         names: [...this.spectators.values()].filter((w) => w.connected > 0).map((w) => w.name),
+        ...(isHost
+          ? {
+              list: [...this.spectators.values()]
+                .filter((w) => w.connected > 0)
+                .map((w) => ({ id: w.identity, name: w.name, wantsSeat: w.wantsSeat })),
+            }
+          : {}),
       },
+      music: this.musicView,
       location: this.location,
       isPublic: this.isPublic,
       locked: this.locked,

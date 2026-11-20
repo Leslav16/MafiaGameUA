@@ -478,10 +478,10 @@ test("spectators join at any time, take no seat and never see roles or the night
   assert.equal(viewer.kind, "spectator");
   room.presence(viewer, 1);
   const v = room.view(viewer);
-  assert.deepEqual(v.me, { kind: "spectator", name: "Watcher" });
+  assert.deepEqual(v.me, { kind: "spectator", name: "Watcher", wantsSeat: null });
   assert.ok(v.seats.every((s) => s.role === undefined));
   assert.equal(v.flow.night, null);
-  assert.deepEqual(room.view(host).spectators, { count: 1, names: ["Watcher"] });
+  assert.deepEqual(room.view({ kind: "player", seat: 1 }).spectators, { count: 1, names: ["Watcher"] });
   assert.equal(room.freeSeats().length, 0, "no seat taken");
   room.rename(viewer, "Olha");
   assert.deepEqual(room.view(host).spectators.names, ["Olha"]);
@@ -618,4 +618,142 @@ test("a public table leaves the list shortly after the host's last tab closes", 
   assert.equal(room.listed(left + 31_000, 30_000), false);
   room.presence(host, 1);
   assert.equal(room.hostLeftAt, null);
+});
+
+// ---- coming back after a dropped connection --------------------------------
+
+test("a player who lost their connection asks from the spectators, and the host returns them to their seat", () => {
+  const room = fullRoom(5);
+  const old = room.takeSeat(undefined, "x"); // seat 6
+  room.presence({ kind: "player", seat: 6 }, 1);
+  room.apply({ type: "startGame" });
+  const before = room.view(host).seats[5];
+  room.presence({ kind: "player", seat: 6 }, -1); // the connection dropped
+  assert.deepEqual(room.returnableSeats().find((r) => r.seat === 6), { seat: 6, name: "x" });
+
+  const w = room.addSpectator("Olena", 6);
+  room.presence(room.resolveKey(w.key), 1);
+  const list = room.view(host).spectators.list!;
+  assert.deepEqual(list, [{ id: w.identity, name: "Olena", wantsSeat: 6 }]);
+  // Other players never see the list.
+  assert.equal(room.view({ kind: "player", seat: 1 }).spectators.list, undefined);
+
+  const { removed } = room.apply({ type: "seatSpectator", spectator: w.identity, seat: 6 });
+  assert.ok(removed.includes(w.identity) && removed.includes(old.identity));
+  assert.deepEqual(room.resolveKey(w.key), { kind: "player", seat: 6 });
+  assert.deepEqual(room.resolveKey(old.key), { kind: "nobody" });
+  const after = room.view(host).seats[5];
+  assert.equal(after.role, before.role);
+  assert.equal(after.connected, true);
+  assert.notEqual(after.identity, before.identity);
+  assert.equal(room.view(host).spectators.count, 0);
+});
+
+test("returning needs a game in progress and a real player's seat; the host can turn a request down", () => {
+  const room = fullRoom(4);
+  assert.throws(() => room.addSpectator("A", 2), /not_started/);
+  room.apply({ type: "startGame" });
+  assert.throws(() => room.addSpectator("A", 9), /seat_empty/);
+  const w = room.addSpectator("A", 2);
+  room.presence(room.resolveKey(w.key), 1);
+  room.apply({ type: "dismissReturn", spectator: w.identity });
+  assert.equal(room.view(host).spectators.list![0].wantsSeat, null);
+  assert.throws(() => room.apply({ type: "seatSpectator", spectator: "w-nope", seat: 2 }), /spectator_gone/);
+});
+
+test("before the game the host can seat a spectator only in a free seat", () => {
+  const room = fullRoom(3);
+  const w = room.addSpectator("Lev");
+  assert.throws(() => room.apply({ type: "seatSpectator", spectator: w.identity, seat: 1 }), /seat_taken/);
+  room.apply({ type: "seatSpectator", spectator: w.identity, seat: 8 });
+  assert.equal(room.view(host).seats[7].name, "Lev");
+  assert.deepEqual(room.resolveKey(w.key), { kind: "player", seat: 8 });
+});
+
+test("night music: the host's file and table volume, shown to everyone", () => {
+  const room = fullRoom(3);
+  assert.equal(room.view(host).music, null);
+  room.setMusic("Godfather  waltz.mp3", "audio/mpeg", Buffer.from([1, 2, 3]));
+  assert.deepEqual(room.view({ kind: "player", seat: 1 }).music, { version: 1, name: "Godfather waltz.mp3", volume: 0.4 });
+  room.apply({ type: "musicVolume", volume: 3 });
+  assert.equal(room.view(host).music!.volume, 1);
+  assert.throws(() => room.setMusic("x.exe", "application/x-msdownload", Buffer.from([1])), /music_not_audio/);
+  room.setMusic("b.ogg", "audio/ogg", Buffer.from([1]));
+  assert.equal(room.view(host).music!.version, 2);
+  room.apply({ type: "clearMusic" });
+  assert.equal(room.view(host).music, null);
+});
+
+// ---- players pick their own night targets ----------------------------------
+
+test("the Don's pick stands for the mafia; the host confirms it", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  toNight(room);
+  const don = roleSeat(room, "don");
+  const mafia = room.view(host).seats.find((s) => s.role === "mafia")!.seat;
+  const civ = room.view(host).seats.filter((s) => s.role === "civilian").map((s) => s.seat);
+  // A civilian can't pick, and doesn't see a turn.
+  assert.throws(() => room.nightChoose({ kind: "player", seat: civ[0] }, civ[1]), /not_your_turn/);
+  assert.equal((room.view({ kind: "player", seat: civ[0] }).me as { night: unknown }).night, null);
+  room.nightChoose({ kind: "player", seat: mafia }, civ[0]);
+  assert.equal(room.view(host).flow.night!.suggested, null); // the Don hasn't picked
+  room.nightChoose({ kind: "player", seat: don }, civ[1]);
+  assert.equal(room.view(host).flow.night!.suggested, civ[1]);
+  const mine = (room.view({ kind: "player", seat: mafia }).me as { night: { choices: Record<number, number>; agreed: number } }).night;
+  assert.deepEqual(mine.choices, { [mafia]: civ[0], [don]: civ[1] });
+  assert.equal(mine.agreed, civ[1]);
+  room.apply({ type: "nightPick", seat: civ[1] });
+  assert.equal(flow(room).nightStep, "don");
+});
+
+test("with the Don out, the living mafia must agree on one number", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  room.apply({ type: "kill", seat: roleSeat(room, "don") });
+  toNight(room);
+  const mafia = room.view(host).seats.filter((s) => s.role === "mafia" && s.alive).map((s) => s.seat);
+  const civ = room.view(host).seats.filter((s) => s.role === "civilian").map((s) => s.seat);
+  room.nightChoose({ kind: "player", seat: mafia[0] }, civ[0]);
+  room.nightChoose({ kind: "player", seat: mafia[1] }, civ[1]);
+  assert.equal(room.view(host).flow.night!.suggested, null);
+  room.nightChoose({ kind: "player", seat: mafia[1] }, civ[0]);
+  assert.equal(room.view(host).flow.night!.suggested, civ[0]);
+});
+
+test("a check is answered at once, only to the checker, and can't be changed", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  toNight(room);
+  room.apply({ type: "nightPick", seat: null }); // mafia miss
+  const don = roleSeat(room, "don");
+  const sheriff = roleSeat(room, "sheriff");
+  assert.throws(() => room.nightChoose({ kind: "player", seat: don }, don), /invalid_seat/);
+  room.nightChoose({ kind: "player", seat: don }, sheriff);
+  const turn = (room.view({ kind: "player", seat: don }).me as { night: { result: boolean } }).night;
+  assert.equal(turn.result, true);
+  assert.throws(() => room.nightChoose({ kind: "player", seat: don }, 1), /already_checked/);
+  assert.equal(room.view(host).flow.night!.suggested, sheriff);
+});
+
+test("the Doctor can't pick a blocked heal", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  toNight(room);
+  for (let i = 0; i < 3; i++) room.apply({ type: "nightPick", seat: null });
+  const doctor = roleSeat(room, "doctor");
+  room.nightChoose({ kind: "player", seat: doctor }, 1);
+  room.apply({ type: "nightPick", seat: 1 });
+  room.apply({ type: "next" }); // morning -> balagan
+  nextUntil(room, "night");
+  room.apply({ type: "next" });
+  for (let i = 0; i < 3; i++) room.apply({ type: "nightPick", seat: null });
+  assert.throws(() => room.nightChoose({ kind: "player", seat: doctor }, 1), /heal_blocked/);
+});
+
+test("at night nobody but the host can speak", () => {
+  const room = fullRoom();
+  room.apply({ type: "startGame" });
+  toNight(room);
+  for (let s = 1; s <= 11; s++) assert.equal(room.mediaFor(s).mic, false);
 });

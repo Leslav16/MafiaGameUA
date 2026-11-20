@@ -1,6 +1,7 @@
 "use client";
 
 import type { HostAction, SeatView } from "@/lib/room/types";
+import { useState } from "react";
 import { fmt } from "@/lib/room/format";
 import { ConfirmButton } from "./ConfirmButton";
 import { btn, danger, plain, type HostDict, type RoleNames } from "./ui";
@@ -13,6 +14,7 @@ export function SelectedPlayer({
   onClose,
   t,
   roles,
+  spectators,
 }: {
   seat: SeatView;
   inGame: boolean;
@@ -20,8 +22,12 @@ export function SelectedPlayer({
   onClose: () => void;
   t: HostDict;
   roles: RoleNames;
+  /** Who is watching now: the host can put one of them in this seat. */
+  spectators: { id: string; name: string; wantsSeat: number | null }[];
 }) {
   const n = seat.seat;
+  const [stand, setStand] = useState("");
+  const standIn = spectators.find((w) => w.id === stand) ?? null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -84,6 +90,42 @@ export function SelectedPlayer({
         </button>
       </div>
       {seat.fouls >= 4 && seat.alive && inGame && <p className="text-sm font-medium">{t.fourFouls}</p>}
+
+      {inGame && !seat.bot && spectators.length > 0 && (
+        <div className="flex flex-col gap-1.5 border-t border-[var(--line)] pt-3">
+          <span className="text-sm font-medium">{t.seatSpectator}</span>
+          <div className="flex gap-2">
+            <select
+              value={stand}
+              onChange={(e) => setStand(e.target.value)}
+              aria-label={t.seatSpectator}
+              className="min-h-11 min-w-0 flex-1 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-sm"
+            >
+              <option value="">{t.pickSpectator}</option>
+              {spectators.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+            <ConfirmButton
+              question={fmt(t.seatSpectatorQuestion, { name: standIn?.name ?? "", n })}
+              confirmLabel={t.confirm}
+              cancelLabel={t.cancel}
+              className={`${btn} ${plain} text-sm`}
+              disabled={!standIn}
+              onConfirm={() => {
+                if (!standIn) return;
+                act({ type: "seatSpectator", spectator: standIn.id, seat: n });
+                setStand("");
+              }}
+            >
+              {t.seatHere}
+            </ConfirmButton>
+          </div>
+          <span className="text-xs text-[var(--text-muted)]">{seat.connected ? t.seatSpectatorOnline : t.seatSpectatorHint}</span>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 border-t border-[var(--line)] pt-3">
         {inGame &&
