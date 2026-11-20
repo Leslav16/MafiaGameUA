@@ -112,7 +112,10 @@ export interface VotingView {
   candidates: number[];
   /** Candidate being voted on now. The last candidate gets every vote not cast. */
   index: number;
-  /** candidate seat -> seats that voted against them. */
+  /**
+   * candidate seat -> seats that voted against them. Open to everyone, like hands raised at a real table.
+   * Players cast their own vote from the room (me:vote); the host may also raise hands for them.
+   */
   votes: Record<number, number[]>;
   /** True on the re-vote between tied candidates. */
   revote: boolean;
@@ -229,6 +232,8 @@ export type HostAction =
   | { type: "nominate"; seat: number }
   /** Toggle a voter's hand against the candidate being voted on. */
   | { type: "vote"; voter: number }
+  /** Count the vote now, with the votes the players cast themselves (no walk through the candidates). */
+  | { type: "countVotes" }
   /** Record the current night step's choice; null = nobody. */
   | { type: "nightPick"; seat: number | null }
   | { type: "timer"; op: "start" | "pause" | "restart" }

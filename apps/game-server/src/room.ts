@@ -281,6 +281,29 @@ export class Room {
   }
 
   /**
+   * A living player casts their own vote from their browser: one of today's candidates,
+   * or null to take it back. Each player has one vote, so a new pick replaces the old one.
+   * Open until the host counts; the host can still raise hands for players by hand.
+   */
+  castVote(viewer: Viewer, candidateRaw: unknown): void {
+    if (viewer.kind !== "player") throw new GameError("not_a_player");
+    const v = this.voting;
+    if (this.stage !== "voting" || !v || v.result) throw new GameError("not_voting");
+    if (!this.seats.get(viewer.seat)?.alive) throw new GameError("player_dead");
+    const candidate = candidateRaw === null ? null : assertSeat(candidateRaw);
+    if (candidate !== null && !v.candidates.includes(candidate)) throw new GameError("not_a_candidate");
+    for (const c of v.candidates) {
+      const hands = v.votes[c];
+      if (!hands) continue;
+      const i = hands.indexOf(viewer.seat);
+      if (i >= 0) hands.splice(i, 1);
+      if (hands.length === 0) delete v.votes[c];
+    }
+    if (candidate !== null) (v.votes[candidate] ??= []).push(viewer.seat);
+    this.lastActive = Date.now();
+  }
+
+  /**
    * Before the game, a player moves to another seat number. Seat number = place
    * on the grid, so moving onto a taken seat swaps the two players.
    */
@@ -454,6 +477,14 @@ export class Room {
       case "vote":
         this.toggleVote(action.voter);
         break;
+      case "countVotes": {
+        // Skip walking through the candidates one by one: count what the players cast now.
+        const v = this.voting;
+        if (this.stage !== "voting" || !v || v.result) throw new GameError("not_voting");
+        v.index = v.candidates.length - 1;
+        v.result = countVotes(v.candidates, v.votes, this.aliveSeats());
+        break;
+      }
       case "nightPick":
         this.nightPick(action.seat);
         break;

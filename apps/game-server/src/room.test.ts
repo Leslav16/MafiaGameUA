@@ -274,6 +274,50 @@ test("a candidate removed during the vote leaves it; the last one left takes the
   assert.equal(flow(room).voting!.result!.out, 7, "recounted without the removed player");
 });
 
+test("players cast their own vote: one each, changeable, counted by the host at once", () => {
+  const room = fullRoom();
+  toVoting(room, [7, 5, 10]);
+  const me = (seat: number) => ({ kind: "player", seat }) as const;
+  room.castVote(me(1), 5);
+  room.castVote(me(2), 5);
+  room.castVote(me(3), 7);
+  room.castVote(me(3), 5); // changed their mind: still one vote
+  room.castVote(me(4), 7);
+  room.castVote(me(4), null); // took it back: goes to the last candidate
+  assert.deepEqual(flow(room).voting!.votes, { 5: [1, 2, 3] });
+  assert.deepEqual(room.view(me(9)).flow.voting!.votes, { 5: [1, 2, 3] }, "votes are open, like raised hands");
+  assert.throws(() => room.castVote(me(6), 4), /not_a_candidate/);
+  assert.throws(() => room.castVote(host, 5), /not_a_player/);
+  assert.throws(() => room.apply({ type: "vote", voter: 1 }), /already_voted/, "the host can't add a second hand");
+  room.apply({ type: "countVotes" });
+  const result = flow(room).voting!.result!;
+  assert.deepEqual(result.tally, { 7: 0, 5: 3, 10: 8 });
+  assert.equal(result.out, 10);
+  assert.throws(() => room.castVote(me(6), 5), /not_voting/, "closed once counted");
+});
+
+test("a dead player can't cast a vote", () => {
+  const room = fullRoom();
+  toVoting(room, [7, 5]);
+  room.apply({ type: "kill", seat: 3 });
+  assert.throws(() => room.castVote({ kind: "player", seat: 3 }, 5), /player_dead/);
+});
+
+test("players' own votes in a re-vote: a second tie keeps everyone", () => {
+  const room = fullRoom(10);
+  toVoting(room, [1, 3]);
+  for (const s of [2, 4, 5, 6, 7]) room.castVote({ kind: "player", seat: s }, 1);
+  room.apply({ type: "countVotes" }); // 5 against 1, the other 5 go to 3
+  assert.deepEqual(flow(room).voting!.result!.tied, [1, 3]);
+  room.apply({ type: "next" });
+  assert.equal(flow(room).voting!.revote, true);
+  for (const s of [1, 2, 4, 8, 9]) room.castVote({ kind: "player", seat: s }, 1); // 5 and 5 again
+  room.apply({ type: "countVotes" });
+  assert.equal(flow(room).voting!.result!.out, null);
+  room.apply({ type: "next" });
+  assert.equal(flow(room).stage, "night");
+});
+
 test("countVotes on its own", () => {
   assert.deepEqual(countVotes([7, 5], { 7: [1, 2] }, [1, 2, 3, 4, 5]), { tally: { 7: 2, 5: 3 }, out: 5, tied: [] });
   assert.deepEqual(countVotes([1, 7], { 1: [1, 2] }, [1, 2, 3, 4]), { tally: { 1: 2, 7: 2 }, out: null, tied: [1, 7] });

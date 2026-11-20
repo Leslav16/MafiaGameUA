@@ -278,6 +278,19 @@ export function useRoom(code: string) {
     [],
   );
 
+  /** This player's own vote for a candidate, or null to take it back. Resolves to an error code or null. */
+  const vote = useCallback(
+    (candidate: number | null) =>
+      new Promise<string | null>((resolve) => {
+        const socket = socketRef.current;
+        if (!socket?.connected) return resolve("offline");
+        socket.emit("me:vote", { candidate }, (r: { ok: boolean; error?: string }) =>
+          resolve(r.ok ? null : (r.error ?? "server_error")),
+        );
+      }),
+    [],
+  );
+
   // What this browser may publish right now.
   const isHost = view?.me.kind === "host";
   const mySeat = view?.me.kind === "player" ? view.seats[view.me.seat - 1] : undefined;
@@ -379,6 +392,7 @@ export function useRoom(code: string) {
       hostAction,
       rename,
       chooseSeat,
+      vote,
       media,
       wantCam,
       wantMic,
@@ -390,7 +404,7 @@ export function useRoom(code: string) {
       startAudio,
       switchDevice,
     }),
-    [status, locked, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, freeSeats, hostAction, rename, chooseSeat, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
+    [status, locked, view, error, mediaError, videoState, clockOffset, joinAsPlayer, joinAsHost, joinAsSpectator, freeSeats, hostAction, rename, chooseSeat, vote, media, wantCam, wantMic, camAllowed, micAllowed, audioBlocked, startAudio, switchDevice],
   );
 }
 

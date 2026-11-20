@@ -244,7 +244,24 @@
     "introTitle": "Introductions",
     "dayN": "Day {n}",
     "nightN": "Night {n}",
-    "balagan": "Free-for-all: everyone talks"
+    "balagan": "Free-for-all: everyone talks",
+    "vote": {
+      "title": "Vote",
+      "revote": "Re-vote",
+      "hint": "Tap the seat you vote against. You can change or take it back until the host counts.",
+      "against": "Vote against seat {n}",
+      "takeBack": "Take my vote back",
+      "from": "Against: {list}",
+      "cast": "{n} of {of} voted",
+      "yours": "Your vote: against seat {n}. Tap again to take it back.",
+      "notYet": "You haven't voted. If you don't, your vote goes against seat {n}.",
+      "watching": "You see who votes for whom. Only living players vote.",
+      "single": "One candidate: every vote goes against seat {n}.",
+      "out": "The town votes out seat {n}.",
+      "tie": "Tie between {list}: re-vote.",
+      "keep": "Another tie: everyone stays.",
+      "waiting": "Not voted yet: {list}"
+    }
   },
   "rules": {
     "open": "Rules",
@@ -374,7 +391,9 @@
       "already_joined": "You are already in the room. Reload the page.",
       "key_unknown": "Your place wasn't kept. Please join again.",
       "invalid_action": "That can't be done right now.",
-      "intro_no_votes": "Nobody is put up in the introduction round."
+      "intro_no_votes": "Nobody is put up in the introduction round.",
+      "not_a_candidate": "This player isn't up for the vote.",
+      "not_a_player": "Only players at the table vote."
     },
     "sound": "Turn on sound",
     "rename": "Change name",
@@ -575,7 +594,13 @@
     "introHint": "Nobody is put up in the introduction round: everyone introduces themselves, then night falls.",
     "balagan": "Free-for-all",
     "balaganHint": "One minute when every living player may talk: all their mics are on.",
-    "endBalagan": "On to speeches"
+    "endBalagan": "On to speeches",
+    "playersVote": "Players vote on their own screens. Below you can raise a hand for a player by hand (a bot, no browser).",
+    "liveVotes": "Players' votes",
+    "notVotedYet": "Not voted yet ({n}): {list}. Their votes go against seat {seat}.",
+    "allVoted": "Everyone has voted.",
+    "countNow": "Count now",
+    "byHand": "By hand, one by one"
   },
   "locations": [
     {
