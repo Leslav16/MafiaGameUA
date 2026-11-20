@@ -22,8 +22,10 @@ type Mode = "player" | "watch" | "host";
  */
 export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi"]; ui: Dictionary["ui"] }) {
   const [mode, setMode] = useState<Mode>(() =>
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("watch") ? "watch" : "player",
+    room.gameOn || (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("watch")) ? "watch" : "player",
   );
+  /** A player whose connection dropped asks the host for their seat back (game in progress). */
+  const [returnTo, setReturnTo] = useState<number | null>(null);
   const asHost = mode === "host";
   const watching = mode === "watch";
   const [name, setName] = useState("");
@@ -34,6 +36,7 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
 
   const switchTo = (m: Mode) => {
     setMode(m);
+    setReturnTo(null);
     setError(null);
   };
   const errorText = (code: string) => (t.errors as Record<string, string>)[code] ?? t.errors.server_error;
@@ -45,7 +48,7 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
     const err = asHost
       ? await room.joinAsHost(password)
       : watching
-        ? await room.joinAsSpectator(name, roomPassword)
+        ? await room.joinAsSpectator(name, roomPassword, returnTo ?? undefined)
         : await room.joinAsPlayer(name, null, roomPassword);
     setBusy(false);
     if (err) {
@@ -62,6 +65,31 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
           {asHost ? t.hostJoin : watching ? t.watchTitle : t.joinTitle}
         </h1>
         {watching && <p className="text-lg text-[var(--text-muted)]">{t.watchHint}</p>}
+
+        {watching && room.gameOn && room.returnable.length > 0 && (
+          <fieldset className="return-pick flex flex-col gap-2 rounded-xl border border-[var(--line)] p-4">
+            <legend className="px-1 font-display text-xl tracking-wide">{t.returnTitle}</legend>
+            <p className="text-base text-[var(--text-muted)]">{t.returnHint}</p>
+            <div className="flex flex-wrap gap-2">
+              {room.returnable.map((r) => (
+                <button
+                  key={r.seat}
+                  type="button"
+                  aria-pressed={returnTo === r.seat}
+                  onClick={() => {
+                    const on = returnTo !== r.seat;
+                    setReturnTo(on ? r.seat : null);
+                    if (on && !name.trim()) setName(r.name);
+                  }}
+                  className="btn-feel inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--line)] px-4 aria-pressed:border-[var(--color-lamp)] aria-pressed:bg-[var(--color-lamp)] aria-pressed:text-[var(--color-ink)]"
+                >
+                  <span className="font-display tabular-nums">{r.seat}</span>
+                  <span className="max-w-40 truncate">{r.name}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         {asHost ? (
           <label className="flex flex-col gap-1.5">
@@ -123,7 +151,7 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <button type="submit" disabled={busy || (!asHost && !name.trim())} className={primary}>
-            {busy ? t.joining : asHost ? t.hostJoin : watching ? t.watch : t.join}
+            {busy ? t.joining : asHost ? t.hostJoin : watching ? (returnTo ? t.returnAskButton : t.watch) : t.join}
           </button>
           {mode !== "player" && (
             <button type="button" className={link} onClick={() => switchTo("player")}>

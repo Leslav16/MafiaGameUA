@@ -238,8 +238,8 @@
       "mirror": "Mirror my video",
       "mirrorHint": "Like a mirror. Others don't see you mirrored.",
       "test": "Test",
-      "voice": "Night voice",
-      "voiceHint": "Briefly announces who wakes up, in different words each time."
+      "music": "Night music",
+      "musicHint": "The host can play music at night. This is its volume just for you (0% turns it off)."
     },
     "introTitle": "Introductions",
     "dayN": "Day {n}",
@@ -261,6 +261,18 @@
       "tie": "Tie between {list}: re-vote.",
       "keep": "Another tie: everyone stays.",
       "waiting": "Not voted yet: {list}"
+    },
+    "verdict": {
+      "mafia": {
+        "kicker": "The Mafia wins",
+        "title": "The town belongs to the Family",
+        "line": "Nothing personal. Just business."
+      },
+      "town": {
+        "kicker": "The Town wins",
+        "title": "The town stands",
+        "line": "Case closed. The Family is finished."
+      }
     }
   },
   "rules": {
@@ -393,7 +405,10 @@
       "invalid_action": "That can't be done right now.",
       "intro_no_votes": "Nobody is put up in the introduction round.",
       "not_a_candidate": "This player isn't up for the vote.",
-      "not_a_player": "Only players at the table vote."
+      "not_a_player": "Only players at the table vote.",
+      "spectator_gone": "That spectator has left.",
+      "music_too_big": "The file is too big (25 MB at most).",
+      "music_not_audio": "That is not an audio file."
     },
     "sound": "Turn on sound",
     "rename": "Change name",
@@ -409,7 +424,11 @@
     "publicTable": "Show the table on the home page",
     "publicTableHint": "Others will see it in the list of tables and can watch. The host password stays secret.",
     "roomPasswordLabel": "Room password",
-    "closed": "The host closed the room."
+    "closed": "The host closed the room.",
+    "returnTitle": "Coming back after your connection dropped?",
+    "returnHint": "Pick your seat. You come in as a spectator, and the host returns you to the table, with your role, in one press.",
+    "returnAskButton": "Ask to return",
+    "returnWaiting": "The host sees your request. Please wait: they will return you to seat {n}."
   },
   "hostPanel": {
     "title": "Host controls",
@@ -600,7 +619,36 @@
     "notVotedYet": "Not voted yet ({n}): {list}. Their votes go against seat {seat}.",
     "allVoted": "Everyone has voted.",
     "countNow": "Count now",
-    "byHand": "By hand, one by one"
+    "byHand": "By hand, one by one",
+    "returnTitle": "Back to the table",
+    "returnAsk": "{name} asks to return to seat {n} ({seatName}).",
+    "returnStillOnline": "Note: the player in this seat is still connected.",
+    "returnSeat": "Seat them",
+    "returnDismiss": "Decline",
+    "music": "Night music",
+    "musicHint": "Plays for everyone at night only: fades in as the town falls asleep and fades out towards the morning. Voices always stay louder.",
+    "musicUpload": "Upload a track",
+    "musicReplace": "Another track",
+    "musicUploading": "Uploading…",
+    "musicListen": "Listen",
+    "musicStop": "Stop",
+    "musicRemove": "Remove",
+    "musicVolume": "Volume for everyone",
+    "musicVolumeHint": "Each player can still turn it down for themselves in Settings.",
+    "percent": "{n}%",
+    "musicErrors": {
+      "music_too_big": "The file is too big, 25 MB at most.",
+      "music_not_audio": "That is not an audio file. mp3, m4a, ogg and wav work.",
+      "not_host": "Only the host can upload.",
+      "offline": "No connection to the game server.",
+      "server_error": "Upload failed. Please try again."
+    },
+    "seatSpectator": "Seat a spectator here",
+    "pickSpectator": "Pick a spectator",
+    "seatSpectatorQuestion": "Seat {name} in seat {n}?",
+    "seatHere": "Seat",
+    "seatSpectatorHint": "For a player who can't come back by themselves. The seat keeps its role and state.",
+    "seatSpectatorOnline": "The player in this seat is connected now: they will be let go."
   },
   "locations": [
     {

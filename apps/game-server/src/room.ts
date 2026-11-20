@@ -5,6 +5,7 @@ import {
   type HostAction,
   type LogEntry,
   type MeView,
+  type MusicView,
   type NightStep,
   type OwnNightMarks,
   type OutReason,
@@ -59,7 +60,22 @@ interface Spectator {
   identity: string;
   name: string;
   connected: number;
+  /** The seat they say they sat in before their connection dropped (asking the host to return them). */
+  wantsSeat: number | null;
 }
+
+/** The host's night music file, kept in memory only (gone when the game server restarts). */
+export interface MusicFile {
+  version: number;
+  name: string;
+  type: string;
+  data: Buffer;
+}
+
+/** Big enough for a long track in good quality, small enough for every player to download quickly. */
+export const MAX_MUSIC_BYTES = 25 * 1024 * 1024;
+/** Starting table volume: quiet enough to talk over. */
+export const DEFAULT_MUSIC_VOLUME = 0.4;
 
 /** Enough for a full table of friends watching; keeps the video server's load sane. */
 export const MAX_SPECTATORS = 40;
@@ -133,6 +149,9 @@ export class Room {
   /** Where the introduction round is set: "loc:<id>" or the host's own words. */
   private location: string | null = null;
   private readonly banned = new Set<string>();
+  private music: MusicFile | null = null;
+  private musicVolume = DEFAULT_MUSIC_VOLUME;
+  private musicVersion = 0;
   private winner: Winner | null = null;
   private rolesDealt = false;
   private timer = { durationMs: SPEECH_SECONDS * 1000, remainingMs: SPEECH_SECONDS * 1000, endsAt: null as number | null };
@@ -214,8 +233,9 @@ export class Room {
   }
 
   /** Someone who only watches: allowed at any time, takes no seat, never sees roles or the night. */
-  addSpectator(nameRaw: unknown): { key: string; identity: string } {
+  addSpectator(nameRaw: unknown, wantsSeatRaw?: unknown): { key: string; identity: string } {
     const name = cleanName(nameRaw);
+    const wantsSeat = wantsSeatRaw === undefined || wantsSeatRaw === null ? null : this.returnableSeat(wantsSeatRaw);
     // Spectators who left make room for new ones; only those still watching count towards the limit.
     if (this.spectators.size >= MAX_SPECTATORS) {
       for (const [key, w] of this.spectators) if (w.connected === 0) this.spectators.delete(key);
@@ -223,9 +243,46 @@ export class Room {
     if (this.spectators.size >= MAX_SPECTATORS) throw new GameError("too_many_spectators");
     const key = newId(18);
     const identity = `w-${newId(6)}`;
-    this.spectators.set(key, { identity, name, connected: 0 });
+    this.spectators.set(key, { identity, name, connected: 0, wantsSeat });
     this.lastActive = Date.now();
     return { key, identity };
+  }
+
+  /** A seat someone may ask to come back to: the game is on and a (non-bot) player sits there. */
+  private returnableSeat(seatRaw: unknown): number {
+    const seat = assertSeat(seatRaw);
+    if (this.stage === "lobby") throw new GameError("not_started");
+    const p = this.seats.get(seat);
+    if (!p || p.bot) throw new GameError("seat_empty");
+    return seat;
+  }
+
+  /** Seats whose player is away right now: shown on the join form, so a player who dropped can ask to return. */
+  returnableSeats(): { seat: number; name: string }[] {
+    if (this.stage === "lobby") return [];
+    return [...this.seats]
+      .filter(([, p]) => !p.bot && p.connected === 0)
+      .map(([seat, p]) => ({ seat, name: p.name }))
+      .sort((a, b) => a.seat - b.seat);
+  }
+
+  // ---- night music --------------------------------------------------------
+
+  /** The host uploads a new track (replaces the old one). */
+  setMusic(name: string, type: string, data: Buffer): void {
+    if (data.length === 0 || data.length > MAX_MUSIC_BYTES) throw new GameError("music_too_big");
+    if (!/^(audio\/[\w.+-]+|application\/ogg)$/.test(type)) throw new GameError("music_not_audio");
+    this.musicVersion += 1;
+    this.music = { version: this.musicVersion, name: name.replace(/\s+/g, " ").trim().slice(0, 80) || "music", type, data };
+    this.lastActive = Date.now();
+  }
+
+  getMusic(): MusicFile | null {
+    return this.music;
+  }
+
+  private get musicView(): MusicView | null {
+    return this.music ? { version: this.music.version, name: this.music.name, volume: this.musicVolume } : null;
   }
 
   /** Who a saved key belongs to, for coming back after a page reload. */
@@ -577,6 +634,23 @@ export class Room {
         else throw new GameError("invalid_password");
         break;
       }
+      case "seatSpectator":
+        removed.push(...this.seatSpectator(action.spectator, action.seat));
+        break;
+      case "dismissReturn": {
+        const found = this.spectatorById(action.spectator);
+        if (found) found[1].wantsSeat = null;
+        break;
+      }
+      case "musicVolume": {
+        const v = action.volume;
+        if (typeof v !== "number" || !Number.isFinite(v)) throw new GameError("invalid_action");
+        this.musicVolume = Math.min(1, Math.max(0, v));
+        break;
+      }
+      case "clearMusic":
+        this.music = null;
+        break;
       case "endGame":
         if (action.winner !== "town" && action.winner !== "mafia") throw new GameError("invalid_action");
         this.stage = "ended";
@@ -590,6 +664,55 @@ export class Room {
         throw new GameError("invalid_action");
     }
     return { removed };
+  }
+
+  private spectatorById(id: unknown): [string, Spectator] | null {
+    for (const entry of this.spectators) if (entry[1].identity === id) return entry;
+    return null;
+  }
+
+  /**
+   * Puts a spectator in a seat. Mid-game the seat keeps everything (role, alive, fouls); only the
+   * person behind it changes: the spectator's key now opens the seat, the old key stops working,
+   * and the seat gets a fresh video identity. Returns the video identities to drop (the old seat's
+   * and the spectator's), so both browsers reconnect with what they are now.
+   */
+  private seatSpectator(spectatorId: unknown, seatRaw: unknown): string[] {
+    const found = this.spectatorById(spectatorId);
+    if (!found) throw new GameError("spectator_gone");
+    const [key, w] = found;
+    const seat = assertSeat(seatRaw);
+    const old = this.seats.get(seat);
+    const removed = [w.identity];
+    if (this.stage === "lobby") {
+      if (old) throw new GameError("seat_taken");
+      this.seats.set(seat, {
+        identity: `p-${newId(6)}`,
+        key,
+        name: w.name,
+        connected: w.connected,
+        bot: false,
+        alive: true,
+        out: null,
+        fouls: 0,
+        role: null,
+        hostCamOff: false,
+        hostMicOff: false,
+      });
+    } else {
+      if (!old) throw new GameError("seat_empty");
+      this.banned.add(old.key);
+      removed.push(old.identity);
+      old.key = key;
+      old.identity = `p-${newId(6)}`;
+      old.name = w.name;
+      old.connected = w.connected;
+      old.bot = false;
+    }
+    this.spectators.delete(key);
+    // Nobody else waits for this seat any more.
+    for (const other of this.spectators.values()) if (other.wantsSeat === seat) other.wantsSeat = null;
+    return removed;
   }
 
   // ---- the flow ----------------------------------------------------------
@@ -946,7 +1069,10 @@ export class Room {
     }
 
     let me: MeView = { kind: "host" };
-    if (viewer.kind === "spectator") me = { kind: "spectator", name: this.spectators.get(viewer.key)?.name ?? "" };
+    if (viewer.kind === "spectator") {
+      const w = this.spectators.get(viewer.key);
+      me = { kind: "spectator", name: w?.name ?? "", wantsSeat: w?.wantsSeat ?? null };
+    }
     if (viewer.kind === "player") {
       me = { kind: "player", seat: viewer.seat, role: own?.role ?? null, teammates, marks: this.ownMarks(viewer.seat) };
     }
@@ -1002,7 +1128,15 @@ export class Room {
       spectators: {
         count: [...this.spectators.values()].filter((w) => w.connected > 0).length,
         names: [...this.spectators.values()].filter((w) => w.connected > 0).map((w) => w.name),
+        ...(isHost
+          ? {
+              list: [...this.spectators.values()]
+                .filter((w) => w.connected > 0)
+                .map((w) => ({ id: w.identity, name: w.name, wantsSeat: w.wantsSeat })),
+            }
+          : {}),
       },
+      music: this.musicView,
       location: this.location,
       isPublic: this.isPublic,
       locked: this.locked,

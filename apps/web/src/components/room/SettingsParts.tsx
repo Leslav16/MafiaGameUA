@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { BACKGROUNDS, setPrefs, usePrefs, type CamEffect } from "../prefs";
 import type { RoomLabels } from "./types";
 import { playShot } from "./sounds";
-import { narrate } from "./narrator";
 
 /** One soft card in the Settings popup. */
 export function SetCard({ title, icon, children, className = "" }: { title: string; icon: ReactNode; children: ReactNode; className?: string }) {
@@ -55,23 +54,23 @@ export function GamePrefs({ labels }: { labels: RoomLabels }) {
           ) : null
         }
       />
-      <Toggle
-        label={t.voice}
-        hint={t.voiceHint}
-        on={p.voice}
-        onChange={(voice) => setPrefs({ voice })}
-        action={
-          p.voice ? (
-            <button
-              type="button"
-              onClick={() => narrate("night", document.documentElement.lang || "uk", true)}
-              className="mt-0.5 rounded-full border border-[var(--line)] px-3 py-1 text-sm hover:border-[var(--color-lamp)]"
-            >
-              ▶ {t.test}
-            </button>
-          ) : null
-        }
-      />
+      <label className="flex flex-col gap-1 py-2">
+        <span className="flex items-baseline justify-between gap-3">
+          <span className="font-display text-lg leading-tight tracking-wide">{t.music}</span>
+          <span className="text-sm tabular-nums text-[var(--text-muted)]">{Math.round(p.music * 100)}%</span>
+        </span>
+        <span className="text-sm text-[var(--text-muted)]">{t.musicHint}</span>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(p.music * 100)}
+          onChange={(e) => setPrefs({ music: Number(e.target.value) / 100 })}
+          aria-label={t.music}
+          className="brass-range w-full"
+        />
+      </label>
       <Toggle label={t.calm} hint={t.calmHint} on={p.calm} onChange={(calm) => setPrefs({ calm })} />
       <Toggle label={t.mirror} hint={t.mirrorHint} on={p.mirror} onChange={(mirror) => setPrefs({ mirror })} />
     </div>

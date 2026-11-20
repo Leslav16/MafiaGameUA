@@ -1626,3 +1626,76 @@ dialog.modal {
     scale: none;
   }
 }
+
+/* ---------- The verdict at the end of the game (Verdict.tsx) ----------
+   Words only: darkness, a thin line, the verdict's letters out of the dark.
+   Mafia: blood red on black. Town: brass and warm dawn light. */
+.verdict {
+  color: #efe2c4;
+}
+.vd-dark {
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 50%, rgb(14 9 7 / 0.9), rgb(6 4 3 / 0.97) 75%);
+}
+.vd-glow {
+  pointer-events: none;
+  background: radial-gradient(ellipse 45% 32% at 50% 52%, rgb(255 205 140 / 0.16), transparent 70%);
+}
+.verdict[data-who="mafia"] .vd-glow {
+  background:
+    radial-gradient(ellipse 50% 34% at 50% 54%, rgb(150 18 14 / 0.42), transparent 72%),
+    radial-gradient(ellipse 22% 14% at 50% 56%, rgb(208 84 78 / 0.18), transparent 70%);
+}
+.vd-kicker {
+  color: #c9b28a;
+}
+.verdict[data-who="mafia"] .vd-kicker {
+  color: var(--color-blood-light);
+}
+.vd-rule {
+  transform-origin: 50% 50%;
+  background: linear-gradient(90deg, transparent, #e0b06a 20%, #fff2d0 50%, #e0b06a 80%, transparent);
+}
+.verdict[data-who="mafia"] .vd-rule {
+  background: linear-gradient(90deg, transparent, #781210 15%, #d0544e 50%, #781210 85%, transparent);
+}
+.vd-title {
+  text-shadow: 0 6px 40px rgb(0 0 0 / 0.85);
+}
+.verdict[data-who="mafia"] .vd-title {
+  color: #f1d9cf;
+  text-shadow:
+    0 0 28px rgb(150 18 14 / 0.55),
+    0 6px 40px rgb(0 0 0 / 0.9);
+}
+.verdict[data-who="town"] .vd-title {
+  color: #f6e7c4;
+  text-shadow:
+    0 0 30px rgb(255 205 140 / 0.35),
+    0 6px 40px rgb(0 0 0 / 0.85);
+}
+.vd-line {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-style: italic;
+  color: #d6c7a1;
+}
+.vd-ch {
+  will-change: transform, opacity, filter;
+}
+
+/* Night music volume and other brass sliders. */
+.brass-range {
+  accent-color: var(--color-lamp);
+  min-height: 2.75rem;
+}
+
+/* A returning player's request at the top of the host panel. */
+.return-ask {
+  background: color-mix(in oklab, var(--surface-raised), var(--color-lamp) 12%);
+  animation: badge-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .return-ask {
+    animation: none;
+  }
+}

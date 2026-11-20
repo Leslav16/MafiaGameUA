@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * This browser's own preferences (not shared with anyone): sound effects, the night voice,
+ * This browser's own preferences (not shared with anyone): sound effects, the night music volume,
  * calmer motion, a mirrored self-view and the camera background effect.
  * Kept in localStorage; every read and write is guarded because storage can
  * be blocked.
@@ -11,8 +11,8 @@ import { useSyncExternalStore } from "react";
 export type CamEffect = "none" | "blur" | "study" | "bar" | "wallpaper";
 export type Prefs = {
   sfx: boolean;
-  /** The night narrator's voice ("the town falls asleep", "the mafia wakes up", ...). */
-  voice: boolean;
+  /** This browser's own volume for the host's night music, 0..1 (multiplied by the table volume the host sets). */
+  music: number;
   calm: boolean;
   mirror: boolean;
   effect: CamEffect;
@@ -21,7 +21,7 @@ export type Prefs = {
 };
 
 const KEY = "mafia.prefs";
-const DEFAULTS: Prefs = { sfx: true, voice: true, calm: false, mirror: true, effect: "none" };
+const DEFAULTS: Prefs = { sfx: true, music: 1, calm: false, mirror: true, effect: "none" };
 let current: Prefs = DEFAULTS;
 let loaded = false;
 const listeners = new Set<() => void>();

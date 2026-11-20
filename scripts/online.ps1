@@ -74,6 +74,8 @@ if ($cloud) {
 Say '3/5  Запускаю сайт, ігровий сервер і відео (вперше це кілька хвилин)...'
 docker compose up -d --build
 if ($LASTEXITCODE -ne 0) { Fail 'Docker не зміг запустити гру. Прокрутіть вікно вгору: там написано, що пішло не так.' }
+# The gateway reads infra/Caddyfile only when it starts: restart it so a 'git pull' takes effect.
+docker compose restart gateway *> $null
 
 $ready = $false
 for ($i = 0; $i -lt 90; $i++) {
