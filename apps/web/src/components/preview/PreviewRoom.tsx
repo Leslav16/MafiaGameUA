@@ -63,6 +63,8 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
       fouls: seat === 3 ? 2 : seat === 8 ? 1 : 0,
       out: seat === 2 ? "voted" : seat === 11 ? "removed" : alive ? null : "killed",
       nominated: !night && (seat === 4 || seat === 6),
+      // One weak and one dropping connection, to show the flag (nothing shows while the connection is fine).
+      net: seat === 5 ? "weak" : seat === 6 ? "lost" : undefined,
     };
   });
 
@@ -90,6 +92,7 @@ export function PreviewRoom({ labels }: { labels: RoomLabels }) {
                     ? { text: `✓ ${labels.marks.notMafia}`, tone: "good" }
                     : null
               }
+              note={s.seat === 4 ? "suspect" : s.seat === 1 ? "trust" : undefined}
             />
           ))}
           host={
