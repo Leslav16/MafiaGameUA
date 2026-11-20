@@ -1,9 +1,11 @@
 "use client";
 
+import { rememberNickname } from "@/components/prefs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import {
   AudioPresets,
+  ConnectionQuality,
   ConnectionState,
   Room as VideoRoom,
   RoomEvent,
@@ -30,6 +32,8 @@ export interface ParticipantMedia {
   micOn: boolean;
   speaking: boolean;
   isLocal: boolean;
+  /** Only set when the connection is bad: "weak" (poor) or "lost" (dropping). */
+  net?: "weak" | "lost";
 }
 
 interface PeekReply {
@@ -69,6 +73,8 @@ function createVideoRoom(isHost: boolean) {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: !isHost,
+      // Chrome and Safari can isolate the voice from the room behind it (keyboard, TV); others ignore it.
+      voiceIsolation: true,
     },
     publishDefaults: {
       simulcast: true,
@@ -92,6 +98,12 @@ function mediaOf(p: Participant | undefined, isLocal: boolean): ParticipantMedia
     micOn: !!mic && !mic.isMuted && !!mic.track,
     speaking: p.isSpeaking,
     isLocal,
+    net:
+      p.connectionQuality === ConnectionQuality.Lost
+        ? "lost"
+        : p.connectionQuality === ConnectionQuality.Poor
+          ? "weak"
+          : undefined,
   };
 }
 
@@ -157,6 +169,7 @@ export function useRoom(code: string) {
       .on(RoomEvent.LocalTrackPublished, bump)
       .on(RoomEvent.LocalTrackUnpublished, bump)
       .on(RoomEvent.ActiveSpeakersChanged, bump)
+      .on(RoomEvent.ConnectionQualityChanged, bump)
       .on(RoomEvent.AudioPlaybackStatusChanged, () => setAudioBlocked(!room.canPlaybackAudio))
       .on(RoomEvent.Disconnected, () => {
         if (videoRef.current === room) videoRef.current = null;
@@ -366,9 +379,10 @@ export function useRoom(code: string) {
       new Promise<string | null>((resolve) => {
         const socket = socketRef.current;
         if (!socket?.connected) return resolve("offline");
-        socket.emit("me:rename", { name }, (r: { ok: boolean; error?: string }) =>
-          resolve(r.ok ? null : (r.error ?? "server_error")),
-        );
+        socket.emit("me:rename", { name }, (r: { ok: boolean; error?: string }) => {
+          if (r.ok) rememberNickname(name);
+          resolve(r.ok ? null : (r.error ?? "server_error"));
+        });
       }),
     [],
   );

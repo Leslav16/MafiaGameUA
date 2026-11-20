@@ -66,7 +66,8 @@ export function PlayerTile({
   nightMark?: { text: string; tone: "bad" | "good" | "info" } | null;
 }) {
   // No camera/mic icons on tiles: at night they could hint at who is awake.
-  const { seat, name, alive, connected, camOn, fouls, role, nominated = false } = info;
+  const { seat, name, alive, connected, camOn, fouls, role, nominated = false, net } = info;
+  const netLabel = net === "lost" ? labels.lostNet : net === "weak" ? labels.weakNet : null;
   const out = alive ? null : (info.out ?? "killed");
   const outLabel = out === "voted" ? labels.votedOut : out === "removed" ? labels.removed : labels.killed;
   const seatLabel = tag ?? fill(labels.seat, seat);
@@ -81,6 +82,7 @@ export function PlayerTile({
     nominated && alive ? labels.nominated : null,
     speaking && alive ? labels.speaking : null,
     !connected ? labels.offline : null,
+    netLabel,
     fouls > 0 ? fill(labels.fouls, fouls) : null,
     showRole && role ? labels.role[role] : null,
     against && against.length ? fill(labels.votesAgainst, against.length) : null,
@@ -210,6 +212,12 @@ export function PlayerTile({
             </span>
           )}
         </span>
+        {/* Bad connection only: nothing shows while it is fine */}
+        {netLabel && (
+          <span title={netLabel} aria-hidden data-net={net} className="net-flag flex shrink-0 items-center">
+            <NetBars className="size-4" />
+          </span>
+        )}
       </figcaption>
 
       {/* Disconnected */}
@@ -231,6 +239,17 @@ export function PlayerTile({
         </div>
       )}
     </figure>
+  );
+}
+
+/** Signal bars with only the lowest one lit: the colour (weak: lamp, lost: blood) comes from .net-flag. */
+function NetBars({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className={className}>
+      <rect x="1" y="10" width="3" height="5" rx="1" fill="currentColor" />
+      <rect x="6.5" y="6" width="3" height="9" rx="1" fill="currentColor" opacity="0.28" />
+      <rect x="12" y="2" width="3" height="13" rx="1" fill="currentColor" opacity="0.28" />
+    </svg>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { rememberNickname, usePrefs } from "@/components/prefs";
 import type { Dictionary } from "../../../dictionaries";
 import type { RoomApi } from "@/lib/room/useRoom";
 import { CardFan } from "@/components/cards/CardFan";
@@ -28,7 +29,10 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
   const [returnTo, setReturnTo] = useState<number | null>(null);
   const asHost = mode === "host";
   const watching = mode === "watch";
-  const [name, setName] = useState("");
+  // The name this browser used last time fills in by itself until the person types.
+  const saved = usePrefs().nickname ?? "";
+  const [typed, setName] = useState<string | null>(null);
+  const name = typed ?? saved;
   const [password, setPassword] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -51,6 +55,7 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
         ? await room.joinAsSpectator(name, roomPassword, returnTo ?? undefined)
         : await room.joinAsPlayer(name, null, roomPassword);
     setBusy(false);
+    if (!err && !asHost) rememberNickname(name);
     if (err) {
       setError(errorText(err));
       // The game has started or every seat is taken: offer to watch with the same name.
@@ -79,7 +84,7 @@ export function JoinForm({ room, t, ui }: { room: RoomApi; t: Dictionary["roomUi
                   onClick={() => {
                     const on = returnTo !== r.seat;
                     setReturnTo(on ? r.seat : null);
-                    if (on && !name.trim()) setName(r.name);
+                    if (on && !typed?.trim()) setName(r.name);
                   }}
                   className="btn-feel inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--line)] px-4 aria-pressed:border-[var(--color-lamp)] aria-pressed:bg-[var(--color-lamp)] aria-pressed:text-[var(--color-ink)]"
                 >

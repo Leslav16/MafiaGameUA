@@ -157,8 +157,16 @@ $sshBase = @('-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=15'
 $tunnel = $null
 $limitNote = $null
 
+# Own permanent address (a static "white" IP from the provider, or your own domain pointing at it):
+# no tunnel at all, friends come straight to this computer. Needs port 8080 forwarded on the router.
+if ($settings['PUBLIC_URL']) {
+  $fixed = ($settings['PUBLIC_URL']).TrimEnd('/')
+  Say "     Власна постійна адреса з .env: $fixed" 'DarkGray'
+  $tunnel = @{ Process = $null; Url = $fixed }
+}
+
 # 0. ngrok, if you put your free NGROK_AUTHTOKEN in .env (most reliable, needs a free account).
-if ($settings['NGROK_AUTHTOKEN']) {
+if ($settings['NGROK_AUTHTOKEN'] -and -not $tunnel) {
   $ngrok = Join-Path $tools 'ngrok.exe'
   if (-not (Test-Path $ngrok)) {
     Say '     Завантажую ngrok (один раз)...' 'DarkGray'
@@ -172,7 +180,13 @@ if ($settings['NGROK_AUTHTOKEN']) {
   if (Test-Path $ngrok) {
     Get-Process ngrok -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $ngrok } | Stop-Process -Force
     Say '     ngrok (до 30 секунд)...' 'DarkGray'
-    $tunnel = Open-Tunnel $ngrok @('http', '8080', '--authtoken', $settings['NGROK_AUTHTOKEN'], '--log', 'stdout', '--log-format', 'logfmt') `
+    $ngrokArgs = @('http', '8080', '--authtoken', $settings['NGROK_AUTHTOKEN'], '--log', 'stdout', '--log-format', 'logfmt')
+    # NGROK_DOMAIN: the free permanent address from the ngrok dashboard, so the link is the same every time.
+    if ($settings['NGROK_DOMAIN']) {
+      $domain = $settings['NGROK_DOMAIN'] -replace '^https?://', '' -replace '/.*$', ''
+      $ngrokArgs += @('--url', "https://$domain")
+    }
+    $tunnel = Open-Tunnel $ngrok $ngrokArgs `
       'https://[a-z0-9.-]+\.ngrok(-free)?\.(app|dev|io)' (Join-Path $tools 'ngrok.out.log') (Join-Path $tools 'ngrok.err.log') 30
   }
 }
@@ -230,7 +244,13 @@ Say '5/5  Готово! Посилання для друзів (вже скоп�
 Say ''
 Say "     $link" 'Cyan'
 Say ''
-Say '     Посилання працює, лише поки відкрите це вікно. Наступного разу воно буде інше.' 'Yellow'
+$permanent = $settings['PUBLIC_URL'] -or ($settings['NGROK_DOMAIN'] -and $url -match 'ngrok')
+if ($permanent) {
+  Say '     Це постійне посилання: воно однакове щоразу, друзі можуть його зберегти. Працює, поки відкрите це вікно.' 'Yellow'
+} else {
+  Say '     Посилання працює, лише поки відкрите це вікно. Наступного разу воно буде інше.' 'Yellow'
+  Say '     Хочете постійне? Додайте NGROK_DOMAIN у .env (див. README).' 'DarkGray'
+}
 if ($limitNote) { Say "     $limitNote" 'Yellow' }
 if ($settings['NGROK_AUTHTOKEN'] -and $url -match 'ngrok') {
   Say '     ngrok спершу показує друзям сторінку-попередження: треба натиснути "Visit Site".' 'DarkGray'
@@ -247,7 +267,7 @@ Start-Process $link
 try {
   Read-Host 'Щоб завершити гру для всіх, натисніть Enter'
 } finally {
-  if (-not $tunnel.Process.HasExited) { Stop-Process -Id $tunnel.Process.Id -Force }
+  if ($tunnel.Process -and -not $tunnel.Process.HasExited) { Stop-Process -Id $tunnel.Process.Id -Force }
   Say 'Зупиняю гру...' 'DarkGray'
   docker compose stop *> $null
   Say 'Гру зупинено. Посилання більше не працює.' 'Green'

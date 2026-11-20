@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 
 /**
  * This browser's own preferences (not shared with anyone): sound effects, the night music volume,
- * calmer motion, a mirrored self-view and the camera background effect.
+ * calmer motion, a mirrored self-view, the camera background effect and the last nickname.
  * Kept in localStorage; every read and write is guarded because storage can
  * be blocked.
  */
@@ -17,6 +17,8 @@ export type Prefs = {
   mirror: boolean;
   effect: CamEffect;
   cameraId?: string;
+  /** The last name this browser used at a table, offered again in the join and create forms. */
+  nickname?: string;
   micId?: string;
 };
 
@@ -69,3 +71,9 @@ export const BACKGROUNDS: Record<Exclude<CamEffect, "none" | "blur">, string> = 
   bar: "/backgrounds/bar.jpg",
   wallpaper: "/backgrounds/wallpaper.jpg",
 };
+
+/** Remembers the name for next time (trimmed; empty names are not saved). */
+export function rememberNickname(name: string) {
+  const clean = name.trim();
+  if (clean && clean !== getPrefs().nickname) setPrefs({ nickname: clean });
+}

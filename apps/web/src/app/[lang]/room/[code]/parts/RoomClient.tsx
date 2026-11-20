@@ -223,6 +223,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
       out: s.out,
       nominated: s.nominated,
       bot: s.bot,
+      net: s.name && s.connected ? m.net : undefined,
     });
 
     // The vote on everyone's own screen (the host keeps the count in the panel).
@@ -366,6 +367,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                     camOn: hostMedia.camOn && !!hostMedia.video,
                     micOn: hostMedia.micOn,
                     fouls: 0,
+                    net: view.host.connected ? hostMedia.net : undefined,
                   }}
                   labels={ui}
                   tag={t.host}

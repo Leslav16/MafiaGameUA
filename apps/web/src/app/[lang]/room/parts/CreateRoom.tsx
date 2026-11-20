@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { rememberNickname, usePrefs } from "@/components/prefs";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import type { Dictionary } from "../../dictionaries";
@@ -12,7 +13,10 @@ const input =
 /** The host names themselves and sets a password; the game server returns the room code. Plain; restyled by the design work. */
 export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] }) {
   const router = useRouter();
-  const [name, setName] = useState("");
+  // The name this browser used last time fills in by itself until the person types.
+  const saved = usePrefs().nickname ?? "";
+  const [typed, setName] = useState<string | null>(null);
+  const name = typed ?? saved;
   const [password, setPassword] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   /** Optional password players and spectators type to come in (the host can change it later in the panel). */
@@ -34,6 +38,7 @@ export function CreateRoom({ lang, t }: { lang: string; t: Dictionary["roomUi"] 
     socket.emit("room:create", { name, password, isPublic, roomPassword: roomPassword.trim() || undefined }, (r: { ok: boolean; code?: string; key?: string; error?: string }) => {
       if (!r.ok || !r.code || !r.key) return done(r.error ?? "server_error");
       saveKey(r.code, r.key);
+      rememberNickname(name);
       done(null);
       router.push(`/${lang}/room/${r.code}`);
     });

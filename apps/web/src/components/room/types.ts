@@ -25,6 +25,8 @@ export type SeatInfo = {
   nominated?: boolean;
   /** A test bot (no camera or mic). */
   bot?: boolean;
+  /** The video server rates this person's connection as weak or dropping. Nothing shows while it is fine. */
+  net?: "weak" | "lost";
 };
 
 export type OutReason = "killed" | "voted" | "removed";

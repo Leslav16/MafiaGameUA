@@ -10,7 +10,12 @@ type State = "idle" | "asking" | "live" | "denied" | "missing";
 
 /** Same quality the room will use (docs/PLAN.md): 720p, clean voice. */
 const VIDEO = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
-const AUDIO = { echoCancellation: true, noiseSuppression: true };
+/** The same voice cleanup as the room (lib/room/useRoom.ts): echo and noise removed, voice isolated where the browser can. */
+const AUDIO = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, voiceIsolation: true } as MediaTrackConstraints;
+/** How long the "hear yourself" recording runs. */
+const TEST_MS = 4000;
+
+type Test = "idle" | "recording" | "playing";
 
 /**
  * Camera and mic check before the game: your own picture, device pickers,
@@ -47,18 +52,56 @@ export function DeviceCheck({
   const [mics, setMics] = useState<MediaDeviceInfo[]>([]);
   const [choice, setChoice] = useState<DeviceChoice>(initial ?? {});
   const [level, setLevel] = useState(0);
+  const [test, setTest] = useState<Test>("idle");
+  const testRef = useRef<{ rec: MediaRecorder | null; audio: HTMLAudioElement | null; url: string | null; timer: ReturnType<typeof setTimeout> | null }>({ rec: null, audio: null, url: null, timer: null });
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  /** Stops the "hear yourself" recording or playback and frees it. */
+  const stopTest = useCallback(() => {
+    const tr = testRef.current;
+    if (tr.timer) clearTimeout(tr.timer);
+    if (tr.rec && tr.rec.state !== "inactive") {
+      tr.rec.onstop = null;
+      tr.rec.stop();
+    }
+    tr.audio?.pause();
+    if (tr.url) URL.revokeObjectURL(tr.url);
+    testRef.current = { rec: null, audio: null, url: null, timer: null };
+    setTest("idle");
+  }, []);
+
+  /** Records a few seconds of the mic (with the same cleanup the room uses) and plays it back. */
+  const hearYourself = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream || typeof MediaRecorder === "undefined") return;
+    stopTest();
+    const chunks: Blob[] = [];
+    const rec = new MediaRecorder(new MediaStream(stream.getAudioTracks()));
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    rec.onstop = () => {
+      const url = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType }));
+      const audio = new Audio(url);
+      testRef.current = { rec: null, audio, url, timer: null };
+      audio.onended = () => stopTest();
+      setTest("playing");
+      audio.play().catch(() => stopTest());
+    };
+    rec.start();
+    testRef.current = { rec, audio: null, url: null, timer: setTimeout(() => rec.stop(), TEST_MS) };
+    setTest("recording");
+  }, [stopTest]);
+
   const stop = useCallback(() => {
+    stopTest();
     cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
     audioCtxRef.current?.close().catch(() => {});
     audioCtxRef.current = null;
-  }, []);
+  }, [stopTest]);
 
   const start = useCallback(
     async (want: DeviceChoice) => {
@@ -222,6 +265,16 @@ export function DeviceCheck({
             })}
           </div>
           <p className="mt-1.5 text-sm text-[var(--text-muted)] phase-transition">{t.levelHint}</p>
+          <button
+            type="button"
+            onClick={test === "idle" ? hearYourself : stopTest}
+            disabled={state !== "live"}
+            aria-live="polite"
+            className="btn-feel mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--line)] px-4 font-display text-base tracking-wide hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <MicIcon className="size-4" />
+            {test === "recording" ? t.testRecording : test === "playing" ? t.testPlaying : t.testMic}
+          </button>
         </div>
         {!hideReady && (
         <button
