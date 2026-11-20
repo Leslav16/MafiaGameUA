@@ -1,5 +1,7 @@
 "use client";
 
+import { NotesButton } from "@/components/room/NotesButton";
+import { useNotes } from "@/components/room/notes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -128,6 +130,7 @@ function lockReason(view: RoomView, t: Dictionary["roomUi"]) {
 
 export function RoomClient({ lang, code, dict }: { lang: string; code: string; dict: Dict }) {
   const room = useRoom(code);
+  const { notes } = useNotes(code);
   const [panelHidden, setPanelHidden] = useState(false);
   useShotSound(room.view?.flow.log);
   const isHostView = room.view?.me.kind === "host";
@@ -351,6 +354,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
                     }
                     against={view.flow.voting?.votes[s.seat]}
                     nightMark={nightMark(myView?.marks, s.seat, mySeat, ui)}
+                    note={myView ? notes.marks[s.seat] : undefined}
                   />
                   {!m.isLocal && <AudioOut track={m.audio} />}
                 </div>
@@ -446,6 +450,14 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
             extra={
               <>
               <SpectatorsButton spectators={view.spectators} t={t} closeLabel={ui.close} />
+              {myView && view.phase !== "lobby" && (
+                <NotesButton
+                  code={code}
+                  labels={ui}
+                  mySeat={mySeat}
+                  seats={view.seats.filter((s) => s.name).map((s) => ({ seat: s.seat, name: s.name ?? "" }))}
+                />
+              )}
               {isHost && panelHidden && (
                 <button
                   type="button"

@@ -105,6 +105,17 @@
     "camOff": "Camera off",
     "offline": "Disconnected",
     "weakNet": "Weak connection",
+    "notes": {
+      "open": "Notes",
+      "title": "My notes",
+      "hint": "Mark whom you suspect and whom you trust. Only you see the marks, on the player tiles.",
+      "suspect": "I suspect",
+      "trust": "I trust",
+      "text": "Notes",
+      "placeholder": "For example: #7 got nervous when #3 spoke...",
+      "private": "Notes stay in your browser only.",
+      "clear": "Clear all"
+    },
     "lostNet": "Connection dropping",
     "speaking": "Speaking",
     "killed": "Killed",
