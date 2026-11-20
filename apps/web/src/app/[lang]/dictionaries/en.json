@@ -1,10 +1,10 @@
 {
   "meta": {
-    "title": "MafiaGameUA: Mafia online with cameras",
+    "title": "Omerta: Mafia online with cameras",
     "description": "Play Mafia with cameras and microphones: 11 players and a host at one table."
   },
   "nav": {
-    "home": "MafiaGameUA",
+    "home": "Omerta",
     "switchTo": "Українська",
     "switchToLabel": "Перейти на українську"
   },
@@ -104,6 +104,8 @@
     "micOff": "Mic off",
     "camOff": "Camera off",
     "offline": "Disconnected",
+    "weakNet": "Weak connection",
+    "lostNet": "Connection dropping",
     "speaking": "Speaking",
     "killed": "Killed",
     "fouls": "Fouls: {n}",
@@ -168,6 +170,9 @@
       "microphone": "Microphone",
       "level": "Mic level",
       "levelHint": "Say something: the bar should move.",
+      "testMic": "Hear yourself",
+      "testRecording": "Speak, recording 4 seconds...",
+      "testPlaying": "This is how others hear you. Stop",
       "allow": "Allow camera and mic",
       "allowHint": "Your browser will ask. Click “Allow”.",
       "denied": "The browser blocked the camera or mic. Click the lock icon next to the site address, allow them, then reload the page.",

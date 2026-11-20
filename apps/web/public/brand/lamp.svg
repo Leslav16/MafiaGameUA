@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <pattern id="st2" width="8" height="8" patternUnits="userSpaceOnUse" x="0" y="20">
+      <g fill="#781210"><rect x="3.25" y="1" width="1.5" height="1.5"/><rect x="1.75" y="3" width="1.5" height="1.5"/><rect x="4.75" y="3" width="1.5" height="1.5"/><rect x="3.25" y="5" width="1.5" height="1.5"/></g>
+    </pattern>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0b06a" stop-opacity=".75"/><stop offset="1" stop-color="#e0b06a" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect x="31.2" y="2" width="1.6" height="12" fill="#857963"/>
+  <path d="M22 32 L42 32 L54 52 L10 52Z" fill="url(#beam)"/>
+  <path d="M24 14h16l8 18H16z" fill="#c8893f"/>
+  <path d="M20.5 22h23l2.5 6h-28z" fill="url(#st2)"/>
+  <path d="M20.5 22h23M18 28h28" stroke="#781210" stroke-width="1"/>
+  <ellipse cx="32" cy="32.5" rx="7" ry="2" fill="#fff4d6"/>
+  <rect x="12" y="52" width="40" height="3" rx="1.5" fill="#d6c7a1"/>
+</svg>

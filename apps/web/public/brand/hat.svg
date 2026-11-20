@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <pattern id="stitch" width="8" height="7" patternUnits="userSpaceOnUse" x="0" y="31">
+      <rect width="8" height="7" fill="#781210"/>
+      <g fill="#d6c7a1">
+        <rect x="3.25" y="0.75" width="1.5" height="1.5"/>
+        <rect x="1.75" y="2.75" width="1.5" height="1.5"/><rect x="4.75" y="2.75" width="1.5" height="1.5"/>
+        <rect x="3.25" y="4.75" width="1.5" height="1.5"/>
+      </g>
+      <rect x="0" y="2.75" width="0.9" height="1.5" fill="#16110f"/><rect x="7.1" y="2.75" width="0.9" height="1.5" fill="#16110f"/>
+    </pattern>
+    <clipPath id="crown"><path d="M17 40C16 26 17 13 24 10c4-2 6 3 8 3s4-5 8-3c7 3 8 16 7 30z"/></clipPath>
+    <linearGradient id="felt" x1="0" x2="1"><stop offset="0" stop-color="#2c180d"/><stop offset=".55" stop-color="#4f2d12"/><stop offset="1" stop-color="#2c180d"/></linearGradient>
+  </defs>
+  <path d="M17 40C16 26 17 13 24 10c4-2 6 3 8 3s4-5 8-3c7 3 8 16 7 30z" fill="url(#felt)"/>
+  <path d="M30 13.5c1 8 1 15 .5 22" stroke="#16110f" stroke-width="1.2" fill="none" opacity=".6"/>
+  <rect x="10" y="31" width="44" height="7" fill="url(#stitch)" clip-path="url(#crown)"/>
+  <path d="M3 41.5c4-5 12-4 17-3h24c5-1 13-2 17 3-7 6-19 6.5-29 6.5S10 47.5 3 41.5z" fill="#4f2d12"/>
+  <path d="M3 41.5c7 4 19 4.6 29 4.6s22-.6 29-4.6c-7 6-19 6.5-29 6.5S10 47.5 3 41.5z" fill="#16110f" opacity=".55"/>
+</svg>

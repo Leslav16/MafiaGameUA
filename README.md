@@ -1,6 +1,8 @@
-# MafiaGameUA
+# Омерта (Omerta)
 
 Mafia with cameras and microphones: 11 players and a host at one table. Ukrainian first, English second.
+
+The site is called **Омерта** (Omerta, the mafia's code of silence). The repository keeps its old name, MafiaGameUA.
 
 The plan, stack and design direction are in [docs/PLAN.md](docs/PLAN.md).
 
@@ -96,6 +98,13 @@ If you reload the page or come back later on the same browser, you return to you
 2. Відкрийте там **Your Authtoken** і скопіюйте токен.
 3. У `.env` додайте рядок `NGROK_AUTHTOKEN=ваш_токен` (без `#` на початку) і збережіть.
 4. Запустіть `start-online.bat`. Тепер скрипт спершу пробує ngrok. Коли друзі вперше відкриють посилання, ngrok покаже сторінку-попередження, і на ній треба натиснути **Visit Site**.
+
+**Постійне посилання (однакове щоразу).** У безкоштовному акаунті ngrok є одна постійна адреса:
+1. На **dashboard.ngrok.com** відкрийте **Domains** і візьміть безкоштовний домен (на кшталт `slovo-slovo.ngrok-free.app`).
+2. У `.env` додайте рядок `NGROK_DOMAIN=slovo-slovo.ngrok-free.app` поруч із `NGROK_AUTHTOKEN`.
+3. Тепер `start-online.bat` щоразу відкриває те саме посилання, і друзі можуть його зберегти.
+
+**Власна адреса (коли буде статична «біла» IP).** Рядок `PUBLIC_URL=https://ваша-адреса` у `.env` вимикає тунелі зовсім: друзі заходять прямо на ваш комп'ютер. Адреса має бути `https`, інакше браузери не дадуть камеру, тож для цього потрібен домен і сертифікат. Коли провайдер дасть білу IP, це налаштовується окремим кроком.
 
 Акаунт Cloudflare не потрібен. Сайт працює через `https`, тому браузери дозволяють камеру й мікрофон.
 
