@@ -6,7 +6,7 @@ import { CardBack } from "../cards/RoleCardFace";
 import { PlainCard } from "../cards/PlainCard";
 import type { CardRole } from "../cards/RoleArt";
 import { usePhase } from "../Phase";
-import { RoleFigure } from "../three";
+import { RoleFigure, preloadFigures } from "./RoleFigure";
 
 const ORDER: CardRole[] = ["civilian", "sheriff", "don", "mafia", "doctor"];
 const MOB = new Set<CardRole>(["don", "mafia"]);
@@ -14,8 +14,8 @@ const MOB = new Set<CardRole>(["don", "mafia"]);
 /**
  * The landing scene: the lamp over a leather desk and a hand of the five role
  * cards. Point at a card to lift it; click it and it rises into the light while
- * the role's 3D figure fades in on the desk to the right of the fan (where
- * WebGL runs). The fan itself never moves, so it stays centred under the lamp.
+ * the role's figure (the owner's own vinyl toys) fades in on the desk to the
+ * right of the fan. The fan itself never moves, so it stays centred under the lamp.
  * Clicking the card again, outside, or Esc puts it back. At night the town's
  * cards turn face down; only the mafia's stay open.
  */
@@ -50,12 +50,23 @@ export function Hand({
   useEffect(() => {
     seenRef.current = seen;
   }, [seen]);
-  // If the 3D part never ran (no WebGL, failed to load) nothing reports back: don't wait forever.
+  // With reduced motion there is no exit animation to report back: don't wait forever.
   useEffect(() => {
     if (!fig?.leaving) return;
     const t = setTimeout(onLeft, 900);
     return () => clearTimeout(t);
   }, [fig, onLeft]);
+
+  // Fetch the five figures once the page is quiet, so a click shows one at once.
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number; cancelIdleCallback?: (id: number) => void };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(preloadFigures);
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(preloadFigures, 1200);
+    return () => clearTimeout(t);
+  }, []);
 
   // Click outside the hand or Esc closes the card.
   useEffect(() => {

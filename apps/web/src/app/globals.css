@@ -1203,6 +1203,66 @@ html[data-motion="calm"] *::after {
     animation: none;
   }
 }
+/* The owner's figure (RoleFigure.tsx): a cut-out photo lit by the lamp. GSAP owns
+   the transforms of .rf-tilt, .rf-body and .rf-sheen; CSS owns everything else. */
+.role-figure {
+  perspective: 900px;
+}
+.rf-tilt {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transform-origin: 50% 100%;
+}
+.rf-body {
+  position: relative;
+  height: 100%;
+  max-width: 100%;
+  transform-origin: 50% 100%;
+}
+.rf-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  user-select: none;
+  /* Contact shadow on the leather and the lamp's warm cast from the upper left. */
+  filter: drop-shadow(-6px 10px 12px rgb(0 0 0 / 0.5)) sepia(0.12) saturate(0.95);
+  transition: filter var(--phase-duration) var(--ease-phase);
+}
+.rf-sheen-mask {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  /* Lamp side warm, far side in shade. */
+  background: linear-gradient(100deg, rgb(255 196 120 / 0.14), transparent 45%, rgb(20 8 4 / 0.28));
+  pointer-events: none;
+}
+.rf-sheen {
+  position: absolute;
+  inset: 0 -40%;
+  background: linear-gradient(105deg, transparent 38%, rgb(255 226 170 / 0.2) 48%, transparent 58%);
+  mix-blend-mode: screen;
+}
+.rf-shadow {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -2.5%;
+  height: 7%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.6), transparent);
+}
+.stage[data-night] .rf-img {
+  filter: drop-shadow(0 0 16px rgb(208 84 78 / 0.35)) brightness(0.78) saturate(0.85);
+}
 .hand-tilt {
   position: absolute;
   inset: 0;
