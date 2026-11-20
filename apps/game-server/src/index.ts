@@ -286,6 +286,19 @@ io.on("connection", (socket) => {
     }
   });
 
+  // A living player votes for one of today's candidates (or takes the vote back with null).
+  socket.on("me:vote", async (payload: unknown, ack?: Ack) => {
+    const ctx = viewerOf(socket);
+    if (!ctx) return ack?.({ ok: false, error: "not_joined" });
+    try {
+      ctx.room.castVote(ctx.viewer, (payload as { candidate?: unknown })?.candidate ?? null);
+      ack?.({ ok: true });
+      await publish(ctx.room);
+    } catch (err) {
+      fail(ack, err);
+    }
+  });
+
   socket.on("me:seat", async (payload: unknown, ack?: Ack) => {
     const ctx = viewerOf(socket);
     if (!ctx) return ack?.({ ok: false, error: "not_joined" });

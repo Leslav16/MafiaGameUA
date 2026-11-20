@@ -151,8 +151,39 @@ function Voting({ view, act, t }: { view: RoomView; act: (a: HostAction) => void
     );
   }
 
+  const notVoted = alive.filter((s) => !used.has(s.seat)).map((s) => s.seat);
+  const last = v.candidates[lastIndex];
+
   return (
     <div className="flex flex-col gap-3">
+      {/* What the players cast on their own screens, live. */}
+      <div className="flex flex-col gap-2 rounded-md border border-[var(--line)] p-2">
+        <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">{t.liveVotes}</span>
+        <ul className="flex flex-col gap-1">
+          {v.candidates.map((c) => {
+            const hands = v.votes[c] ?? [];
+            return (
+              <li key={c} className="flex items-center gap-2 text-sm">
+                <span className="w-10 shrink-0 font-display text-lg">№{c}</span>
+                <span className="min-w-0 flex-1 truncate text-[var(--text-muted)]">{hands.length ? hands.join(", ") : "—"}</span>
+                <span className="shrink-0 font-display text-lg tabular-nums">{hands.length}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-sm">
+          {notVoted.length
+            ? fmt(t.notVotedYet, { n: notVoted.length, list: notVoted.join(", "), seat: last })
+            : t.allVoted}
+        </p>
+        <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "countVotes" })}>
+          {t.countNow}
+          <PlayIcon className="size-4" />
+        </button>
+        <p className="text-xs text-[var(--text-muted)]">{t.playersVote}</p>
+      </div>
+
+      <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">{t.byHand}</span>
       <div className="flex items-baseline justify-between">
         <span className="font-display text-2xl font-semibold">{fmt(t.against, { n: candidate })}</span>
         <span className="text-sm">{fmt(t.handsCount, { n: v.votes[candidate]?.length ?? 0 })}</span>
@@ -180,7 +211,7 @@ function Voting({ view, act, t }: { view: RoomView; act: (a: HostAction) => void
           })}
         </p>
       )}
-      <button type="button" className={`${btn} ${primary} ${big}`} onClick={() => act({ type: "next" })}>
+      <button type="button" className={`${btn} ${plain}`} onClick={() => act({ type: "next" })}>
         {v.index + 1 < lastIndex ? t.nextCandidate : t.count}
             <PlayIcon className="size-4" />
       </button>

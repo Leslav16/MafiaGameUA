@@ -22,6 +22,7 @@ import { RoomDock } from "@/components/room/RoomDock";
 import { RoomGrid } from "@/components/room/RoomGrid";
 import { CheckIcon, CopyIcon, PanelIcon, SpeakerIcon } from "@/components/room/icons";
 import { Timer } from "@/components/room/Timer";
+import { VotePanel } from "@/components/room/VotePanel";
 import type { SeatInfo } from "@/components/room/types";
 import { useTileOrder } from "@/lib/room/useTileOrder";
 import { JoinForm } from "./JoinForm";
@@ -210,6 +211,27 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
       bot: s.bot,
     });
 
+    // The vote on everyone's own screen (the host keeps the count in the panel).
+    const voting = view.flow.stage === "voting" ? view.flow.voting : null;
+    const showVote = !!voting && !isHost;
+    const alive = view.seats.filter((s) => s.name && s.alive);
+    const votePanel = (compact: boolean) =>
+      voting && (
+        <VotePanel
+          voting={voting}
+          names={Object.fromEntries(view.seats.map((s) => [s.seat, s.name ?? ""]))}
+          mySeat={mySeat}
+          canVote={mySeat !== null && !!view.seats[mySeat - 1]?.alive}
+          aliveSeats={alive.map((s) => s.seat)}
+          onVote={async (c) => {
+            const err = await room.vote(c);
+            return err ? errorText(err) : null;
+          }}
+          labels={ui}
+          compact={compact}
+        />
+      );
+
     body = (
       <div className="flex w-full flex-col lg:h-dvh">
         <NightFall phase={view.phase} nightText={ui.nightFalls} dayText={ui.dayBreaks} />
@@ -259,7 +281,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         </div>
 
         <div
-          className={`grid items-start gap-3 py-2 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}
+          className={`grid items-start gap-3 py-2 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] ${isHost && !panelHidden ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : showVote ? "lg:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}
         >
           <div className="room-video">
           {/* 11 players, then the host on tile 12, set apart */}
@@ -318,6 +340,8 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
 
           </div>
 
+          {showVote && <div className="hidden lg:block lg:h-full lg:min-h-0">{votePanel(false)}</div>}
+
           {isHost && !panelHidden && (
             <div className="room-panel lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
               <HostPanel
@@ -337,6 +361,7 @@ export function RoomClient({ lang, code, dict }: { lang: string; code: string; d
         </div>
 
         <div className="sticky bottom-0 bg-[var(--surface)] phase-transition">
+          {showVote && <div className="px-1 pt-2 lg:hidden">{votePanel(true)}</div>}
           <RoomDock
             effectsSupported={effectsOk}
             initialDevices={{ cameraId: prefs.cameraId, micId: prefs.micId }}
