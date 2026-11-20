@@ -1,4 +1,7 @@
-import { randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomInt } from "node:crypto";
+import { GameError } from "./errors.js";
+import { assertSeat, cleanName, splitSeatFromName } from "./names.js";
+import { checkPassword, hashPassword, newId, sameText } from "./secrets.js";
 import {
   SEAT_COUNT,
   type FlowView,
@@ -26,6 +29,9 @@ import { countVotes, healBlocked, isMafia, speakingOrder, suggestWinner, type Do
  * networking, so they can be tested on their own. index.ts sends the views to
  * browsers and applies the camera/mic permissions to LiveKit.
  */
+
+// Kept here too, so other files and the tests can import them from the room as before.
+export { GameError, cleanName, splitSeatFromName };
 
 /** Every speech, defence and last word lasts one minute (the host can pass the floor earlier). */
 export const SPEECH_SECONDS = 60;
@@ -80,45 +86,6 @@ export const DEFAULT_MUSIC_VOLUME = 0.4;
 
 /** Enough for a full table of friends watching; keeps the video server's load sane. */
 export const MAX_SPECTATORS = 40;
-
-export class GameError extends Error {}
-
-const newId = (bytes: number) => randomBytes(bytes).toString("base64url");
-
-function hashPassword(password: string): string {
-  const salt = randomBytes(16);
-  return `${salt.toString("hex")}:${scryptSync(password, salt, 32).toString("hex")}`;
-}
-
-function checkPassword(password: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  const got = scryptSync(password, Buffer.from(salt, "hex"), 32);
-  return timingSafeEqual(got, Buffer.from(hash, "hex"));
-}
-
-export function cleanName(raw: unknown): string {
-  if (typeof raw !== "string") throw new GameError("invalid_name");
-  const name = raw.replace(/\s+/g, " ").trim().slice(0, 24);
-  if (!name) throw new GameError("invalid_name");
-  return name;
-}
-
-/** "4. Olena", "4) Olena", "4 - Olena" or "4 Olena" -> seat 4, name "Olena". */
-export function splitSeatFromName(name: string): { seat: number | null; name: string } {
-  const m = /^\s*(\d{1,2})\s*[.):\-–]?\s+(.+)$|^\s*(\d{1,2})\s*[.):\-–]\s*(.+)$/.exec(name);
-  if (!m) return { seat: null, name };
-  const seat = Number(m[1] ?? m[3]);
-  const rest = (m[2] ?? m[4]).trim();
-  if (seat < 1 || seat > SEAT_COUNT || !rest) return { seat: null, name };
-  return { seat, name: rest };
-}
-
-function assertSeat(seat: unknown): number {
-  if (typeof seat !== "number" || !Number.isInteger(seat) || seat < 1 || seat > SEAT_COUNT) {
-    throw new GameError("invalid_seat");
-  }
-  return seat;
-}
 
 const PUBLIC_LOG = new Set<LogEntry["kind"]>(["nominated", "voted_out", "revote", "nobody_out", "killed", "nobody_killed", "removed"]);
 const NIGHT_ORDER: NightStep[] = ["mafia", "don", "sheriff", "doctor"];
@@ -189,7 +156,7 @@ export class Room {
   /** The room password players and spectators type; always true while the room is open. */
   checkJoinPassword(password: unknown): boolean {
     if (this.joinPassword === null) return true;
-    return typeof password === "string" && password.trim() === this.joinPassword;
+    return typeof password === "string" && sameText(password.trim(), this.joinPassword);
   }
 
   /** Shown in the home page list: public, and the host is here or left less than `graceMs` ago (a reload). */

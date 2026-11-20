@@ -2,7 +2,9 @@ import { createServer } from "node:http";
 import { randomInt } from "node:crypto";
 import { Server, type Socket } from "socket.io";
 import { applyMedia, checkVideoServer, closeVideoRoom, joinToken, LIVEKIT_PUBLIC_URL, removeFromVideo } from "./livekit.js";
-import { GameError, MAX_MUSIC_BYTES, Room, cleanName, type MediaPermission, type Viewer } from "./room.js";
+import { Limiter } from "./limits.js";
+import { handleMusic, MUSIC_CORS } from "./music.js";
+import { GameError, Room, cleanName, type MediaPermission, type Viewer } from "./room.js";
 import type { HostAction } from "./types.js";
 
 /**
@@ -45,17 +47,12 @@ const rooms = new Map<string, Room>();
 /** Last camera/mic rules sent to LiveKit, per room, to send only what changed. */
 const sentMedia = new Map<string, Map<string, MediaPermission>>();
 
-/** Wrong host passwords per address and room: after 5 in 10 minutes, that address waits. */
-const PASSWORD_TRIES = 5;
-const PASSWORD_WINDOW_MS = 10 * 60 * 1000;
-const passwordFails = new Map<string, number[]>();
-
-function passwordBlocked(id: string, now = Date.now()): boolean {
-  const recent = (passwordFails.get(id) ?? []).filter((t) => t > now - PASSWORD_WINDOW_MS);
-  if (recent.length) passwordFails.set(id, recent);
-  else passwordFails.delete(id);
-  return recent.length >= PASSWORD_TRIES;
-}
+/** Wrong passwords per address and room: after 5 in 10 minutes, that address waits. */
+const passwordFails = new Limiter(5, 10 * 60 * 1000);
+/** At most this many rooms at once on the whole server (MAX_ROOMS in .env changes it). */
+const MAX_ROOMS = Math.max(1, Number(process.env.MAX_ROOMS) || 30);
+/** One address can open at most 5 rooms in 10 minutes. */
+const roomsOpened = new Limiter(5, 10 * 60 * 1000);
 
 /**
  * The player's own address. Through the internet link every connection reaches the game
@@ -71,83 +68,10 @@ function clientAddress(socket: Socket): string {
   return first || socket.handshake.address;
 }
 
-function passwordFailed(id: string, now = Date.now()) {
-  passwordFails.set(id, [...(passwordFails.get(id) ?? []), now]);
-}
-
-/** Reads a request body up to `limit` bytes; null if it is bigger. */
-function readBody(req: import("node:http").IncomingMessage, limit: number): Promise<Buffer | null> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    let size = 0;
-    let over = false;
-    req.on("data", (c: Buffer) => {
-      size += c.length;
-      if (size > limit) over = true;
-      else chunks.push(c);
-    });
-    req.on("end", () => resolve(over ? null : Buffer.concat(chunks)));
-    req.on("error", reject);
-  });
-}
-
-const MUSIC_CORS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, PUT, OPTIONS",
-  "access-control-allow-headers": "content-type, x-room-key, x-file-name, range",
-  "access-control-expose-headers": "content-length, content-range, accept-ranges",
-};
-
-/** The host's night music: the host uploads one file per room; every browser in the room plays it. */
-async function handleMusic(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, code: string) {
-  const room = rooms.get(code);
-  if (req.method === "OPTIONS") return res.writeHead(204, MUSIC_CORS).end();
-  if (!room) return res.writeHead(404, MUSIC_CORS).end();
-
-  if (req.method === "PUT") {
-    if (room.resolveKey(req.headers["x-room-key"]).kind !== "host") return res.writeHead(403, MUSIC_CORS).end();
-    const body = await readBody(req, MAX_MUSIC_BYTES);
-    const reply = (status: number, payload: Record<string, unknown>) =>
-      res.writeHead(status, { ...MUSIC_CORS, "content-type": "application/json" }).end(JSON.stringify(payload));
-    if (!body) return reply(413, { ok: false, error: "music_too_big" });
-    let name = "music";
-    try {
-      name = decodeURIComponent(String(req.headers["x-file-name"] ?? "music"));
-    } catch {}
-    try {
-      room.setMusic(name, String(req.headers["content-type"] ?? "").split(";")[0].trim().toLowerCase(), body);
-    } catch (err) {
-      return reply(400, { ok: false, error: err instanceof GameError ? err.message : "server_error" });
-    }
-    reply(200, { ok: true });
-    return void publish(room);
-  }
-
-  if (req.method === "GET" || req.method === "HEAD") {
-    const music = room.getMusic();
-    if (!music) return res.writeHead(404, MUSIC_CORS).end();
-    const total = music.data.length;
-    const head = { ...MUSIC_CORS, "content-type": music.type, "accept-ranges": "bytes", "cache-control": "private, max-age=86400" };
-    const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ""));
-    if (range && (range[1] || range[2])) {
-      let start = range[1] ? Number(range[1]) : total - Number(range[2]);
-      let end = range[1] && range[2] ? Number(range[2]) : total - 1;
-      start = Math.max(0, start);
-      end = Math.min(total - 1, end);
-      if (start > end) return res.writeHead(416, { ...head, "content-range": `bytes */${total}` }).end();
-      res.writeHead(206, { ...head, "content-length": end - start + 1, "content-range": `bytes ${start}-${end}/${total}` });
-      return res.end(req.method === "HEAD" ? undefined : music.data.subarray(start, end + 1));
-    }
-    res.writeHead(200, { ...head, "content-length": total });
-    return res.end(req.method === "HEAD" ? undefined : music.data);
-  }
-  res.writeHead(405, MUSIC_CORS).end();
-}
-
 const http = createServer((req, res) => {
   const music = /^\/music\/([a-z0-9]{1,16})(?:\?.*)?$/.exec(req.url ?? "");
   if (music) {
-    handleMusic(req, res, music[1]).catch((err) => {
+    handleMusic(req, res, rooms.get(music[1]), (room) => void publish(room)).catch((err) => {
       console.error(err);
       if (!res.headersSent) res.writeHead(500, MUSIC_CORS);
       res.end();
@@ -256,6 +180,7 @@ io.on("connection", (socket) => {
       if (typeof password !== "string" || password.length < 4 || password.length > 64) {
         throw new GameError("invalid_password");
       }
+      if (rooms.size >= MAX_ROOMS || !roomsOpened.take(clientAddress(socket))) throw new GameError("too_many_rooms");
       const room = new Room(newCode(), cleanName(name), password, isPublic === true);
       // Optional: lock the room for players and spectators from the start.
       if (typeof roomPassword === "string" && roomPassword.trim()) room.apply({ type: "setRoomPassword", password: roomPassword });
@@ -294,18 +219,18 @@ io.on("connection", (socket) => {
         if (room.resolveKey(key).kind === "nobody") throw new GameError("key_unknown");
       } else if (p.host === true) {
         const tries = `${clientAddress(socket)}|${room.code}`;
-        if (passwordBlocked(tries)) throw new GameError("too_many_tries");
+        if (passwordFails.blocked(tries)) throw new GameError("too_many_tries");
         if (!room.checkHostPassword(p.password)) {
-          passwordFailed(tries);
+          passwordFails.hit(tries);
           throw new GameError("wrong_password");
         }
-        passwordFails.delete(tries);
+        passwordFails.clear(tries);
         key = room.hostKey;
       } else if (room.locked && !room.checkJoinPassword(p.roomPassword)) {
         // Players and spectators of a locked room need its password; the same limit on wrong tries as the host's.
         const tries = `${clientAddress(socket)}|${room.code}|room`;
-        if (passwordBlocked(tries)) throw new GameError("too_many_tries");
-        if (typeof p.roomPassword === "string" && p.roomPassword) passwordFailed(tries);
+        if (passwordFails.blocked(tries)) throw new GameError("too_many_tries");
+        if (typeof p.roomPassword === "string" && p.roomPassword) passwordFails.hit(tries);
         throw new GameError(p.roomPassword ? "wrong_room_password" : "room_locked");
       } else if (p.watch === true) {
         key = room.addSpectator(p.name, p.returnTo).key;
@@ -462,6 +387,9 @@ setInterval(() => {
     const idle = room.lastActive < now - ROOM_IDLE_MS && room.hostConnected === 0;
     if (hostGone || idle) void closeRoom(room);
   }
+  // Old entries of the wrong-password and new-room counters, so they never grow without end.
+  passwordFails.sweep(now);
+  roomsOpened.sweep(now);
 }, 60 * 1000).unref();
 
 http.listen(PORT, () => {

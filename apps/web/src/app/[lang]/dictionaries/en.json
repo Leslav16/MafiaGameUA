@@ -1,10 +1,10 @@
 {
   "meta": {
-    "title": "MafiaGameUA: Mafia online with cameras",
+    "title": "Omerta: Mafia online with cameras",
     "description": "Play Mafia with cameras and microphones: 11 players and a host at one table."
   },
   "nav": {
-    "home": "MafiaGameUA",
+    "home": "Omerta",
     "switchTo": "Українська",
     "switchToLabel": "Перейти на українську"
   },
@@ -104,6 +104,19 @@
     "micOff": "Mic off",
     "camOff": "Camera off",
     "offline": "Disconnected",
+    "weakNet": "Weak connection",
+    "notes": {
+      "open": "Notes",
+      "title": "My notes",
+      "hint": "Mark whom you suspect and whom you trust. Only you see the marks, on the player tiles.",
+      "suspect": "I suspect",
+      "trust": "I trust",
+      "text": "Notes",
+      "placeholder": "For example: #7 got nervous when #3 spoke...",
+      "private": "Notes stay in your browser only.",
+      "clear": "Clear all"
+    },
+    "lostNet": "Connection dropping",
     "speaking": "Speaking",
     "killed": "Killed",
     "fouls": "Fouls: {n}",
@@ -168,6 +181,9 @@
       "microphone": "Microphone",
       "level": "Mic level",
       "levelHint": "Say something: the bar should move.",
+      "testMic": "Hear yourself",
+      "testRecording": "Speak, recording 4 seconds...",
+      "testPlaying": "This is how others hear you. Stop",
       "allow": "Allow camera and mic",
       "allowHint": "Your browser will ask. Click “Allow”.",
       "denied": "The browser blocked the camera or mic. Click the lock icon next to the site address, allow them, then reload the page.",
@@ -426,6 +442,7 @@
       "night_not_done": "Finish the night steps first.",
       "heal_blocked": "The Doctor can't heal this player tonight.",
       "too_many_tries": "Too many wrong tries. Wait 10 minutes.",
+      "too_many_rooms": "Too many rooms are open right now. Try again a little later.",
       "too_many_spectators": "Too many spectators, no room left.",
       "room_locked": "This room is locked. Ask the host for the password.",
       "wrong_room_password": "Wrong room password.",

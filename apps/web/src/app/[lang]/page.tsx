@@ -34,7 +34,8 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
           aria-label={dict.nav.home}
           className="brand inline-flex shrink-0 items-center gap-2.5 font-display text-xl font-semibold tracking-wide"
         >
-          <span aria-hidden className="brand-mark">♠</span>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a tiny static SVG logo */}
+          <img src="/brand/hat.svg" alt="" aria-hidden width={34} height={34} className="brand-mark" />
           <span className="hidden sm:inline">{dict.nav.home}</span>
         </Link>
         <nav className="flex flex-1 items-center justify-between gap-3 whitespace-nowrap sm:flex-none sm:justify-end sm:gap-5">

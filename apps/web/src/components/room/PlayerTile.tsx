@@ -41,6 +41,7 @@ export function PlayerTile({
   className = "",
   against,
   nightMark,
+  note,
 }: {
   info: SeatInfo;
   labels: RoomLabels;
@@ -64,9 +65,12 @@ export function PlayerTile({
   against?: number[];
   /** A private note only this viewer sees, e.g. the Sheriff's check result. `tone` colours it. */
   nightMark?: { text: string; tone: "bad" | "good" | "info" } | null;
+  /** This viewer's own private note on the seat (players only): shown as a small mark before the name. */
+  note?: "suspect" | "trust";
 }) {
   // No camera/mic icons on tiles: at night they could hint at who is awake.
-  const { seat, name, alive, connected, camOn, fouls, role, nominated = false } = info;
+  const { seat, name, alive, connected, camOn, fouls, role, nominated = false, net } = info;
+  const netLabel = net === "lost" ? labels.lostNet : net === "weak" ? labels.weakNet : null;
   const out = alive ? null : (info.out ?? "killed");
   const outLabel = out === "voted" ? labels.votedOut : out === "removed" ? labels.removed : labels.killed;
   const seatLabel = tag ?? fill(labels.seat, seat);
@@ -81,10 +85,12 @@ export function PlayerTile({
     nominated && alive ? labels.nominated : null,
     speaking && alive ? labels.speaking : null,
     !connected ? labels.offline : null,
+    netLabel,
     fouls > 0 ? fill(labels.fouls, fouls) : null,
     showRole && role ? labels.role[role] : null,
     against && against.length ? fill(labels.votesAgainst, against.length) : null,
     nightMark ? nightMark.text : null,
+    note ? labels.notes[note] : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -202,6 +208,11 @@ export function PlayerTile({
 
       {/* Name strip */}
       <figcaption className="absolute inset-x-0 bottom-0 z-10 flex items-center gap-2 bg-gradient-to-t from-black/75 to-transparent px-2.5 pt-5 pb-1.5 text-[clamp(0.8rem,2.4cqw,1rem)] leading-tight">
+        {note && (
+          <span aria-hidden title={labels.notes[note]} data-mark={note} className="note-flag grid size-5 shrink-0 place-items-center rounded-full">
+            {note === "suspect" ? <EyeGlyph /> : <CheckGlyph />}
+          </span>
+        )}
         <span className="min-w-0 flex-1 truncate font-medium">
           {name}
           {isMe && (
@@ -210,6 +221,12 @@ export function PlayerTile({
             </span>
           )}
         </span>
+        {/* Bad connection only: nothing shows while it is fine */}
+        {netLabel && (
+          <span title={netLabel} aria-hidden data-net={net} className="net-flag flex shrink-0 items-center">
+            <NetBars className="size-4" />
+          </span>
+        )}
       </figcaption>
 
       {/* Disconnected */}
@@ -231,6 +248,34 @@ export function PlayerTile({
         </div>
       )}
     </figure>
+  );
+}
+
+/** Signal bars with only the lowest one lit: the colour (weak: lamp, lost: blood) comes from .net-flag. */
+function NetBars({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className={className}>
+      <rect x="1" y="10" width="3" height="5" rx="1" fill="currentColor" />
+      <rect x="6.5" y="6" width="3" height="9" rx="1" fill="currentColor" opacity="0.28" />
+      <rect x="12" y="2" width="3" height="13" rx="1" fill="currentColor" opacity="0.28" />
+    </svg>
+  );
+}
+
+function EyeGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2.4} aria-hidden>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="2.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function CheckGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" aria-hidden>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
   );
 }
 
