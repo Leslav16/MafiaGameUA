@@ -1,0 +1,32 @@
+# Checks every change before it is merged: types, code style, the game tests
+# (including a whole game played by twelve robots) and a build of the site.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Types
+        run: npm run typecheck
+      - name: Code style
+        run: npm run lint
+      - name: Game tests
+        run: npm test
+      - name: Build
+        run: npm run build
